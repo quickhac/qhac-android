@@ -10,5 +10,10 @@
     <string name="card_title">Card Title</string>
     <string name="card_desc">Card description</string>
     <string name="card_overflow">Overflow</string>
-
+    <string name="action_refresh">Refresh grades</string>
+	<string name="hint_username">Username</string>
+	<string name="hint_password">Password</string>
+	<string name="hint_id">Student ID</string>
+	<string name="action_signout">Sign out</string>
+    
 </resources>

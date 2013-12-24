@@ -20,20 +20,30 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Spinner;
+import android.widget.Toast;
 
-import com.fima.cardsui.objects.Card;
 import com.fima.cardsui.views.CardUI;
 
 public class MainActivity extends Activity {
@@ -43,6 +53,8 @@ public class MainActivity extends Activity {
 	DrawerLayout drawerLayout;
 	ActionBarDrawerToggle drawerToggle;
 
+	Button signInButton;
+
 	CardUI cardView;
 
 	@Override
@@ -50,6 +62,151 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
+
+		signInButton = (Button) findViewById(R.id.button_signin);
+
+		String[] credentials = getCredentials();
+
+		if (credentials[0].length() > 0 && credentials[1].length() > 0
+				&& credentials[2].length() > 0 && credentials[3].length() > 0) {
+			new ScrapeTask(this).execute(new String[] { credentials[0],
+					credentials[1], credentials[2], credentials[3] });
+			signInButton.setVisibility(View.GONE);
+		} else {
+			/*
+			 * Prompt for login and set the login button as visible.
+			 */
+			signInButton.setVisibility(View.VISIBLE);
+			startLogin();
+		}
+		makeDrawer();
+	}
+
+	/*
+	 * Helper class that returns the credentials of the student.
+	 */
+	public String[] getCredentials() {
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		String[] credentials = new String[4];
+		String user = prefs.getString("user", "");
+		String pass = prefs.getString("pass", "");
+		String district = prefs.getString("district", "");
+		String id = prefs.getString("id", "");
+		credentials[0] = user;
+		credentials[1] = pass;
+		credentials[2] = id;
+		credentials[3] = district;
+		return credentials;
+	}
+
+	/*
+	 * Detects if Sign In button has been pressed.
+	 */
+	public void onSignInClick(View v) {
+		startLogin();
+	}
+
+	/*
+	 * Starts login by showing a login dialog. Saves credentials and loads
+	 * grades when user logs in.
+	 */
+	public void startLogin() {
+		LayoutInflater factory = LayoutInflater.from(this);
+		final View textEntryView = factory.inflate(R.layout.dialog_login, null);
+		// text_entry is an Layout XML file containing two text field to display
+		// in alert dialog
+		final EditText userName = (EditText) textEntryView
+				.findViewById(R.id.user);
+		final EditText password = (EditText) textEntryView
+				.findViewById(R.id.pass);
+		final EditText studentId = (EditText) textEntryView
+				.findViewById(R.id.id);
+		final Spinner district = (Spinner) textEntryView
+				.findViewById(R.id.district);
+		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+				this, R.array.districts_array,
+				android.R.layout.simple_spinner_item);
+		// Specify the layout to use when the list of choices appears
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		// Apply the adapter to the spinner
+		district.setAdapter(adapter);
+
+		final AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+		alert.setTitle("Sign in")
+				.setView(textEntryView)
+				.setPositiveButton("Login",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog,
+									int whichButton) {
+								if (userName.getText().length() > 0
+										&& password.getText().length() > 0
+										&& studentId.length() > 0
+										&& district.getSelectedItem() != null) {
+									saveCredentials(userName.getText()
+											.toString(), password.getText()
+											.toString(), studentId.toString(),
+											district.getSelectedItem()
+													.toString());
+								} else {
+									Toast.makeText(MainActivity.this,
+											"Please fill out all info.",
+											Toast.LENGTH_SHORT).show();
+								}
+							}
+						})
+				.setNegativeButton("Cancel",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog,
+									int whichButton) {
+							}
+						})
+				.setMessage("Use your GradeSpeed credentials.");
+		alert.show();
+	}
+
+	/*
+	 * Saves credentials of student to SharedPreferences.
+	 * 
+	 * @param The username
+	 * 
+	 * @param The password
+	 * 
+	 * @param The student id
+	 * 
+	 * @param The district (AISD or RRISD)
+	 */
+	public void saveCredentials(String user, String pass, String id,
+			String district) {
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		Editor edit = prefs.edit();
+		edit.putString("user", user);
+		edit.putString("pass", pass);
+		edit.putString("id", id);
+		edit.putString("district", district);
+		edit.commit();
+		restartActivity();
+	}
+	
+	/*
+	 * Helper method that restarts the activity.
+	 */
+	public void restartActivity() {
+		Intent intent = getIntent();
+		overridePendingTransition(0, 0);
+		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+		finish();
+
+		overridePendingTransition(0, 0);
+		startActivity(intent);
+	}
+
+	/*
+	 * Sets up some elements of slide out navigation drawer.
+	 */
+	public void makeDrawer() {
 		drawerList = (ListView) findViewById(R.id.left_drawer);
 		drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
 		drawerToggle = new ActionBarDrawerToggle(this, drawerLayout,
@@ -73,8 +230,6 @@ public class MainActivity extends Activity {
 
 		// Set the drawer toggle as the DrawerListener
 		drawerLayout.setDrawerListener(drawerToggle);
-		new ScrapeTask(this).execute(new String[] { "vpatil", "qHACtest1",
-				"2096730", "AISD" });
 	}
 
 	/* Called whenever we call invalidateOptionsMenu() */
@@ -101,10 +256,13 @@ public class MainActivity extends Activity {
 	public void handleResponse(String response) {
 		if (response.equals("UNKNOWN_ERROR")) {
 			// Error unknown
-
+			Toast.makeText(this, "Something went wrong. GradeSpeed servers are probably down. Try relogging or refreshing.", Toast.LENGTH_SHORT).show();
+			signInButton.setVisibility(View.VISIBLE);
 		} else if (response.equals("INVALID_LOGIN")) {
 			// Wrong credentials sent
-
+			Toast.makeText(this, "Invalid username, password, student ID, or school district.", Toast.LENGTH_SHORT).show();
+			signInButton.setVisibility(View.VISIBLE);
+			startLogin();
 		} else {
 			// HTML scraping worked
 			parseHTML(response);
@@ -138,54 +296,58 @@ public class MainActivity extends Activity {
 			int[] semesters = course.semesterAverages;
 			for (int d = 0; d < 3; d++) {
 				if (course.sixWeeksAverages[d] != -1) {
-					
-						gradeSummaryFirstSemester += "Cycle " + (d + 1) + ": "
-								+ String.valueOf(course.sixWeeksAverages[d])
-								+ "\n";
+
+					gradeSummaryFirstSemester += "Cycle " + (d + 1) + ": "
+							+ String.valueOf(course.sixWeeksAverages[d]) + "\n";
 				} else {
-						gradeSummaryFirstSemester += "Cycle " + (d + 1) + ": N/A \n";
+					gradeSummaryFirstSemester += "Cycle " + (d + 1)
+							+ ": N/A \n";
 				}
 			}
-			
-			
+
 			String gradeSummarySecondSemester = "";
 			for (int d = 3; d < course.sixWeeksAverages.length; d++) {
 				if (course.sixWeeksAverages[d] != -1) {
-					
-						gradeSummarySecondSemester += "Cycle " + (d + 1) + ": "
-								+ String.valueOf(course.sixWeeksAverages[d])
-								+ "\n";
+
+					gradeSummarySecondSemester += "Cycle " + (d + 1) + ": "
+							+ String.valueOf(course.sixWeeksAverages[d]) + "\n";
 				} else {
-						gradeSummarySecondSemester += "Cycle " + (d + 1) + ": N/A \n";
+					gradeSummarySecondSemester += "Cycle " + (d + 1)
+							+ ": N/A \n";
 				}
 			}
-			
-			if(exams[0] == -1) {
+
+			if (exams[0] == -1) {
 				gradeSummaryFirstSemester += "Exam 1: N/A\n";
 			} else {
-				gradeSummaryFirstSemester += "Exam 1: " + String.valueOf(exams[0]) + "\n";
+				gradeSummaryFirstSemester += "Exam 1: "
+						+ String.valueOf(exams[0]) + "\n";
 			}
-			
-			if(semesters[0] == -1) {
+
+			if (semesters[0] == -1) {
 				gradeSummaryFirstSemester += "Semester 1: N/A";
 			} else {
-				gradeSummaryFirstSemester += "Semester 1: " + String.valueOf(semesters[0]);
+				gradeSummaryFirstSemester += "Semester 1: "
+						+ String.valueOf(semesters[0]);
 			}
-			
-			if(exams[1] == -1) {
+
+			if (exams[1] == -1) {
 				gradeSummarySecondSemester += "Exam 2: N/A\n";
 			} else {
-				gradeSummarySecondSemester += "Exam 2: " + String.valueOf(exams[1]) + "\n";
+				gradeSummarySecondSemester += "Exam 2: "
+						+ String.valueOf(exams[1]) + "\n";
 			}
-			
-			if(semesters[1] == -1) {
+
+			if (semesters[1] == -1) {
 				gradeSummarySecondSemester += "Semester 2: N/A";
 			} else {
-				gradeSummarySecondSemester += "Semester 2: " + String.valueOf(semesters[1]);
+				gradeSummarySecondSemester += "Semester 2: "
+						+ String.valueOf(semesters[1]);
 			}
-			
+
 			// delimeter of DELIM
-			String desc = gradeSummaryFirstSemester + "DELIM" + gradeSummarySecondSemester;
+			String desc = gradeSummaryFirstSemester + "DELIM"
+					+ gradeSummarySecondSemester;
 			String color = getCardColor(i);
 			cardView.addCard(new CourseCard(course.title, desc, color,
 					"#787878", false, true));
@@ -235,7 +397,7 @@ public class MainActivity extends Activity {
 		}
 		// Set adapter
 		drawerList.setAdapter(new ArrayAdapter<String>(this,
-				android.R.layout.simple_list_item_1, titles));
+				R.layout.drawer_list_item, R.id.drawer_text, titles));
 
 		getActionBar().setDisplayHomeAsUpEnabled(true);
 		getActionBar().setHomeButtonEnabled(true);
@@ -261,9 +423,22 @@ public class MainActivity extends Activity {
 		if (drawerToggle.onOptionsItemSelected(item)) {
 			return true;
 		}
-		// Handle others
+		if (item.getItemId() == R.id.action_refresh) {
+			restartActivity();
+		}
+		if(item.getItemId() == R.id.action_signout) {
+			eraseCredentials();
+			restartActivity();
+		}
 
 		return super.onOptionsItemSelected(item);
+	}
+	
+	/*
+	 * Helper method that erases credentials.
+	 */
+	public void eraseCredentials() {
+		saveCredentials("", "", "", "");
 	}
 
 	public class ScrapeTask extends AsyncTask<String, Void, String> {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+     <string-array name="districts_array">
+        <item>AISD</item>
+        <item>RRISD</item>
+    </string-array>
+</resources>

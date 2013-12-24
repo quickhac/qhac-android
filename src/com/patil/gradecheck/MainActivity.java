@@ -607,7 +607,7 @@ public class MainActivity extends Activity {
 
 		public String scrapeRRISD(String username, String password, String id,
 				HttpClient client) {
-			return null;
+			return "INVALID_LOGIN";
 		}
 
 	}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">QuickHAC</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="drawer_close">Closed</string>
+    <string name="drawer_open">Open</string>
+    <string name="color_stripe">Stripe of color</string>
+    <string name="card_title">Card Title</string>
+    <string name="card_desc">Card description</string>
+    <string name="card_overflow">Overflow</string>
+
+</resources>

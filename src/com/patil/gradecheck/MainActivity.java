@@ -20,7 +20,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -33,27 +32,37 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.fima.cardsui.views.CardUI;
 
-public class MainActivity extends Activity {
+public class MainActivity extends FragmentActivity {
 
-	ArrayList<Course> courses;
+	public static ArrayList<Course> courses;
 	ListView drawerList;
 	DrawerLayout drawerLayout;
 	ActionBarDrawerToggle drawerToggle;
+
+	String currentTitle;
 
 	Button signInButton;
 
@@ -65,6 +74,7 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
 
+		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
 
 		String[] credentials = getCredentials();
@@ -168,6 +178,14 @@ public class MainActivity extends Activity {
 	}
 
 	/*
+	 * Uses the newly loaded assignments data to create fragments for each part
+	 * of the slideout navigation drawer.
+	 */
+	public void createSlideout() {
+
+	}
+
+	/*
 	 * Saves credentials of student to SharedPreferences.
 	 * 
 	 * @param The username
@@ -216,7 +234,7 @@ public class MainActivity extends Activity {
 
 			/** Called when a drawer has settled in a completely closed state. */
 			public void onDrawerClosed(View view) {
-				getActionBar().setTitle("Overview");
+				getActionBar().setTitle(currentTitle);
 				invalidateOptionsMenu(); // creates call to
 											// onPrepareOptionsMenu()
 			}
@@ -231,6 +249,57 @@ public class MainActivity extends Activity {
 
 		// Set the drawer toggle as the DrawerListener
 		drawerLayout.setDrawerListener(drawerToggle);
+		drawerList.setOnItemClickListener(new DrawerItemClickListener());
+	}
+
+	private class DrawerItemClickListener implements
+			ListView.OnItemClickListener {
+		@Override
+		public void onItemClick(AdapterView parent, View view, int position,
+				long id) {
+			selectItem(position);
+		}
+	}
+
+	/** Swaps fragments in the main content view */
+	private void selectItem(int position) {
+		if (position == 0) {
+			Fragment fragment = new OverviewFragment();
+			// Insert the fragment by replacing any existing fragment
+			FragmentManager fragmentManager = getSupportFragmentManager();
+
+			fragmentManager.beginTransaction()
+					.replace(R.id.content_frame, fragment).commit();
+
+			// Highlight the selected item, update the title, and close the
+			// drawer
+			drawerList.setItemChecked(position, true);
+			setTitle("Overview");
+			drawerLayout.closeDrawer(drawerList);
+		} else {
+			Fragment fragment = new ClassFragment();
+
+			Bundle args = new Bundle();
+			args.putInt(ClassFragment.INDEX, position - 1);
+			fragment.setArguments(args);
+			// Insert the fragment by replacing any existing fragment
+			FragmentManager fragmentManager = getSupportFragmentManager();
+			fragmentManager.beginTransaction()
+					.replace(R.id.content_frame, fragment).commit();
+
+			// Highlight the selected item, update the title, and close the
+			// drawer
+			drawerList.setItemChecked(position, true);
+			setTitle(courses.get(position - 1).title);
+			drawerLayout.closeDrawer(drawerList);
+
+		}
+	}
+
+	@Override
+	public void setTitle(CharSequence title) {
+		currentTitle = (String) title;
+		getActionBar().setTitle(title);
 	}
 
 	/* Called whenever we call invalidateOptionsMenu() */
@@ -682,6 +751,8 @@ public class MainActivity extends Activity {
 		 */
 		public void handleResponse(String response) {
 			dialog.dismiss();
+			// Make each part of the slide out navigation
+			createSlideout();
 		}
 
 		protected void onPreExecute() {
@@ -727,10 +798,11 @@ public class MainActivity extends Activity {
 				for (int i = 0; i < courses.size(); i++) {
 					Course course = courses.get(i);
 					String[] dataLinks = course.gradeLinks;
+					CycleGrades[] cycles = new CycleGrades[6];
 					for (int d = 0; d < dataLinks.length; d++) {
-						Log.d("CourseParser", String.valueOf(i) + " " + String.valueOf(d));
+						Log.d("CourseParser",
+								String.valueOf(i) + " " + String.valueOf(d));
 						String link = dataLinks[d];
-						CycleGrades[] cycles = new CycleGrades[6];
 						if (!link.equals("NO_GRADE")) {
 							// Get HTML
 							String gradesHTML = "";
@@ -760,8 +832,10 @@ public class MainActivity extends Activity {
 							Log.d("CourseParser", "Not parsing, NO_GRADE");
 							cycles[d] = null;
 						}
-						courses.get(i).sixWeekGrades = cycles;
 					}
+
+					course.setSixWeekGrades(cycles);
+					courses.set(i, course);
 				}
 
 			} catch (UnsupportedEncodingException e) {
@@ -795,6 +869,185 @@ public class MainActivity extends Activity {
 			return "INVALID_LOGIN";
 		}
 
+	}
+
+	/*
+	 * A fragment for a class. Each fragment is for a different class (ex. one
+	 * for Precalc, one for History)
+	 */
+	public static class ClassFragment extends Fragment {
+		CollectionPagerAdapter pagerAdapter;
+		ViewPager viewPager;
+		public static final String INDEX = "index";
+		int index;
+
+		public View onCreateView(LayoutInflater inflater, ViewGroup container,
+				Bundle savedInstanceState) {
+			// Inflate the layout for this fragment
+			return inflater.inflate(R.layout.fragment_class, container, false);
+		}
+
+		public ViewPager getViewPager() {
+			return viewPager;
+		}
+
+		@Override
+		public void onViewCreated(View view, Bundle savedInstanceState) {
+			// TODO Auto-generated method stub
+			super.onViewCreated(view, savedInstanceState);
+			Bundle args = getArguments();
+			index = args.getInt(INDEX);
+
+			pagerAdapter = new CollectionPagerAdapter(getFragmentManager());
+			viewPager = (ViewPager) getView().findViewById(R.id.pager);
+			viewPager.setAdapter(pagerAdapter);
+		}
+
+		// Since this is an object collection, use a FragmentStatePagerAdapter,
+		// and NOT a FragmentPagerAdapter.
+		public class CollectionPagerAdapter extends FragmentStatePagerAdapter {
+			public CollectionPagerAdapter(FragmentManager fm) {
+				super(fm);
+			}
+
+			@Override
+			public Fragment getItem(int i) {
+				Fragment fragment = new CycleFragment();
+				Bundle args = new Bundle();
+				// Our object is just an integer :-P
+				args.putInt(CycleFragment.INDEX_COURSE, index);
+				Log.d("CardUIGenerator", String.valueOf(i));
+				args.putInt(CycleFragment.INDEX_CYCLE, i);
+				fragment.setArguments(args);
+				return fragment;
+			}
+
+			@Override
+			public int getCount() {
+				return 6;
+			}
+
+			@Override
+			public CharSequence getPageTitle(int position) {
+				return "OBJECT " + (position + 1);
+			}
+		}
+
+		/*
+		 * A fragment for a cycle. Each class has cycles. Cycles are scrolled
+		 * through with swipe tabs.
+		 */
+		public static class CycleFragment extends Fragment {
+			CardUI cardUI;
+			public static final String INDEX_COURSE = "indexCourse";
+			public static final String INDEX_CYCLE = "indexCycle";
+
+			TextView title;
+
+			int courseIndex;
+			int cycleIndex;
+
+			@Override
+			public View onCreateView(LayoutInflater inflater,
+					ViewGroup container, Bundle savedInstanceState) {
+				// Inflate the layout for this fragment
+				return inflater.inflate(R.layout.fragment_cycle, container,
+						false);
+			}
+
+			@Override
+			public void onViewCreated(View view, Bundle savedInstanceState) {
+				// TODO Auto-generated method stub
+				super.onViewCreated(view, savedInstanceState);
+				Bundle args = getArguments();
+				courseIndex = args.getInt(INDEX_COURSE);
+				cycleIndex = args.getInt(INDEX_CYCLE);
+				title = (TextView) getView().findViewById(R.id.title_text);
+				Course course = MainActivity.courses.get(courseIndex);
+				String titleText = "Cycle " + (cycleIndex + 1) + " - "
+						+ course.sixWeeksAverages[cycleIndex];
+				title.setText(titleText);
+				Log.d("CardUIGenerator", "What cyclefragment sees: " + String.valueOf(courseIndex));
+				if (course.sixWeekGrades != null && course.sixWeekGrades[cycleIndex] != null) {
+					ArrayList<Category> categories = course.sixWeekGrades[cycleIndex].categories;
+					makeCategoryCards(categories);
+				} else if(course.sixWeekGrades == null) {
+					Log.d("CardUIGenerator", "sixWeekGrades are null");
+				} else{
+					Log.d("CardUIGenerator", "sixWeekGrades at cycleindex are null");
+				}
+			}
+
+			public void makeCategoryCards(ArrayList<Category> categories) {
+				cardUI = (CardUI) getView().findViewById(R.id.cardsview);
+				cardUI.setSwipeable(false);
+				
+				Log.d("CardUIGenerator", "category cards are being made");
+
+				for (int i = 0; i < categories.size(); i++) {
+					Category category = categories.get(i);
+					String title = category.title;
+
+					// DELIMROW separates rows, DELIMCOLUMN separates columns
+					String desc = "";
+					desc += "ASSIGNMENTDELIMCOLUMNPOINTS EARNEDDELIMCOLUMNPOINTS POSSIBLEDELIMROW";
+					for (int d = 0; d < category.assignments.size(); d++) {
+						Assignment a = category.assignments.get(d);
+						desc += a.title + "DELIMCOLUMN";
+						desc += a.ptsEarned + "DELIMCOLUMN";
+						desc += a.ptsPossible + "DELIMROW";
+					}
+
+					String color = getCardColor(i);
+
+					CategoryCard card = new CategoryCard(title, desc, color,
+							"#787878", false, false);
+					cardUI.addCard(card);
+				}
+
+				cardUI.refresh();
+			}
+
+			/*
+			 * Returns a color for each class.
+			 */
+			public String getCardColor(int i) {
+				String color;
+				if (i == 0) {
+					color = "#009bce";
+				} else if (i == 1) {
+					color = "#9c34d0";
+				} else if (i == 2) {
+					color = "#5f8f00";
+				} else if (i == 3) {
+					color = "#fd8700";
+				} else if (i == 4) {
+					color = "#d20000";
+				} else if (i == 5) {
+					color = "#33b5e5";
+				} else if (i == 6) {
+					color = "#aa6fc7";
+				} else if (i == 7) {
+					color = "#9fd400";
+				} else if (i == 8) {
+					color = "#ffbd38";
+				} else if (i == 9) {
+					color = "#ff5252";
+				} else {
+					color = "#020202";
+				}
+				return color;
+			}
+		}
+	}
+
+	public static class OverviewFragment extends Fragment {
+		public View onCreateView(LayoutInflater inflater, ViewGroup container,
+				Bundle savedInstanceState) {
+			// Inflate the layout for this fragment
+			return inflater.inflate(R.layout.fragment_overview, container,
+					false);
+		}
 	}
 
 }

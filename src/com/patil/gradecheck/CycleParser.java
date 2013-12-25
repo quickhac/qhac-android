@@ -8,6 +8,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import android.util.Log;
+
 public class CycleParser {
 	/*
 	 * Parses general Course data using JSoup.
@@ -123,6 +125,7 @@ public class CycleParser {
 					assignments);
 			categories.add(category);
 		}
+		Log.d("CardUIGenerator", "cycles being parsed");
 		return new CycleGrades("", -1, categories);
 	}
 

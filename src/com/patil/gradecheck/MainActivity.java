@@ -964,44 +964,72 @@ public class MainActivity extends FragmentActivity {
 				cycleIndex = args.getInt(INDEX_CYCLE);
 				title = (TextView) getView().findViewById(R.id.title_text);
 				Course course = MainActivity.courses.get(courseIndex);
-				String titleText = "Cycle " + (cycleIndex + 1) + " - "
-						+ course.sixWeeksAverages[cycleIndex];
+				String titleText = "";
+				if (course.sixWeeksAverages[cycleIndex] != -1) {
+					titleText = "Cycle " + (cycleIndex + 1) + " - "
+							+ course.sixWeeksAverages[cycleIndex];
+				} else {
+					titleText = "Cycle " + (cycleIndex + 1);
+				}
 				title.setText(titleText);
-				Log.d("CardUIGenerator", "What cyclefragment sees: " + String.valueOf(courseIndex));
-				if (course.sixWeekGrades != null && course.sixWeekGrades[cycleIndex] != null) {
+				Log.d("CardUIGenerator",
+						"What cyclefragment sees: "
+								+ String.valueOf(courseIndex));
+				if (course.sixWeekGrades != null
+						&& course.sixWeekGrades[cycleIndex] != null) {
 					ArrayList<Category> categories = course.sixWeekGrades[cycleIndex].categories;
 					makeCategoryCards(categories);
-				} else if(course.sixWeekGrades == null) {
-					Log.d("CardUIGenerator", "sixWeekGrades are null");
-				} else{
-					Log.d("CardUIGenerator", "sixWeekGrades at cycleindex are null");
+				} else {
+					// create an arraylist of categories of size 0
+					ArrayList<Category> categories = new ArrayList<Category>();
+					makeCategoryCards(categories);
+					
 				}
 			}
 
 			public void makeCategoryCards(ArrayList<Category> categories) {
 				cardUI = (CardUI) getView().findViewById(R.id.cardsview);
 				cardUI.setSwipeable(false);
-				
+
 				Log.d("CardUIGenerator", "category cards are being made");
+				if (categories.size() > 0) {
+					for (int i = 0; i < categories.size(); i++) {
+						Category category = categories.get(i);
+						String title = category.title;
+						if (category.title.length() > 0
+								&& category.assignments.size() > 0) {
+							// DELIMROW separates rows, DELIMCOLUMN separates
+							// columns
+							String desc = "";
+							desc += "ASSIGNMENTDELIMCOLUMNPOINTS EARNEDDELIMCOLUMNPOINTS POSSIBLEDELIMROW";
+							for (int d = 0; d < category.assignments.size(); d++) {
+								Assignment a = category.assignments.get(d);
+								desc += a.title + "DELIMCOLUMN";
+								desc += a.ptsEarned + "DELIMCOLUMN";
+								desc += a.ptsPossible + "DELIMROW";
+							}
 
-				for (int i = 0; i < categories.size(); i++) {
-					Category category = categories.get(i);
-					String title = category.title;
+							String color = getCardColor(i);
 
-					// DELIMROW separates rows, DELIMCOLUMN separates columns
-					String desc = "";
-					desc += "ASSIGNMENTDELIMCOLUMNPOINTS EARNEDDELIMCOLUMNPOINTS POSSIBLEDELIMROW";
-					for (int d = 0; d < category.assignments.size(); d++) {
-						Assignment a = category.assignments.get(d);
-						desc += a.title + "DELIMCOLUMN";
-						desc += a.ptsEarned + "DELIMCOLUMN";
-						desc += a.ptsPossible + "DELIMROW";
+							CategoryCard card = new CategoryCard(title, desc,
+									color, "#787878", false, false);
+							cardUI.addCard(card);
+						} else if (category.assignments.size() == 0) {
+							// There aren't any grades for the category, so
+							// create a nogrades card
+							NoGradesCard card = new NoGradesCard(title,
+									"No Grades :(", "#787878", "#787878",
+									false, false);
+							cardUI.addCard(card);
+						}
 					}
-
-					String color = getCardColor(i);
-
-					CategoryCard card = new CategoryCard(title, desc, color,
-							"#787878", false, false);
+				}
+				Log.d("CardUIGens", String.valueOf(categories.size()));
+				if (categories.size() == 0) {
+					Log.d("CardUIGens", "Creating nogrades");
+					// No categories, so create a nogrades card
+					NoGradesCard card = new NoGradesCard("Assignments",
+							"No Grades :(", "#787878", "#787878", false, false);
 					cardUI.addCard(card);
 				}
 

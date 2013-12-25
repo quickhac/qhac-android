@@ -15,5 +15,10 @@
 	<string name="hint_password">Password</string>
 	<string name="hint_id">Student ID</string>
 	<string name="action_signout">Sign out</string>
+	<string name="assignment">ASSIGNMENT</string>
+	<string name="points_earned">EARNED</string>
+	<string name="points_possible">POSSIBLE</string>
+	<string name="semester1">Semester 1</string>
+	<string name="semester2">Semester 2</string>
     
 </resources>

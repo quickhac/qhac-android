@@ -326,65 +326,55 @@ public class MainActivity extends FragmentActivity {
 		cardView.setSwipeable(false);
 		for (int i = 0; i < courses.size(); i++) {
 			Course course = courses.get(i);
-			String gradeSummaryFirstSemester = "";
-			int[] exams = course.examGrades;
+			String gradeDescription = "";
 			int[] semesters = course.semesterAverages;
+			int[] exams = course.examGrades;
+			int[] sixWeeksAverages = course.sixWeeksAverages;
+			if (semesters[0] != -1) {
+				gradeDescription += "Semester 1: "
+						+ String.valueOf(semesters[0]) + "DELIMCOLUMN";
+			} else {
+				gradeDescription += "Semester 1: N/A" + "DELIMCOLUMN";
+			}
+			if (semesters[1] != -1) {
+				gradeDescription += "Semester 2: "
+						+ String.valueOf(semesters[1]) + "DELIMROW";
+			} else {
+				gradeDescription += "Semester 2: N/A" + "DELIMROW";
+			}
 			for (int d = 0; d < 3; d++) {
 				if (course.sixWeeksAverages[d] != -1) {
-
-					gradeSummaryFirstSemester += "Cycle " + (d + 1) + ": "
-							+ String.valueOf(course.sixWeeksAverages[d]) + "\n";
+					gradeDescription += "Cycle " + (d + 1) + ": "
+							+ String.valueOf(course.sixWeeksAverages[d])
+							+ "DELIMCOLUMN";
 				} else {
-					gradeSummaryFirstSemester += "Cycle " + (d + 1)
-							+ ": N/A \n";
+					gradeDescription += "Cycle " + (d + 1) + ": N/A"
+							+ "DELIMCOLUMN";
+				}
+				if (course.sixWeeksAverages[d + 3] != -1) {
+					gradeDescription += "Cycle " + (d + 4) + ": "
+							+ String.valueOf(course.sixWeeksAverages[d + 3])
+							+ "DELIMROW";
+				} else {
+					gradeDescription += "Cycle " + (d + 4) + ": N/A"
+							+ "DELIMROW";
 				}
 			}
-
-			String gradeSummarySecondSemester = "";
-			for (int d = 3; d < course.sixWeeksAverages.length; d++) {
-				if (course.sixWeeksAverages[d] != -1) {
-
-					gradeSummarySecondSemester += "Cycle " + (d + 1) + ": "
-							+ String.valueOf(course.sixWeeksAverages[d]) + "\n";
-				} else {
-					gradeSummarySecondSemester += "Cycle " + (d + 1)
-							+ ": N/A \n";
-				}
-			}
-
-			if (exams[0] == -1) {
-				gradeSummaryFirstSemester += "Exam 1: N/A\n";
+			
+			if (exams[0] != -1) {
+				gradeDescription += "Exam 1: "
+						+ String.valueOf(exams[0]) + "DELIMCOLUMN";
 			} else {
-				gradeSummaryFirstSemester += "Exam 1: "
-						+ String.valueOf(exams[0]) + "\n";
+				gradeDescription += "Exam 1: N/A" + "DELIMCOLUMN";
 			}
-
-			if (semesters[0] == -1) {
-				gradeSummaryFirstSemester += "Semester 1: N/A";
+			if (exams[1] != -1) {
+				gradeDescription += "Exam 2: "
+						+ String.valueOf(exams[1]);
 			} else {
-				gradeSummaryFirstSemester += "Semester 1: "
-						+ String.valueOf(semesters[0]);
+				gradeDescription += "Exam 2: N/A";
 			}
-
-			if (exams[1] == -1) {
-				gradeSummarySecondSemester += "Exam 2: N/A\n";
-			} else {
-				gradeSummarySecondSemester += "Exam 2: "
-						+ String.valueOf(exams[1]) + "\n";
-			}
-
-			if (semesters[1] == -1) {
-				gradeSummarySecondSemester += "Semester 2: N/A";
-			} else {
-				gradeSummarySecondSemester += "Semester 2: "
-						+ String.valueOf(semesters[1]);
-			}
-
-			// delimeter of DELIM
-			String desc = gradeSummaryFirstSemester + "DELIM"
-					+ gradeSummarySecondSemester;
 			String color = getCardColor(i);
-			cardView.addCard(new CourseCard(course.title, desc, color,
+			cardView.addCard(new CourseCard(course.title, gradeDescription, color,
 					"#787878", false, true));
 		}
 		cardView.refresh();
@@ -579,7 +569,7 @@ public class MainActivity extends FragmentActivity {
 			super.onPreExecute();
 			dialog = new ProgressDialog(context);
 			dialog.setCancelable(false);
-			dialog.setMessage("Loading");
+			dialog.setMessage("Loading Grades...");
 			dialog.show();
 		}
 
@@ -759,7 +749,7 @@ public class MainActivity extends FragmentActivity {
 			super.onPreExecute();
 			dialog = new ProgressDialog(context);
 			dialog.setCancelable(false);
-			dialog.setMessage("Loading");
+			dialog.setMessage("Loading Assignments...");
 			dialog.show();
 		}
 
@@ -983,7 +973,7 @@ public class MainActivity extends FragmentActivity {
 					// create an arraylist of categories of size 0
 					ArrayList<Category> categories = new ArrayList<Category>();
 					makeCategoryCards(categories);
-					
+
 				}
 			}
 

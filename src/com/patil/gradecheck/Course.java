@@ -13,7 +13,7 @@ public class Course {
 	int[] semesterAverages;
 	String[] gradeLinks;
 	
-	ClassGrades[] sixWeekGrades;
+	CycleGrades[] sixWeekGrades;
 	
 	public Course(String title, String teacherName, String teacherEmail, int[] sixWeeksAverages, int[] examGrades, int[] semesterAverages, String[] gradeLinks) {
 		this.title = title;

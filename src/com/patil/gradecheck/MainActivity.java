@@ -16,6 +16,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -33,6 +34,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -161,8 +163,7 @@ public class MainActivity extends Activity {
 							public void onClick(DialogInterface dialog,
 									int whichButton) {
 							}
-						})
-				.setMessage("Use your GradeSpeed credentials.");
+						}).setMessage("Use your GradeSpeed credentials.");
 		alert.show();
 	}
 
@@ -189,7 +190,7 @@ public class MainActivity extends Activity {
 		edit.commit();
 		restartActivity();
 	}
-	
+
 	/*
 	 * Helper method that restarts the activity.
 	 */
@@ -246,41 +247,6 @@ public class MainActivity extends Activity {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
-	}
-
-	/*
-	 * Looks at the response from the scraper and acts accordingly.
-	 * 
-	 * @param The response - either HTML or an error.
-	 */
-	public void handleResponse(String response) {
-		if (response.equals("UNKNOWN_ERROR")) {
-			// Error unknown
-			Toast.makeText(this, "Something went wrong. GradeSpeed servers are probably down. Try relogging or refreshing.", Toast.LENGTH_SHORT).show();
-			signInButton.setVisibility(View.VISIBLE);
-		} else if (response.equals("INVALID_LOGIN")) {
-			// Wrong credentials sent
-			Toast.makeText(this, "Invalid username, password, student ID, or school district.", Toast.LENGTH_SHORT).show();
-			signInButton.setVisibility(View.VISIBLE);
-			startLogin();
-		} else {
-			// HTML scraping worked
-			parseHTML(response);
-		}
-	}
-
-	/*
-	 * Parses general grade info using JSoup. The names and six weeks averages
-	 * of each grade are parsed and loaded into an ArrayList of courses. Then,
-	 * individual six weeks details (assignments) are scraped. Then sets up UI.
-	 * 
-	 * @param The HTML of the response.
-	 */
-	public void parseHTML(String html) {
-		CourseParser parser = new CourseParser(html);
-		courses = parser.parseCourses();
-		setupActionBar();
-		makeCourseCards();
 	}
 
 	/*
@@ -386,6 +352,12 @@ public class MainActivity extends Activity {
 		return color;
 	}
 
+	public void loadCycleInfo() {
+		String[] credentials = getCredentials();
+		new CycleScrapeTask(this).execute(new String[] { credentials[0],
+				credentials[1], credentials[2], credentials[3] });
+	}
+
 	public void setupActionBar() {
 		// Create navigation drawer of courses
 
@@ -426,14 +398,14 @@ public class MainActivity extends Activity {
 		if (item.getItemId() == R.id.action_refresh) {
 			restartActivity();
 		}
-		if(item.getItemId() == R.id.action_signout) {
+		if (item.getItemId() == R.id.action_signout) {
 			eraseCredentials();
 			restartActivity();
 		}
 
 		return super.onOptionsItemSelected(item);
 	}
-	
+
 	/*
 	 * Helper method that erases credentials.
 	 */
@@ -485,8 +457,53 @@ public class MainActivity extends Activity {
 		}
 
 		protected void onPostExecute(String response) {
+			handleResponse(response);
+		}
+
+		/*
+		 * Looks at the response from the scraper and acts accordingly.
+		 * 
+		 * @param The response - either HTML or an error.
+		 */
+		public void handleResponse(String response) {
+			if (response.equals("UNKNOWN_ERROR")) {
+				dialog.dismiss();
+				// Error unknown
+				Toast.makeText(
+						context,
+						"Something went wrong. GradeSpeed servers are probably down. Try relogging or refreshing.",
+						Toast.LENGTH_SHORT).show();
+				signInButton.setVisibility(View.VISIBLE);
+			} else if (response.equals("INVALID_LOGIN")) {
+				dialog.dismiss();
+				// Wrong credentials sent
+				Toast.makeText(
+						context,
+						"Invalid username, password, student ID, or school district.",
+						Toast.LENGTH_SHORT).show();
+				signInButton.setVisibility(View.VISIBLE);
+				startLogin();
+			} else {
+				// HTML scraping worked
+				parseHTML(response);
+			}
+		}
+
+		/*
+		 * Parses general grade info using JSoup. The names and six weeks
+		 * averages of each grade are parsed and loaded into an ArrayList of
+		 * courses. Then, individual six weeks details (assignments) are
+		 * scraped. Then sets up UI.
+		 * 
+		 * @param The HTML of the response.
+		 */
+		public void parseHTML(String html) {
+			CourseParser parser = new CourseParser(html);
+			courses = parser.parseCourses();
+			loadCycleInfo();
+			setupActionBar();
+			makeCourseCards();
 			dialog.dismiss();
-			MainActivity.this.handleResponse(response);
 		}
 
 		protected void onPreExecute() {
@@ -607,6 +624,174 @@ public class MainActivity extends Activity {
 
 		public String scrapeRRISD(String username, String password, String id,
 				HttpClient client) {
+			return "INVALID_LOGIN";
+		}
+
+	}
+
+	public class CycleScrapeTask extends AsyncTask<String, Void, String> {
+
+		ProgressDialog dialog;
+		Context context;
+
+		public CycleScrapeTask(Context context) {
+			this.context = context;
+		}
+
+		/*
+		 * Scrapes ParentConnection remotely and returns a String of the webpage
+		 * HTML.
+		 * 
+		 * @param[0] The username to log in with.
+		 * 
+		 * @param[1] The password to log in with.
+		 * 
+		 * @param[2] The student id.
+		 * 
+		 * @param[3] The id of the school logging in with. "AISD" or "RRISD".
+		 * 
+		 * @return A String of the webpage HTML.
+		 */
+		protected String doInBackground(String... information) {
+			String username = information[0];
+			String password = information[1];
+			String id = information[2];
+			String school = information[3];
+
+			VerifiedHttpClientFactory httpClientFactory = new VerifiedHttpClientFactory();
+			HttpClient client = httpClientFactory.getNewHttpClient();
+
+			if (school.equals("AISD")) {
+				Log.d("CourseParser", "Starting scrape");
+				scrapeAISD(username, password, id, client);
+			} else if (school.equals("RRISD")) {
+
+			}
+
+			return "";
+		}
+
+		protected void onPostExecute(String response) {
+			handleResponse(response);
+		}
+
+		/*
+		 * Looks at the response from the scraper and acts accordingly.
+		 * 
+		 * @param The response - either HTML or an error.
+		 */
+		public void handleResponse(String response) {
+			dialog.dismiss();
+		}
+
+		protected void onPreExecute() {
+			super.onPreExecute();
+			dialog = new ProgressDialog(context);
+			dialog.setCancelable(false);
+			dialog.setMessage("Loading");
+			dialog.show();
+		}
+
+		/*
+		 * Scrapes AISD for a cycle info.
+		 * 
+		 * @param The username.
+		 * 
+		 * @param The password.
+		 * 
+		 * @param The student id.
+		 * 
+		 * @param The HttpClient.
+		 * 
+		 * @return The HTML of AISD scrape with specific cycle info.
+		 */
+		public String scrapeAISD(String username, String password, String id,
+				HttpClient client) {
+
+			URI loginURL;
+			HttpPost loginPost;
+			HttpResponse loginResponse;
+			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+			nameValuePairs.add(new BasicNameValuePair("txtUserName", username));
+			nameValuePairs.add(new BasicNameValuePair("txtPassword", password));
+
+			HttpGet request;
+			HttpResponse resp = null;
+			try {
+				loginURL = new URI("https://gradespeed.austinisd.org/pc/");
+				loginPost = new HttpPost(loginURL);
+				loginPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				loginResponse = client.execute(loginPost);
+
+				// Load in each cycle details
+				for (int i = 0; i < courses.size(); i++) {
+					Course course = courses.get(i);
+					String[] dataLinks = course.gradeLinks;
+					for (int d = 0; d < dataLinks.length; d++) {
+						Log.d("CourseParser", String.valueOf(i) + " " + String.valueOf(d));
+						String link = dataLinks[d];
+						CycleGrades[] cycles = new CycleGrades[6];
+						if (!link.equals("NO_GRADE")) {
+							// Get HTML
+							String gradesHTML = "";
+							String gradeURL = "https://gradespeed.austinisd.org/pc/ParentStudentGrades.aspx"
+									+ link;
+							Log.d("CourseParser", "Parsing with link: " + link);
+							request = new HttpGet(gradeURL);
+							resp = client.execute(request);
+
+							InputStream in = resp.getEntity().getContent();
+							BufferedReader reader = new BufferedReader(
+									new InputStreamReader(in));
+							StringBuilder str = new StringBuilder();
+							String line = null;
+							while ((line = reader.readLine()) != null) {
+								str.append(line);
+							}
+							in.close();
+							gradesHTML = str.toString();
+							// Parse through each HTML and create grades object
+							CycleParser parser = new CycleParser(gradesHTML);
+							CycleGrades grades = parser.parseCycle();
+							grades.average = course.sixWeeksAverages[d];
+							grades.title = course.title;
+							cycles[d] = grades;
+						} else {
+							Log.d("CourseParser", "Not parsing, NO_GRADE");
+							cycles[d] = null;
+						}
+						courses.get(i).sixWeekGrades = cycles;
+					}
+				}
+
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (URISyntaxException e) {
+				e.printStackTrace();
+			}
+			return "";
+		}
+
+		/*
+		 * Scrapes RRISD.
+		 * 
+		 * @param The username.
+		 * 
+		 * @param The password.
+		 * 
+		 * @param The student id.
+		 * 
+		 * @param The HttpClient.
+		 * 
+		 * @return The HTML of RRISD scrape. Not yet implemented.
+		 */
+
+		public String scrapeRRISD(String username, String password, String id,
+				HttpClient client, String link) {
 			return "INVALID_LOGIN";
 		}
 

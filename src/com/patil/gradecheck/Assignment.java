@@ -8,14 +8,14 @@ public class Assignment {
 	String title;
 	String dateDue;
 	String dateAssigned;
-	String ptsEarned;
-	String ptsPossible;
+	int ptsEarned;
+	int ptsPossible;
 	double weight;
 	String note;
 	boolean extraCredit;
 	
-	public Assignment(String title, String dateDue, String dateAssigned,
-			String ptsEarned, String ptsPossible, double weight, String note,
+	public Assignment(String title, String dateAssigned, String dateDue,
+			int ptsEarned, int ptsPossible, double weight, String note,
 			boolean extraCredit) {
 		this.title = title;
 		this.dateDue = dateDue;

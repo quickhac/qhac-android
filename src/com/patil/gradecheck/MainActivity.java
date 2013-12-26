@@ -21,6 +21,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
 
 import android.app.AlertDialog;
+import android.app.FragmentTransaction;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -30,6 +31,7 @@ import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
@@ -66,7 +68,12 @@ public class MainActivity extends FragmentActivity {
 
 	Button signInButton;
 
+	HttpClient client;
+
 	CardUI cardView;
+
+	// Handler to make sure drawer closes smoothly
+	Handler drawerHandler = new Handler();
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -178,14 +185,6 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	/*
-	 * Uses the newly loaded assignments data to create fragments for each part
-	 * of the slideout navigation drawer.
-	 */
-	public void createSlideout() {
-
-	}
-
-	/*
 	 * Saves credentials of student to SharedPreferences.
 	 * 
 	 * @param The username
@@ -237,6 +236,7 @@ public class MainActivity extends FragmentActivity {
 				getActionBar().setTitle(currentTitle);
 				invalidateOptionsMenu(); // creates call to
 											// onPrepareOptionsMenu()
+
 			}
 
 			/** Called when a drawer has settled in a completely open state. */
@@ -277,23 +277,40 @@ public class MainActivity extends FragmentActivity {
 			setTitle("Overview");
 			drawerLayout.closeDrawer(drawerList);
 		} else {
-			Fragment fragment = new ClassFragment();
-
-			Bundle args = new Bundle();
-			args.putInt(ClassFragment.INDEX, position - 1);
-			fragment.setArguments(args);
-			// Insert the fragment by replacing any existing fragment
-			FragmentManager fragmentManager = getSupportFragmentManager();
-			fragmentManager.beginTransaction()
-					.replace(R.id.content_frame, fragment).commit();
-
 			// Highlight the selected item, update the title, and close the
 			// drawer
-			drawerList.setItemChecked(position, true);
+			drawerList.setItemChecked(position - 1, true);
 			setTitle(courses.get(position - 1).title);
-			drawerLayout.closeDrawer(drawerList);
-
+			// Check if we already have info, otherwise load the course info
+			if (courses.get(position - 1).sixWeekGrades == null) {
+				drawerLayout.closeDrawer(drawerList);
+				loadCourseInfo(position - 1, getCredentials()[3]);
+			} else {
+				createFragment(position - 1);
+			}
 		}
+	}
+
+	public void createFragment(int position) {
+		final int pos = position;
+
+		drawerHandler.postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				drawerLayout.closeDrawer(drawerList);
+			}
+		}, 150);
+
+		Fragment fragment = new ClassFragment();
+		Bundle args = new Bundle();
+		args.putInt(ClassFragment.INDEX, pos);
+		fragment.setArguments(args);
+		// Insert the fragment by replacing any existing fragment
+		FragmentManager fragmentManager = getSupportFragmentManager();
+		fragmentManager.beginTransaction()
+				.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+				.replace(R.id.content_frame, fragment).commit();
+
 	}
 
 	@Override
@@ -360,22 +377,21 @@ public class MainActivity extends FragmentActivity {
 							+ "DELIMROW";
 				}
 			}
-			
+
 			if (exams[0] != -1) {
-				gradeDescription += "Exam 1: "
-						+ String.valueOf(exams[0]) + "DELIMCOLUMN";
+				gradeDescription += "Exam 1: " + String.valueOf(exams[0])
+						+ "DELIMCOLUMN";
 			} else {
 				gradeDescription += "Exam 1: N/A" + "DELIMCOLUMN";
 			}
 			if (exams[1] != -1) {
-				gradeDescription += "Exam 2: "
-						+ String.valueOf(exams[1]);
+				gradeDescription += "Exam 2: " + String.valueOf(exams[1]);
 			} else {
 				gradeDescription += "Exam 2: N/A";
 			}
 			String color = getCardColor(i);
-			cardView.addCard(new CourseCard(course.title, gradeDescription, color,
-					"#787878", false, true));
+			cardView.addCard(new CourseCard(course.title, gradeDescription,
+					color, "#787878", false, true));
 		}
 		cardView.refresh();
 	}
@@ -411,10 +427,9 @@ public class MainActivity extends FragmentActivity {
 		return color;
 	}
 
-	public void loadCycleInfo() {
-		String[] credentials = getCredentials();
-		new CycleScrapeTask(this).execute(new String[] { credentials[0],
-				credentials[1], credentials[2], credentials[3] });
+	public void loadCourseInfo(int course, String school) {
+		new CycleScrapeTask(this).execute(new String[] {
+				String.valueOf(course), school });
 	}
 
 	public void setupActionBar() {
@@ -502,7 +517,7 @@ public class MainActivity extends FragmentActivity {
 			String school = information[3];
 
 			VerifiedHttpClientFactory httpClientFactory = new VerifiedHttpClientFactory();
-			HttpClient client = httpClientFactory.getNewHttpClient();
+			client = httpClientFactory.getNewHttpClient();
 
 			String html = "UNKNOWN_ERROR";
 
@@ -557,12 +572,23 @@ public class MainActivity extends FragmentActivity {
 		 * @param The HTML of the response.
 		 */
 		public void parseHTML(String html) {
-			CourseParser parser = new CourseParser(html);
-			courses = parser.parseCourses();
-			loadCycleInfo();
-			setupActionBar();
-			makeCourseCards();
-			dialog.dismiss();
+			if (html != null) {
+				if (html.length() > 0) {
+					CourseParser parser = new CourseParser(html);
+					courses = parser.parseCourses();
+					setupActionBar();
+					makeCourseCards();
+					dialog.dismiss();
+				} else {
+					Toast.makeText(context, "Something went wrong.",
+							Toast.LENGTH_SHORT).show();
+					startLogin();
+				}
+			} else {
+				Toast.makeText(context, "Something went wrong.",
+						Toast.LENGTH_SHORT).show();
+				startLogin();
+			}
 		}
 
 		protected void onPreExecute() {
@@ -692,6 +718,7 @@ public class MainActivity extends FragmentActivity {
 
 		ProgressDialog dialog;
 		Context context;
+		int position;
 
 		public CycleScrapeTask(Context context) {
 			this.context = context;
@@ -701,33 +728,25 @@ public class MainActivity extends FragmentActivity {
 		 * Scrapes ParentConnection remotely and returns a String of the webpage
 		 * HTML.
 		 * 
-		 * @param[0] The username to log in with.
+		 * @param[0] The course to scrape
 		 * 
-		 * @param[1] The password to log in with.
-		 * 
-		 * @param[2] The student id.
-		 * 
-		 * @param[3] The id of the school logging in with. "AISD" or "RRISD".
+		 * @param[1] The school
 		 * 
 		 * @return A String of the webpage HTML.
 		 */
 		protected String doInBackground(String... information) {
-			String username = information[0];
-			String password = information[1];
-			String id = information[2];
-			String school = information[3];
-
-			VerifiedHttpClientFactory httpClientFactory = new VerifiedHttpClientFactory();
-			HttpClient client = httpClientFactory.getNewHttpClient();
-
+			int course = Integer.valueOf(information[0]);
+			position = course;
+			String school = information[1];
 			if (school.equals("AISD")) {
 				Log.d("CourseParser", "Starting scrape");
-				scrapeAISD(username, password, id, client);
+				scrapeAISD(course, client);
 			} else if (school.equals("RRISD")) {
 
 			}
 
-			return "";
+			return "LOADED SUCCESSFULLY";
+
 		}
 
 		protected void onPostExecute(String response) {
@@ -741,8 +760,7 @@ public class MainActivity extends FragmentActivity {
 		 */
 		public void handleResponse(String response) {
 			dialog.dismiss();
-			// Make each part of the slide out navigation
-			createSlideout();
+			MainActivity.this.createFragment(position);
 		}
 
 		protected void onPreExecute() {
@@ -756,85 +774,63 @@ public class MainActivity extends FragmentActivity {
 		/*
 		 * Scrapes AISD for a cycle info.
 		 * 
-		 * @param The username.
-		 * 
-		 * @param The password.
-		 * 
-		 * @param The student id.
+		 * @param The course to scrape for
 		 * 
 		 * @param The HttpClient.
 		 * 
 		 * @return The HTML of AISD scrape with specific cycle info.
 		 */
-		public String scrapeAISD(String username, String password, String id,
-				HttpClient client) {
-
-			URI loginURL;
-			HttpPost loginPost;
-			HttpResponse loginResponse;
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-			nameValuePairs.add(new BasicNameValuePair("txtUserName", username));
-			nameValuePairs.add(new BasicNameValuePair("txtPassword", password));
+		public String scrapeAISD(int c, HttpClient client) {
 
 			HttpGet request;
 			HttpResponse resp = null;
 			try {
-				loginURL = new URI("https://gradespeed.austinisd.org/pc/");
-				loginPost = new HttpPost(loginURL);
-				loginPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-				loginResponse = client.execute(loginPost);
 
-				// Load in each cycle details
-				for (int i = 0; i < courses.size(); i++) {
-					Course course = courses.get(i);
-					String[] dataLinks = course.gradeLinks;
-					CycleGrades[] cycles = new CycleGrades[6];
-					for (int d = 0; d < dataLinks.length; d++) {
-						Log.d("CourseParser",
-								String.valueOf(i) + " " + String.valueOf(d));
-						String link = dataLinks[d];
-						if (!link.equals("NO_GRADE")) {
-							// Get HTML
-							String gradesHTML = "";
-							String gradeURL = "https://gradespeed.austinisd.org/pc/ParentStudentGrades.aspx"
-									+ link;
-							Log.d("CourseParser", "Parsing with link: " + link);
-							request = new HttpGet(gradeURL);
-							resp = client.execute(request);
+				Course course = courses.get(c);
+				String[] dataLinks = course.gradeLinks;
+				CycleGrades[] cycles = new CycleGrades[6];
+				for (int d = 0; d < dataLinks.length; d++) {
+					Log.d("CourseParser", String.valueOf(d));
+					String link = dataLinks[d];
+					if (!link.equals("NO_GRADE")) {
+						// Get HTML
+						String gradesHTML = "";
+						String gradeURL = "https://gradespeed.austinisd.org/pc/ParentStudentGrades.aspx"
+								+ link;
+						Log.d("CourseParser", "Parsing with link: " + link);
+						request = new HttpGet(gradeURL);
+						resp = client.execute(request);
 
-							InputStream in = resp.getEntity().getContent();
-							BufferedReader reader = new BufferedReader(
-									new InputStreamReader(in));
-							StringBuilder str = new StringBuilder();
-							String line = null;
-							while ((line = reader.readLine()) != null) {
-								str.append(line);
-							}
-							in.close();
-							gradesHTML = str.toString();
-							// Parse through each HTML and create grades object
-							CycleParser parser = new CycleParser(gradesHTML);
-							CycleGrades grades = parser.parseCycle();
-							grades.average = course.sixWeeksAverages[d];
-							grades.title = course.title;
-							cycles[d] = grades;
-						} else {
-							Log.d("CourseParser", "Not parsing, NO_GRADE");
-							cycles[d] = null;
+						InputStream in = resp.getEntity().getContent();
+						BufferedReader reader = new BufferedReader(
+								new InputStreamReader(in));
+						StringBuilder str = new StringBuilder();
+						String line = null;
+						while ((line = reader.readLine()) != null) {
+							str.append(line);
 						}
+						in.close();
+						gradesHTML = str.toString();
+						// Parse through each HTML and create grades object
+						CycleParser parser = new CycleParser(gradesHTML);
+						CycleGrades grades = parser.parseCycle();
+						grades.average = course.sixWeeksAverages[d];
+						grades.title = course.title;
+						cycles[d] = grades;
+					} else {
+						Log.d("CourseParser", "Not parsing, NO_GRADE");
+						cycles[d] = null;
 					}
-
-					course.setSixWeekGrades(cycles);
-					courses.set(i, course);
 				}
+
+				course.setSixWeekGrades(cycles);
+				courses.set(c, course);
 
 			} catch (UnsupportedEncodingException e) {
 				e.printStackTrace();
 			} catch (ClientProtocolException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
-				e.printStackTrace();
-			} catch (URISyntaxException e) {
 				e.printStackTrace();
 			}
 			return "";

@@ -23,7 +23,7 @@ public class Course {
 		this.examGrades = examGrades;
 		this.semesterAverages = semesterAverages;
 		this.gradeLinks = gradeLinks;
-		sixWeekGrades = new CycleGrades[6];
+		sixWeekGrades = null;
 	}
 	
 	public void setSixWeekGrades(CycleGrades[] grades) {

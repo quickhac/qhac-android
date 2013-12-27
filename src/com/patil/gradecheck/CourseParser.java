@@ -23,28 +23,33 @@ public class CourseParser {
 	 */
 	public ArrayList<Course> parseCourses() {
 		ArrayList<Course> courses = new ArrayList<Course>();
+		if (html != null) {
+			if (html.length() > 0) {
+				Document doc = Jsoup.parse(html);
 
-		Document doc = Jsoup.parse(html);
+				Element content = doc.getElementById("_ctl0_tdMainContent");
 
-		Element content = doc.getElementById("_ctl0_tdMainContent");
+				// Parse all necessary details
+				ArrayList<String> teacherEmails = parseTeacherEmails(content);
+				ArrayList<String> teacherNames = parseTeacherNames(content);
+				ArrayList<int[]> cycleGrades = parseCycleGrades(content);
+				ArrayList<int[]> examGrades = parseExamGrades(content);
+				ArrayList<int[]> semesterGrades = parseSemesterGrades(content);
+				ArrayList<String[]> gradeLinks = parseGradeLinks(content);
+				ArrayList<String> titles = parseCourseTitles(content);
 
-		// Parse all necessary details
-		ArrayList<String> teacherEmails = parseTeacherEmails(content);
-		ArrayList<String> teacherNames = parseTeacherNames(content);
-		ArrayList<int[]> cycleGrades = parseCycleGrades(content);
-		ArrayList<int[]> examGrades = parseExamGrades(content);
-		ArrayList<int[]> semesterGrades = parseSemesterGrades(content);
-		ArrayList<String[]> gradeLinks = parseGradeLinks(content);
-		ArrayList<String> titles = parseCourseTitles(content);
+				// Add to courses
+				for (int i = 0; i < titles.size(); i++) {
+					Course course = new Course(titles.get(i),
+							teacherNames.get(i), teacherEmails.get(i),
+							cycleGrades.get(i), examGrades.get(i),
+							semesterGrades.get(i), gradeLinks.get(i));
+					courses.add(course);
+				}
 
-		// Add to courses
-		for (int i = 0; i < titles.size(); i++) {
-			Course course = new Course(titles.get(i), teacherNames.get(i),
-					teacherEmails.get(i), cycleGrades.get(i),
-					examGrades.get(i), semesterGrades.get(i), gradeLinks.get(i));
-			courses.add(course);
+				
+			}
 		}
-
 		return courses;
 	}
 

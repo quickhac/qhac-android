@@ -26,13 +26,10 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -75,17 +72,26 @@ public class MainActivity extends FragmentActivity {
 	// Handler to make sure drawer closes smoothly
 	Handler drawerHandler = new Handler();
 
+	SettingsManager settingsManager;
+	CardColorGenerator colorGenerator;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
-
+		settingsManager = new SettingsManager(this);
+		colorGenerator = new CardColorGenerator();
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
 
-		String[] credentials = getCredentials();
+		startDisplayingGrades();
 
+		makeDrawer();
+	}
+
+	public void startDisplayingGrades() {
+		String[] credentials = settingsManager.getLoginInfo();
 		if (credentials[0].length() > 0 && credentials[1].length() > 0
 				&& credentials[2].length() > 0 && credentials[3].length() > 0) {
 			new ScrapeTask(this).execute(new String[] { credentials[0],
@@ -98,25 +104,6 @@ public class MainActivity extends FragmentActivity {
 			signInButton.setVisibility(View.VISIBLE);
 			startLogin();
 		}
-		makeDrawer();
-	}
-
-	/*
-	 * Helper class that returns the credentials of the student.
-	 */
-	public String[] getCredentials() {
-		SharedPreferences prefs = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		String[] credentials = new String[4];
-		String user = prefs.getString("user", "");
-		String pass = prefs.getString("pass", "");
-		String district = prefs.getString("district", "");
-		String id = prefs.getString("id", "");
-		credentials[0] = user;
-		credentials[1] = pass;
-		credentials[2] = id;
-		credentials[3] = district;
-		return credentials;
 	}
 
 	/*
@@ -163,11 +150,19 @@ public class MainActivity extends FragmentActivity {
 										&& password.getText().length() > 0
 										&& studentId.length() > 0
 										&& district.getSelectedItem() != null) {
-									saveCredentials(userName.getText()
-											.toString(), password.getText()
-											.toString(), studentId.toString(),
-											district.getSelectedItem()
-													.toString());
+									String distr = "";
+									if (district.getSelectedItem().toString()
+											.equals("AISD")) {
+										distr = "Austin";
+									} else if (district.getSelectedItem()
+											.toString().equals("RRISD")) {
+										distr = "RoundRock";
+									}
+									settingsManager.saveLoginInfo(userName
+											.getText().toString(), password
+											.getText().toString(), studentId
+											.toString(), distr);
+									restartActivity();
 								} else {
 									Toast.makeText(MainActivity.this,
 											"Please fill out all info.",
@@ -185,30 +180,6 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	/*
-	 * Saves credentials of student to SharedPreferences.
-	 * 
-	 * @param The username
-	 * 
-	 * @param The password
-	 * 
-	 * @param The student id
-	 * 
-	 * @param The district (AISD or RRISD)
-	 */
-	public void saveCredentials(String user, String pass, String id,
-			String district) {
-		SharedPreferences prefs = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		Editor edit = prefs.edit();
-		edit.putString("user", user);
-		edit.putString("pass", pass);
-		edit.putString("id", id);
-		edit.putString("district", district);
-		edit.commit();
-		restartActivity();
-	}
-
-	/*
 	 * Helper method that restarts the activity.
 	 */
 	public void restartActivity() {
@@ -216,7 +187,6 @@ public class MainActivity extends FragmentActivity {
 		overridePendingTransition(0, 0);
 		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 		finish();
-
 		overridePendingTransition(0, 0);
 		startActivity(intent);
 	}
@@ -284,7 +254,7 @@ public class MainActivity extends FragmentActivity {
 			// Check if we already have info, otherwise load the course info
 			if (courses.get(position - 1).sixWeekGrades == null) {
 				drawerLayout.closeDrawer(drawerList);
-				loadCourseInfo(position - 1, getCredentials()[3]);
+				loadCourseInfo(position - 1, settingsManager.getLoginInfo()[3]);
 			} else {
 				createFragment(position - 1);
 			}
@@ -360,17 +330,17 @@ public class MainActivity extends FragmentActivity {
 				gradeDescription += "Semester 2: N/A" + "DELIMROW";
 			}
 			for (int d = 0; d < 3; d++) {
-				if (course.sixWeeksAverages[d] != -1) {
+				if (sixWeeksAverages[d] != -1) {
 					gradeDescription += "Cycle " + (d + 1) + ": "
-							+ String.valueOf(course.sixWeeksAverages[d])
+							+ String.valueOf(sixWeeksAverages[d])
 							+ "DELIMCOLUMN";
 				} else {
 					gradeDescription += "Cycle " + (d + 1) + ": N/A"
 							+ "DELIMCOLUMN";
 				}
-				if (course.sixWeeksAverages[d + 3] != -1) {
+				if (sixWeeksAverages[d + 3] != -1) {
 					gradeDescription += "Cycle " + (d + 4) + ": "
-							+ String.valueOf(course.sixWeeksAverages[d + 3])
+							+ String.valueOf(sixWeeksAverages[d + 3])
 							+ "DELIMROW";
 				} else {
 					gradeDescription += "Cycle " + (d + 4) + ": N/A"
@@ -389,42 +359,11 @@ public class MainActivity extends FragmentActivity {
 			} else {
 				gradeDescription += "Exam 2: N/A";
 			}
-			String color = getCardColor(i);
+			String color = colorGenerator.getCardColor(i);
 			cardView.addCard(new CourseCard(course.title, gradeDescription,
 					color, "#787878", false, true));
 		}
 		cardView.refresh();
-	}
-
-	/*
-	 * Returns a color for each class.
-	 */
-	public String getCardColor(int i) {
-		String color;
-		if (i == 0) {
-			color = "#009bce";
-		} else if (i == 1) {
-			color = "#9c34d0";
-		} else if (i == 2) {
-			color = "#5f8f00";
-		} else if (i == 3) {
-			color = "#fd8700";
-		} else if (i == 4) {
-			color = "#d20000";
-		} else if (i == 5) {
-			color = "#33b5e5";
-		} else if (i == 6) {
-			color = "#aa6fc7";
-		} else if (i == 7) {
-			color = "#9fd400";
-		} else if (i == 8) {
-			color = "#ffbd38";
-		} else if (i == 9) {
-			color = "#ff5252";
-		} else {
-			color = "#020202";
-		}
-		return color;
 	}
 
 	public void loadCourseInfo(int course, String school) {
@@ -473,18 +412,11 @@ public class MainActivity extends FragmentActivity {
 			restartActivity();
 		}
 		if (item.getItemId() == R.id.action_signout) {
-			eraseCredentials();
+			settingsManager.eraseLoginInfo();
 			restartActivity();
 		}
 
 		return super.onOptionsItemSelected(item);
-	}
-
-	/*
-	 * Helper method that erases credentials.
-	 */
-	public void eraseCredentials() {
-		saveCredentials("", "", "", "");
 	}
 
 	public class ScrapeTask extends AsyncTask<String, Void, String> {
@@ -506,7 +438,8 @@ public class MainActivity extends FragmentActivity {
 		 * 
 		 * @param[2] The student id.
 		 * 
-		 * @param[3] The id of the school logging in with. "AISD" or "RRISD".
+		 * @param[3] The id of the school logging in with. "Austin" or
+		 * "RoundRock".
 		 * 
 		 * @return A String of the webpage HTML.
 		 */
@@ -521,10 +454,10 @@ public class MainActivity extends FragmentActivity {
 
 			String html = "UNKNOWN_ERROR";
 
-			if (school.equals("AISD")) {
-				html = scrapeAISD(username, password, id, client);
-			} else if (school.equals("RRISD")) {
-				html = scrapeRRISD(username, password, id, client);
+			if (school.equals("Austin")) {
+				html = scrapeAustin(username, password, id, client);
+			} else if (school.equals("RoundRock")) {
+				html = scrapeRoundRock(username, password, id, client);
 			}
 
 			return html;
@@ -572,23 +505,26 @@ public class MainActivity extends FragmentActivity {
 		 * @param The HTML of the response.
 		 */
 		public void parseHTML(String html) {
-			if (html != null) {
-				if (html.length() > 0) {
-					CourseParser parser = new CourseParser(html);
-					courses = parser.parseCourses();
-					setupActionBar();
-					makeCourseCards();
-					dialog.dismiss();
-				} else {
-					Toast.makeText(context, "Something went wrong.",
-							Toast.LENGTH_SHORT).show();
-					startLogin();
-				}
+			Log.d("WHATTHEHECK", html);
+			if (!html.equals("UNKNOWN_ERROR") && !html.equals("INVAILID_LOGIN")
+					&& !html.equals("IO_EXCEPTION")
+					&& !html.equals("UNSUPPORTED_ENCODING_EXCEPTION")
+					&& !html.equals("CLIENT_PROTOCOL_EXCEPTION")
+					&& !html.equals("URI_SYNTAX_EXCEPTION")) {
+				CourseParser parser = new CourseParser(html);
+				courses = parser.parseCourses();
+				setupActionBar();
+				makeCourseCards();
+				dialog.dismiss();
 			} else {
-				Toast.makeText(context, "Something went wrong.",
+				dialog.dismiss();
+				Toast.makeText(
+						context,
+						"Something went wrong. Make sure you're connected to the internet.",
 						Toast.LENGTH_SHORT).show();
 				startLogin();
 			}
+
 		}
 
 		protected void onPreExecute() {
@@ -612,7 +548,7 @@ public class MainActivity extends FragmentActivity {
 		 * 
 		 * @return The HTML of AISD scrape.
 		 */
-		public String scrapeAISD(String username, String password, String id,
+		public String scrapeAustin(String username, String password, String id,
 				HttpClient client) {
 			URI loginURL;
 			HttpPost loginPost;
@@ -707,8 +643,8 @@ public class MainActivity extends FragmentActivity {
 		 * @return The HTML of RRISD scrape. Not yet implemented.
 		 */
 
-		public String scrapeRRISD(String username, String password, String id,
-				HttpClient client) {
+		public String scrapeRoundRock(String username, String password,
+				String id, HttpClient client) {
 			return "INVALID_LOGIN";
 		}
 
@@ -738,10 +674,10 @@ public class MainActivity extends FragmentActivity {
 			int course = Integer.valueOf(information[0]);
 			position = course;
 			String school = information[1];
-			if (school.equals("AISD")) {
+			if (school.equals("Austin")) {
 				Log.d("CourseParser", "Starting scrape");
-				scrapeAISD(course, client);
-			} else if (school.equals("RRISD")) {
+				scrapeAustin(course, client);
+			} else if (school.equals("RoundRock")) {
 
 			}
 
@@ -780,7 +716,7 @@ public class MainActivity extends FragmentActivity {
 		 * 
 		 * @return The HTML of AISD scrape with specific cycle info.
 		 */
-		public String scrapeAISD(int c, HttpClient client) {
+		public String scrapeAustin(int c, HttpClient client) {
 
 			HttpGet request;
 			HttpResponse resp = null;
@@ -850,8 +786,8 @@ public class MainActivity extends FragmentActivity {
 		 * @return The HTML of RRISD scrape. Not yet implemented.
 		 */
 
-		public String scrapeRRISD(String username, String password, String id,
-				HttpClient client, String link) {
+		public String scrapeRoundRock(String username, String password,
+				String id, HttpClient client, String link) {
 			return "INVALID_LOGIN";
 		}
 
@@ -1101,8 +1037,8 @@ public class MainActivity extends FragmentActivity {
 								desc += a.ptsEarned + "DELIMCOLUMN";
 								desc += a.ptsPossible + "DELIMROW";
 							}
-
-							String color = getCardColor(i);
+							CardColorGenerator gen = new CardColorGenerator();
+							String color = gen.getCardColor(i);
 
 							CategoryCard card = new CategoryCard(title, desc,
 									color, "#787878", false, false);
@@ -1129,36 +1065,6 @@ public class MainActivity extends FragmentActivity {
 				cardUI.refresh();
 			}
 
-			/*
-			 * Returns a color for each class.
-			 */
-			public String getCardColor(int i) {
-				String color;
-				if (i == 0) {
-					color = "#009bce";
-				} else if (i == 1) {
-					color = "#9c34d0";
-				} else if (i == 2) {
-					color = "#5f8f00";
-				} else if (i == 3) {
-					color = "#fd8700";
-				} else if (i == 4) {
-					color = "#d20000";
-				} else if (i == 5) {
-					color = "#33b5e5";
-				} else if (i == 6) {
-					color = "#aa6fc7";
-				} else if (i == 7) {
-					color = "#9fd400";
-				} else if (i == 8) {
-					color = "#ffbd38";
-				} else if (i == 9) {
-					color = "#ff5252";
-				} else {
-					color = "#020202";
-				}
-				return color;
-			}
 		}
 	}
 

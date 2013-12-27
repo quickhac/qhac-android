@@ -20,5 +20,6 @@
 	<string name="points_possible">POSSIBLE</string>
 	<string name="semester1">Semester 1</string>
 	<string name="semester2">Semester 2</string>
+	<string name="action_about">About</string>
     
 </resources>

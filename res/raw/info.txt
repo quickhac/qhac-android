@@ -1,0 +1,5 @@
+<h3>QuickHAC</h3>
+Version 1.0<br>
+Copyright 2013<br><br>
+Created by Neil Patil<br>
+neilpatil215@gmail.com<br>

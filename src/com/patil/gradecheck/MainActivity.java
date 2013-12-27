@@ -408,12 +408,19 @@ public class MainActivity extends FragmentActivity {
 		if (drawerToggle.onOptionsItemSelected(item)) {
 			return true;
 		}
-		if (item.getItemId() == R.id.action_refresh) {
+		switch (item.getItemId()) {
+		case (R.id.action_refresh):
 			restartActivity();
-		}
-		if (item.getItemId() == R.id.action_signout) {
+			break;
+		case (R.id.action_signout):
 			settingsManager.eraseLoginInfo();
 			restartActivity();
+			break;
+		case (R.id.action_about):
+			AboutDialog about = new AboutDialog(this);
+			about.setTitle("QuickHAC for Android");
+			about.show();
+			break;
 		}
 
 		return super.onOptionsItemSelected(item);
@@ -524,7 +531,6 @@ public class MainActivity extends FragmentActivity {
 						Toast.LENGTH_SHORT).show();
 				startLogin();
 			}
-
 		}
 
 		protected void onPreExecute() {

@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -84,6 +85,9 @@ public class MainActivity extends FragmentActivity {
 		colorGenerator = new CardColorGenerator();
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
+		
+		// This is used to store persistent cookies
+		Drawable drawable = getResources().getDrawable(getResources().getIdentifier("cookie_storage", "drawable", getPackageName()));
 
 		startDisplayingGrades();
 
@@ -480,6 +484,7 @@ public class MainActivity extends FragmentActivity {
 		 * @param The response - either HTML or an error.
 		 */
 		public void handleResponse(String response) {
+			Log.d("THEHTML", response);
 			if (response.equals("UNKNOWN_ERROR")) {
 				dialog.dismiss();
 				// Error unknown
@@ -512,7 +517,6 @@ public class MainActivity extends FragmentActivity {
 		 * @param The HTML of the response.
 		 */
 		public void parseHTML(String html) {
-			Log.d("WHATTHEHECK", html);
 			if (!html.equals("UNKNOWN_ERROR") && !html.equals("INVAILID_LOGIN")
 					&& !html.equals("IO_EXCEPTION")
 					&& !html.equals("UNSUPPORTED_ENCODING_EXCEPTION")
@@ -563,6 +567,8 @@ public class MainActivity extends FragmentActivity {
 			List<NameValuePair> loginPairs = new ArrayList<NameValuePair>();
 			loginPairs.add(new BasicNameValuePair("txtUserName", username));
 			loginPairs.add(new BasicNameValuePair("txtPassword", password));
+			
+			
 
 			String gradeHTML = "UNKNOWN_ERROR";
 
@@ -631,7 +637,7 @@ public class MainActivity extends FragmentActivity {
 				gradeHTML = "URI_SYNTAX_EXCEPTION";
 				e.printStackTrace();
 			}
-
+			Log.d("RRISDSupport", gradeHTML);
 			return gradeHTML;
 		}
 
@@ -651,7 +657,165 @@ public class MainActivity extends FragmentActivity {
 
 		public String scrapeRoundRock(String username, String password,
 				String id, HttpClient client) {
-			return "INVALID_LOGIN";
+			URI loginURL;
+			HttpPost loginPost;
+			HttpResponse loginResponse;
+			HttpEntity loginEntity;
+			List<NameValuePair> loginPairs = new ArrayList<NameValuePair>();
+			loginPairs.add(new BasicNameValuePair("ctl00$plnMain$txtLogin",
+					username));
+			loginPairs.add(new BasicNameValuePair("ctl00$plnMain$txtPassword",
+					password));
+			loginPairs.add(new BasicNameValuePair("student_id", String
+					.valueOf(id)));
+			loginPairs.add(new BasicNameValuePair("student_id", id));
+
+			String gradeHTML = "UNKNOWN_ERROR";
+
+			try {
+				loginURL = new URI(
+						"https://accesscenter.roundrockisd.org/homeaccess/default.aspx");
+				loginPost = new HttpPost(loginURL);
+				loginPost.setEntity(new UrlEncodedFormEntity(loginPairs));
+				loginResponse = client.execute(loginPost);
+				loginEntity = loginResponse.getEntity();
+
+				InputStream loginStream = loginEntity.getContent();
+				BufferedReader loginReader = new BufferedReader(
+						new InputStreamReader(loginStream));
+				StringBuilder loginBuilder = new StringBuilder();
+				String loginLine = null;
+				while ((loginLine = loginReader.readLine()) != null) {
+					loginBuilder.append(loginLine);
+				}
+				String loginHTML = loginBuilder.toString();
+				Log.d("WHATTHEHECK", loginHTML);
+
+				HttpPost gradeRequest;
+				HttpResponse gradeResponse;
+
+				try {
+					if (!loginHTML.contains("Invalid")) {
+						gradeRequest = new HttpPost(
+								"https://accesscenter.roundrockisd.org/homeaccess/Student/DailySummary.aspx");
+						List<NameValuePair> pairs = new ArrayList<NameValuePair>();
+						pairs.add(new BasicNameValuePair("student_id", String
+								.valueOf(id)));
+						pairs.add(new BasicNameValuePair("student_id", id));
+						gradeRequest.setEntity(new UrlEncodedFormEntity(pairs));
+						gradeResponse = client.execute(gradeRequest);
+
+						InputStream gradeStream = gradeResponse.getEntity()
+								.getContent();
+						BufferedReader gradeReader = new BufferedReader(
+								new InputStreamReader(gradeStream));
+
+						StringBuilder gradeBuilder = new StringBuilder();
+						String gradeLine = null;
+						while ((gradeLine = gradeReader.readLine()) != null) {
+							gradeBuilder.append(gradeLine);
+						}
+						gradeStream.close();
+						String accessHTML = gradeBuilder.toString();
+						Log.d("WHATTHEHECK", accessHTML);
+
+						HttpPost realGradeRequest;
+						HttpResponse realGradeResponse;
+						try {
+							realGradeRequest = new HttpPost(
+									"https://accesscenter.roundrockisd.org/homeaccess/Student/Gradespeed.aspx?target=https://gradebook.roundrockisd.org/pc/displaygrades.aspx");
+							realGradeRequest
+									.setEntity(new UrlEncodedFormEntity(pairs));
+							realGradeResponse = client
+									.execute(realGradeRequest);
+							InputStream realGradeStream = realGradeResponse
+									.getEntity().getContent();
+							BufferedReader realGradeReader = new BufferedReader(
+									new InputStreamReader(realGradeStream));
+
+							StringBuilder realGradeBuilder = new StringBuilder();
+							String realGradeLine = null;
+							while ((realGradeLine = realGradeReader.readLine()) != null) {
+								realGradeBuilder.append(realGradeLine);
+							}
+							realGradeStream.close();
+							String realGradeHTML = realGradeBuilder.toString();
+							Log.d("WHATTHEHECK", realGradeHTML);
+
+							HttpPost realRealGradeRequest;
+							HttpResponse realRealGradeResponse;
+
+							try {
+								realRealGradeRequest = new HttpPost(
+										"https://accesscenter.roundrockisd.org/homeaccess/Student/Gradespeed.aspx?target=https://gradebook.roundrockisd.org/pc/displaygrades.aspx");
+								realRealGradeRequest
+										.setEntity(new UrlEncodedFormEntity(
+												pairs));
+								realRealGradeResponse = client
+										.execute(realRealGradeRequest);
+								InputStream realRealGradeStream = realRealGradeResponse
+										.getEntity().getContent();
+								BufferedReader realRealGradeReader = new BufferedReader(
+										new InputStreamReader(realRealGradeStream));
+
+								StringBuilder realRealGradeBuilder = new StringBuilder();
+								String realRealGradeLine = null;
+								while ((realRealGradeLine = realRealGradeReader
+										.readLine()) != null) {
+									realRealGradeBuilder.append(realRealGradeLine);
+								}
+								realRealGradeStream.close();
+								gradeHTML = realRealGradeBuilder
+										.toString();
+							} catch (UnsupportedEncodingException e) {
+								gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
+								e.printStackTrace();
+							} catch (ClientProtocolException e) {
+								gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
+								e.printStackTrace();
+							} catch (IOException e) {
+								gradeHTML = "IO_EXCEPTION";
+								e.printStackTrace();
+							}
+						} catch (UnsupportedEncodingException e) {
+							gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
+							e.printStackTrace();
+						} catch (ClientProtocolException e) {
+							gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
+							e.printStackTrace();
+						} catch (IOException e) {
+							gradeHTML = "IO_EXCEPTION";
+							e.printStackTrace();
+						}
+
+					} else {
+						gradeHTML = "INVALID_LOGIN";
+					}
+				} catch (UnsupportedEncodingException e) {
+					gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
+					e.printStackTrace();
+				} catch (ClientProtocolException e) {
+					gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
+					e.printStackTrace();
+				} catch (IOException e) {
+					gradeHTML = "IO_EXCEPTION";
+					e.printStackTrace();
+				}
+			} catch (UnsupportedEncodingException e) {
+				gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
+				e.printStackTrace();
+			} catch (ClientProtocolException e) {
+				gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
+				e.printStackTrace();
+			} catch (IOException e) {
+				gradeHTML = "IO_EXCEPTION";
+				e.printStackTrace();
+			} catch (URISyntaxException e) {
+				gradeHTML = "URI_SYNTAX_EXCEPTION";
+				e.printStackTrace();
+			}
+
+			return "UNKNOWN_ERROR";
 		}
 
 	}

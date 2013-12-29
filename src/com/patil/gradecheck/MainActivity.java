@@ -26,11 +26,13 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -72,6 +74,8 @@ public class MainActivity extends FragmentActivity {
 
 	CardUI cardView;
 
+	TextView GPAText;
+
 	// Handler to make sure drawer closes smoothly
 	Handler drawerHandler = new Handler();
 
@@ -87,6 +91,7 @@ public class MainActivity extends FragmentActivity {
 		colorGenerator = new CardColorGenerator();
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
+		GPAText = (TextView) findViewById(R.id.gpa_text);
 
 		// This is used to store persistent cookies
 		Drawable drawable = getResources().getDrawable(
@@ -119,6 +124,11 @@ public class MainActivity extends FragmentActivity {
 	 */
 	public void onSignInClick(View v) {
 		startLogin();
+	}
+
+	public void displayGPA(double GPA) {
+		GPAText.setVisibility(View.VISIBLE);
+		GPAText.setText("GPA: " + String.valueOf(GPA));
 	}
 
 	/*
@@ -452,6 +462,10 @@ public class MainActivity extends FragmentActivity {
 			about.setTitle("QuickHAC for Android");
 			about.show();
 			break;
+		case (R.id.action_settings):
+			Intent intent = new Intent(this, SettingsActivity.class);
+			startActivity(intent);
+			break;
 		}
 
 		return super.onOptionsItemSelected(item);
@@ -461,6 +475,7 @@ public class MainActivity extends FragmentActivity {
 
 		ProgressDialog dialog;
 		Context context;
+		String district;
 
 		public ScrapeTask(Context context) {
 			this.context = context;
@@ -486,6 +501,7 @@ public class MainActivity extends FragmentActivity {
 			String password = information[1];
 			String id = information[2];
 			String school = information[3];
+			district = school;
 
 			VerifiedHttpClientFactory httpClientFactory = new VerifiedHttpClientFactory();
 			client = httpClientFactory.getNewHttpClient();
@@ -553,6 +569,7 @@ public class MainActivity extends FragmentActivity {
 				courses = parser.parseCourses();
 				setupActionBar();
 				makeCourseCards();
+				calculateGPA();
 				dialog.dismiss();
 			} else {
 				dialog.dismiss();
@@ -560,6 +577,19 @@ public class MainActivity extends FragmentActivity {
 						context,
 						"Something went wrong. Make sure you're connected to the internet.",
 						Toast.LENGTH_SHORT).show();
+			}
+		}
+
+		public void calculateGPA() {
+			SharedPreferences sharedPref = PreferenceManager
+					.getDefaultSharedPreferences(context);
+			boolean gpaPref = sharedPref.getBoolean("pref_showGPA", false);
+			if (gpaPref) {
+				GPACalculator calc = new GPACalculator(context, district, courses);
+				double GPA = calc.calculateGPA();
+				displayGPA(GPA);
+			} else {
+				GPAText.setVisibility(View.GONE);
 			}
 		}
 

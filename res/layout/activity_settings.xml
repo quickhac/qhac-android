@@ -8,6 +8,10 @@
             android:key="pref_showGPA"
             android:summary="@string/pref_showGPA_summ"
             android:title="@string/pref_showGPA" />
+
+        <MultiSelectListPreference
+            android:key="pref_weightedClasses"
+            android:title="@string/pref_chooseWeighted" />
     </PreferenceCategory>
 
 </PreferenceScreen>

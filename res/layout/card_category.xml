@@ -67,6 +67,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/assignment"
+                            android:textColor="#787878"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -76,6 +77,7 @@
                             android:layout_marginRight="15dp"
                             android:gravity="center_horizontal"
                             android:text="@string/points_earned"
+                            android:textColor="#787878"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -84,6 +86,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="right"
                             android:text="@string/points_possible"
+                            android:textColor="#787878"
                             android:textSize="16sp"
                             android:textStyle="bold" />
                     </TableRow>

@@ -43,6 +43,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -53,6 +54,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.fima.cardsui.objects.Card;
 import com.fima.cardsui.views.CardUI;
 
 public class MainActivity extends FragmentActivity {
@@ -85,9 +87,11 @@ public class MainActivity extends FragmentActivity {
 		colorGenerator = new CardColorGenerator();
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
-		
+
 		// This is used to store persistent cookies
-		Drawable drawable = getResources().getDrawable(getResources().getIdentifier("cookie_storage", "drawable", getPackageName()));
+		Drawable drawable = getResources().getDrawable(
+				getResources().getIdentifier("cookie_storage", "drawable",
+						getPackageName()));
 
 		startDisplayingGrades();
 
@@ -237,6 +241,7 @@ public class MainActivity extends FragmentActivity {
 
 	/** Swaps fragments in the main content view */
 	private void selectItem(int position) {
+		drawerList.setItemChecked(position, true);
 		if (position == 0) {
 			Fragment fragment = new OverviewFragment();
 			// Insert the fragment by replacing any existing fragment
@@ -364,8 +369,30 @@ public class MainActivity extends FragmentActivity {
 				gradeDescription += "Exam 2: N/A";
 			}
 			String color = colorGenerator.getCardColor(i);
-			cardView.addCard(new CourseCard(course.title, gradeDescription,
-					color, "#787878", false, true));
+			final Card courseCard = new CourseCard(course.title,
+					gradeDescription, color, "#787878", false, true);
+
+			// Set onClick
+			courseCard.setOnClickListener(new OnClickListener() {
+
+				@Override
+				public void onClick(View v) {
+
+					// Find appropriate position
+					int pos = 0;
+					for (int e = 0; e < courses.size(); e++) {
+						Log.d("SelectionOfItem", courses.get(e).title + " "
+								+ ((CourseCard) courseCard).getCardTitle());
+						if (courses.get(e).title
+								.equals(((CourseCard) courseCard)
+										.getCardTitle())) {
+							pos = e;
+						}
+					}
+					selectItem(pos + 1);
+				}
+			});
+			cardView.addCard(courseCard);
 		}
 		cardView.refresh();
 	}
@@ -533,7 +560,6 @@ public class MainActivity extends FragmentActivity {
 						context,
 						"Something went wrong. Make sure you're connected to the internet.",
 						Toast.LENGTH_SHORT).show();
-				startLogin();
 			}
 		}
 
@@ -567,8 +593,6 @@ public class MainActivity extends FragmentActivity {
 			List<NameValuePair> loginPairs = new ArrayList<NameValuePair>();
 			loginPairs.add(new BasicNameValuePair("txtUserName", username));
 			loginPairs.add(new BasicNameValuePair("txtPassword", password));
-			
-			
 
 			String gradeHTML = "UNKNOWN_ERROR";
 
@@ -756,17 +780,18 @@ public class MainActivity extends FragmentActivity {
 								InputStream realRealGradeStream = realRealGradeResponse
 										.getEntity().getContent();
 								BufferedReader realRealGradeReader = new BufferedReader(
-										new InputStreamReader(realRealGradeStream));
+										new InputStreamReader(
+												realRealGradeStream));
 
 								StringBuilder realRealGradeBuilder = new StringBuilder();
 								String realRealGradeLine = null;
 								while ((realRealGradeLine = realRealGradeReader
 										.readLine()) != null) {
-									realRealGradeBuilder.append(realRealGradeLine);
+									realRealGradeBuilder
+											.append(realRealGradeLine);
 								}
 								realRealGradeStream.close();
-								gradeHTML = realRealGradeBuilder
-										.toString();
+								gradeHTML = realRealGradeBuilder.toString();
 							} catch (UnsupportedEncodingException e) {
 								gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
 								e.printStackTrace();
@@ -917,12 +942,22 @@ public class MainActivity extends FragmentActivity {
 						}
 						in.close();
 						gradesHTML = str.toString();
-						// Parse through each HTML and create grades object
-						CycleParser parser = new CycleParser(gradesHTML);
-						CycleGrades grades = parser.parseCycle();
-						grades.average = course.sixWeeksAverages[d];
-						grades.title = course.title;
-						cycles[d] = grades;
+						if (gradesHTML != null) {
+							if (gradesHTML.length() > 0) {
+								// Parse through each HTML and create grades
+								// object
+								CycleParser parser = new CycleParser(gradesHTML);
+								CycleGrades grades = parser.parseCycle();
+								grades.average = course.sixWeeksAverages[d];
+								grades.title = course.title;
+								cycles[d] = grades;
+							} else {
+								Toast.makeText(
+										context,
+										"Something went wrong. Check to make sure you're connected to the internet.",
+										Toast.LENGTH_SHORT).show();
+							}
+						}
 					} else {
 						Log.d("CourseParser", "Not parsing, NO_GRADE");
 						cycles[d] = null;
@@ -993,6 +1028,27 @@ public class MainActivity extends FragmentActivity {
 			pagerAdapter = new CollectionPagerAdapter(getFragmentManager());
 			viewPager = (ViewPager) getView().findViewById(R.id.pager);
 			viewPager.setAdapter(pagerAdapter);
+
+			int latest = 0;
+			CycleGrades[] grades = courses.get(index).sixWeekGrades;
+			if (grades != null) {
+				// Set to latest cycle
+				for (int i = grades.length - 1; i >= 0; i--) {
+					if (grades[i] != null) {
+						latest = i;
+						break;
+					}
+				}
+				if (latest >= 3) {
+					latest += 2;
+				}
+				viewPager.setCurrentItem(latest);
+			} else {
+				Toast.makeText(
+						getView().getContext(),
+						"Something went wrong. Make sure you're still connected to the internet.",
+						Toast.LENGTH_SHORT).show();
+			}
 		}
 
 		// Since this is an object collection, use a FragmentStatePagerAdapter,

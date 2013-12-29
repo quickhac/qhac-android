@@ -12,10 +12,17 @@ import android.widget.TextView;
 import com.fima.cardsui.objects.RecyclableCard;
 
 public class CourseCard extends RecyclableCard {
+	
+	String title;
 
 	public CourseCard(String title, String description, String color,
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
 		super(title, description, color, titleColor, hasOverflow, isClickable);
+		this.title = title;
+	}
+	
+	public String getCardTitle() {
+		return title;
 	}
 
 	@Override

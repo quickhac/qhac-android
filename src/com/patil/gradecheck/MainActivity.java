@@ -464,11 +464,19 @@ public class MainActivity extends FragmentActivity {
 			break;
 		case (R.id.action_settings):
 			Intent intent = new Intent(this, SettingsActivity.class);
-			startActivity(intent);
+			startActivityForResult(intent, 1);
 			break;
 		}
 
 		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		if (resultCode == RESULT_OK) {
+			restartActivity();
+		}
 	}
 
 	public class ScrapeTask extends AsyncTask<String, Void, String> {
@@ -1293,7 +1301,10 @@ public class MainActivity extends FragmentActivity {
 								desc += a.ptsEarned + "DELIMCOLUMN";
 								desc += a.ptsPossible + "DELIMROW";
 							}
-							desc += "DELIMAVERAGE" +  String.valueOf(new GPACalculator(getView().getContext(), courses).calculateCategoryAverage(category));
+							desc += "DELIMAVERAGE"
+									+ String.valueOf(new GPACalculator(
+											getView().getContext(), courses)
+											.calculateCategoryAverage(category));
 							CardColorGenerator gen = new CardColorGenerator();
 							String color = gen.getCardColor(i);
 

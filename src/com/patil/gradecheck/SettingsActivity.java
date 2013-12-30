@@ -1,19 +1,11 @@
 package com.patil.gradecheck;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.preference.MultiSelectListPreference;
-import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.preference.PreferenceManager;
-import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 
 public class SettingsActivity extends PreferenceActivity {
@@ -35,7 +27,6 @@ public class SettingsActivity extends PreferenceActivity {
 		}
 		listPreference.setEntryValues(classes);
 		listPreference.setEntries(classes);
-
 		/*// Create a Set<String> with list items that should be selected
 		SharedPreferences sharedPref = PreferenceManager
 				.getDefaultSharedPreferences(this);
@@ -101,8 +92,19 @@ public class SettingsActivity extends PreferenceActivity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 		case android.R.id.home:
+			setResult(RESULT_OK, null);
 			finish();
 		}
 		return super.onOptionsItemSelected(item);
+	}
+	
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+	    if (keyCode == KeyEvent.KEYCODE_BACK) {
+	    	setResult(RESULT_OK, null);
+			finish();
+			return true;
+	    }
+	    return super.onKeyDown(keyCode, event);
 	}
 }

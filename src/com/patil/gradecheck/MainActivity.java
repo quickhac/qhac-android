@@ -583,9 +583,9 @@ public class MainActivity extends FragmentActivity {
 		public void calculateGPA() {
 			SharedPreferences sharedPref = PreferenceManager
 					.getDefaultSharedPreferences(context);
-			boolean gpaPref = sharedPref.getBoolean("pref_showGPA", false);
+			boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
 			if (gpaPref) {
-				GPACalculator calc = new GPACalculator(context, district, courses);
+				GPACalculator calc = new GPACalculator(context, courses);
 				double GPA = calc.calculateGPA();
 				displayGPA(GPA);
 			} else {
@@ -1293,6 +1293,7 @@ public class MainActivity extends FragmentActivity {
 								desc += a.ptsEarned + "DELIMCOLUMN";
 								desc += a.ptsPossible + "DELIMROW";
 							}
+							desc += "DELIMAVERAGE" +  String.valueOf(new GPACalculator(getView().getContext(), courses).calculateCategoryAverage(category));
 							CardColorGenerator gen = new CardColorGenerator();
 							String color = gen.getCardColor(i);
 

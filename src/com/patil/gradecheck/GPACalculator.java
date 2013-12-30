@@ -1,5 +1,6 @@
 package com.patil.gradecheck;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Set;
 
@@ -10,12 +11,11 @@ import android.util.Log;
 
 public class GPACalculator {
 	final int DEFAULT_GPA_PRECISION = 4;
-	String district;
 	ArrayList<Course> courses;
 	Context context;
 
-	public GPACalculator(Context context, String district, ArrayList<Course> courses) {
-		this.district = district;
+	public GPACalculator(Context context,
+			ArrayList<Course> courses) {
 		this.courses = courses;
 		this.context = context;
 	}
@@ -27,18 +27,75 @@ public class GPACalculator {
 			return Math.min((grade - 60) / 10, 4) + offset;
 		}
 	}
+	
+	public double calculateCategoryAverage(Category category) {
+		double add = 0;
+		double divide = 0;
+		ArrayList<Assignment> assignments = category.assignments;
+		for(int i = 0; i < assignments.size(); i++) {
+			Assignment assignment = assignments.get(i);
+			if((assignment.ptsPossible == 100 || assignment.ptsPossible == -2 || assignment.ptsPossible == -1) && assignment.ptsEarned >= 0) {
+				add += assignment.ptsEarned;
+			} else {
+				add += ((double)assignment.ptsEarned / (double)assignment.ptsPossible) * 100;
+			}
+			divide += 1;
+		}
+		double average = add/divide;
+		// Round to 3 decimal places
+		average = round(average, 3);
+		return average;
+	}
+	
+	public static double round(double value, int places) {
+	    if (places < 0) throw new IllegalArgumentException();
+
+	    BigDecimal bd = new BigDecimal(value);
+	    bd = bd.setScale(places, BigDecimal.ROUND_HALF_UP);
+	    return bd.doubleValue();
+	}
 
 	public double calculateGPA() {
-		
-		
+		SharedPreferences sharedPref = PreferenceManager
+				.getDefaultSharedPreferences(context);
+		Set<String> grades = sharedPref.getStringSet("pref_weightedClasses",
+				null);
+		String[] selecteds = grades.toArray(new String[grades.size()]);
+		ArrayList<String> selectedClasses = new ArrayList<String>();
+		for (int i = 0; i < selecteds.length; i++) {
+			if (selecteds[i] != null) {
+				selectedClasses.add(selecteds[i]);
+			}
+		}
+
 		double add = 0;
-		int divide = 0;
+		double divide = 0;
 		for (int i = 0; i < courses.size(); i++) {
 			Course course = courses.get(i);
 			double grade = calculateYearAverage(course);
-			
+			boolean weighted = false;
+			for (int d = 0; d < selectedClasses.size(); d++) {
+				if (selectedClasses.get(d).equals(course.title)) {
+					weighted = true;
+				}
+			}
 			if (grade > 0) {
-				double gradePoint = convertGradePoint(grade, 0);
+
+				double gradePoint = 0;
+				if (weighted) {
+					if (new SettingsManager(context).getLoginInfo()[3]
+							.equals("Austin")) {
+						gradePoint = convertGradePoint(grade, 1);
+					} else if (new SettingsManager(context).getLoginInfo()[3]
+							.equals("RoundRock")) {
+						gradePoint = convertGradePoint(grade, 2);
+					} else {
+						gradePoint = convertGradePoint(grade, 1);
+					}
+
+				} else {
+					gradePoint = convertGradePoint(grade, 0);
+				}
 				Log.d("GPA", "Add: " + String.valueOf(add));
 				add += gradePoint;
 				divide++;
@@ -51,7 +108,7 @@ public class GPACalculator {
 
 	public double calculateYearAverage(Course course) {
 		double add = 0;
-		int divide = 0;
+		double divide = 0;
 		for (int i = 0; i < course.semesterAverages.length; i++) {
 			int semesterAverage = course.semesterAverages[i];
 			if (semesterAverage > 0) {

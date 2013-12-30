@@ -12,7 +12,7 @@ import android.widget.TextView;
 import com.fima.cardsui.objects.RecyclableCard;
 
 public class CourseCard extends RecyclableCard {
-	
+
 	String title;
 
 	public CourseCard(String title, String description, String color,
@@ -20,7 +20,7 @@ public class CourseCard extends RecyclableCard {
 		super(title, description, color, titleColor, hasOverflow, isClickable);
 		this.title = title;
 	}
-	
+
 	public String getCardTitle() {
 		return title;
 	}
@@ -34,10 +34,29 @@ public class CourseCard extends RecyclableCard {
 				.parseColor(titleColor));
 		String[] descs = description.split("DELIMROW");
 
-		((TextView) convertView.findViewById(R.id.semester1)).setText(descs[0]
-				.split("DELIMCOLUM")[0]);
-		((TextView) convertView.findViewById(R.id.semester2)).setText(descs[0]
-				.split("DELIMCOLUMN")[1]);
+		if (descs[0].split("DELIMCOLUMN")[0].contains("N/A")) {
+			((TextView) convertView.findViewById(R.id.semester1))
+					.setText(descs[0].split("DELIMCOLUM")[0].substring(1,
+							descs[0].split("DELIMCOLUM")[0].indexOf("N/A"))
+							+ "-");
+			((TextView) convertView.findViewById(R.id.semester1))
+					.setTextColor(Color.parseColor("#787878"));
+		} else {
+			((TextView) convertView.findViewById(R.id.semester1))
+					.setText(descs[0].split("DELIMCOLUM")[0]);
+		}
+
+		if (descs[0].split("DELIMCOLUMN")[1].contains("N/A")) {
+			((TextView) convertView.findViewById(R.id.semester2))
+					.setText(descs[0].split("DELIMCOLUM")[1].substring(1,
+							descs[0].split("DELIMCOLUM")[1].indexOf("N/A"))
+							+ "-");
+			((TextView) convertView.findViewById(R.id.semester2))
+					.setTextColor(Color.parseColor("#787878"));
+		} else {
+			((TextView) convertView.findViewById(R.id.semester2))
+					.setText(descs[0].split("DELIMCOLUMN")[1]);
+		}
 
 		for (int i = 1; i < descs.length; i++) {
 			String[] columns = descs[i].split("DELIMCOLUMN");
@@ -52,13 +71,27 @@ public class CourseCard extends RecyclableCard {
 
 			TextView semester1 = new TextView(convertView.getContext());
 			semester1.setPadding(10, 0, 0, 0);
-			semester1.setText(columns[0]);
+			if (columns[0].contains("N/A")) {
+				semester1.setText(columns[0].substring(0,
+						columns[0].indexOf("N/A"))
+						+ "-");
+				semester1.setTextColor(Color.parseColor(("#787878")));
+			} else {
+				semester1.setText(columns[0]);
+			}
 			semester1.setTextSize(16);
 
 			TextView semester2 = new TextView(convertView.getContext());
 			semester2.setPadding(0, 0, 10, 0);
 
-			semester2.setText(columns[1]);
+			if (columns[1].contains("N/A")) {
+				semester2.setText(columns[1].substring(0,
+						columns[1].indexOf("N/A"))
+						+ "-");
+				semester2.setTextColor(Color.parseColor(("#787878")));
+			} else {
+				semester2.setText(columns[1]);
+			}
 			semester2.setGravity(Gravity.RIGHT);
 			semester2.setTextSize(16);
 

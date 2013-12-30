@@ -36,7 +36,7 @@ public class SettingsActivity extends PreferenceActivity {
 		listPreference.setEntryValues(classes);
 		listPreference.setEntries(classes);
 
-		// Create a Set<String> with list items that should be selected
+		/*// Create a Set<String> with list items that should be selected
 		SharedPreferences sharedPref = PreferenceManager
 				.getDefaultSharedPreferences(this);
 		boolean[] classesSelected = new boolean[courses.size()];

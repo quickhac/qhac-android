@@ -10,6 +10,7 @@
             android:title="@string/pref_showGPA" />
 
         <MultiSelectListPreference
+            android:dialogTitle="@string/pref_chooseWeighted"
             android:key="pref_weightedClasses"
             android:title="@string/pref_chooseWeighted" />
     </PreferenceCategory>

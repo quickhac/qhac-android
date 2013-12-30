@@ -29,6 +29,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -75,12 +77,14 @@ public class MainActivity extends FragmentActivity {
 	CardUI cardView;
 
 	TextView GPAText;
+	TextView lastUpdatedText;
 
 	// Handler to make sure drawer closes smoothly
 	Handler drawerHandler = new Handler();
 
 	SettingsManager settingsManager;
 	CardColorGenerator colorGenerator;
+	CourseSaver saver;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -92,23 +96,67 @@ public class MainActivity extends FragmentActivity {
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
 		GPAText = (TextView) findViewById(R.id.gpa_text);
+		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
 
 		// This is used to store persistent cookies
 		Drawable drawable = getResources().getDrawable(
 				getResources().getIdentifier("cookie_storage", "drawable",
 						getPackageName()));
-
+		saver = new CourseSaver(this);
+		makeDrawer();
 		startDisplayingGrades();
 
-		makeDrawer();
 	}
 
 	public void startDisplayingGrades() {
+		ArrayList<Course> savedCourses;
+		savedCourses = saver.getSavedCourses();
 		String[] credentials = settingsManager.getLoginInfo();
 		if (credentials[0].length() > 0 && credentials[1].length() > 0
 				&& credentials[2].length() > 0 && credentials[3].length() > 0) {
-			new ScrapeTask(this).execute(new String[] { credentials[0],
-					credentials[1], credentials[2], credentials[3] });
+			if (isNetworkAvailable()) {
+				new ScrapeTask(this).execute(new String[] { credentials[0],
+						credentials[1], credentials[2], credentials[3] });
+			} else if (!isNetworkAvailable() && savedCourses != null) {
+				courses = savedCourses;
+				long lastUpdateMillis = System.currentTimeMillis()
+						- saver.getLastUpdated();
+				String toDisplay;
+				// If less than one hour
+				if (lastUpdateMillis < 3600000) {
+					int minutes = (int) ((lastUpdateMillis / (1000 * 60)) % 60);
+					if (minutes != 1) {
+						toDisplay = "Updated " + String.valueOf(minutes)
+								+ " minutes ago";
+					} else {
+						toDisplay = "Updated " + String.valueOf(minutes)
+								+ " minute ago";
+					}
+				} else {
+					int hours = (int) ((lastUpdateMillis / (1000 * 60 * 60)) % 24);
+					if (hours != 1) {
+						toDisplay = "Updated " + String.valueOf(hours)
+								+ " hours ago";
+					} else {
+
+						toDisplay = "Updated " + String.valueOf(hours)
+								+ " hour ago";
+					}
+				}
+				lastUpdatedText.setText(toDisplay);
+				Toast.makeText(
+						this,
+						"No internet connection detected. Displaying saved grades.",
+						Toast.LENGTH_SHORT).show();
+				setupActionBar();
+				makeCourseCards();
+				calculateGPA();
+			} else {
+				Toast.makeText(
+						this,
+						"You must be connected to the internet to load grades for the first time.",
+						Toast.LENGTH_SHORT).show();
+			}
 			signInButton.setVisibility(View.GONE);
 		} else {
 			/*
@@ -408,8 +456,12 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	public void loadCourseInfo(int course, String school) {
+		if(isNetworkAvailable()) {
 		new CycleScrapeTask(this).execute(new String[] {
 				String.valueOf(course), school });
+		} else {
+			Toast.makeText(this, "You need internet to view assignments.", Toast.LENGTH_SHORT).show();
+		}
 	}
 
 	public void setupActionBar() {
@@ -477,6 +529,29 @@ public class MainActivity extends FragmentActivity {
 		if (resultCode == RESULT_OK) {
 			restartActivity();
 		}
+	}
+
+	public void calculateGPA() {
+		SharedPreferences sharedPref = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
+		if (gpaPref) {
+			GPACalculator calc = new GPACalculator(this, courses);
+			double GPA = calc.calculateGPA();
+			displayGPA(GPA);
+		} else {
+			GPAText.setVisibility(View.GONE);
+		}
+	}
+
+	/*
+	 * Helper method to check if internet is available
+	 */
+	private boolean isNetworkAvailable() {
+		ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo activeNetworkInfo = connectivityManager
+				.getActiveNetworkInfo();
+		return activeNetworkInfo != null && activeNetworkInfo.isConnected();
 	}
 
 	public class ScrapeTask extends AsyncTask<String, Void, String> {
@@ -578,6 +653,8 @@ public class MainActivity extends FragmentActivity {
 				setupActionBar();
 				makeCourseCards();
 				calculateGPA();
+				lastUpdatedText.setText("Updated a few seconds ago");
+				saveCourseInfo();
 				dialog.dismiss();
 			} else {
 				dialog.dismiss();
@@ -588,17 +665,8 @@ public class MainActivity extends FragmentActivity {
 			}
 		}
 
-		public void calculateGPA() {
-			SharedPreferences sharedPref = PreferenceManager
-					.getDefaultSharedPreferences(context);
-			boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
-			if (gpaPref) {
-				GPACalculator calc = new GPACalculator(context, courses);
-				double GPA = calc.calculateGPA();
-				displayGPA(GPA);
-			} else {
-				GPAText.setVisibility(View.GONE);
-			}
+		public void saveCourseInfo() {
+			new CourseSaver(context).saveCourses(courses);
 		}
 
 		protected void onPreExecute() {

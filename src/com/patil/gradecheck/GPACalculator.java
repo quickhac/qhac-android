@@ -14,8 +14,7 @@ public class GPACalculator {
 	ArrayList<Course> courses;
 	Context context;
 
-	public GPACalculator(Context context,
-			ArrayList<Course> courses) {
+	public GPACalculator(Context context, ArrayList<Course> courses) {
 		this.courses = courses;
 		this.context = context;
 	}
@@ -27,32 +26,34 @@ public class GPACalculator {
 			return Math.min((grade - 60) / 10, 4) + offset;
 		}
 	}
-	
+
 	public double calculateCategoryAverage(Category category) {
 		double add = 0;
 		double divide = 0;
 		ArrayList<Assignment> assignments = category.assignments;
-		for(int i = 0; i < assignments.size(); i++) {
+		for (int i = 0; i < assignments.size(); i++) {
 			Assignment assignment = assignments.get(i);
-			if((assignment.ptsPossible == 100 || assignment.ptsPossible == -2 || assignment.ptsPossible == -1) && assignment.ptsEarned >= 0) {
+			if ((assignment.ptsPossible == 100 || assignment.ptsPossible == -2 || assignment.ptsPossible == -1)
+					&& assignment.ptsEarned >= 0) {
 				add += assignment.ptsEarned;
 			} else {
-				add += ((double)assignment.ptsEarned / (double)assignment.ptsPossible) * 100;
+				add += ((double) assignment.ptsEarned / (double) assignment.ptsPossible) * 100;
 			}
 			divide += 1;
 		}
-		double average = add/divide;
+		double average = add / divide;
 		// Round to 3 decimal places
 		average = round(average, 3);
 		return average;
 	}
-	
-	public static double round(double value, int places) {
-	    if (places < 0) throw new IllegalArgumentException();
 
-	    BigDecimal bd = new BigDecimal(value);
-	    bd = bd.setScale(places, BigDecimal.ROUND_HALF_UP);
-	    return bd.doubleValue();
+	public static double round(double value, int places) {
+		if (places < 0)
+			throw new IllegalArgumentException();
+
+		BigDecimal bd = new BigDecimal(value);
+		bd = bd.setScale(places, BigDecimal.ROUND_HALF_UP);
+		return bd.doubleValue();
 	}
 
 	public double calculateGPA() {
@@ -60,11 +61,15 @@ public class GPACalculator {
 				.getDefaultSharedPreferences(context);
 		Set<String> grades = sharedPref.getStringSet("pref_weightedClasses",
 				null);
-		String[] selecteds = grades.toArray(new String[grades.size()]);
 		ArrayList<String> selectedClasses = new ArrayList<String>();
-		for (int i = 0; i < selecteds.length; i++) {
-			if (selecteds[i] != null) {
-				selectedClasses.add(selecteds[i]);
+		if (grades != null) {
+			String[] selecteds = grades.toArray(new String[grades.size()]);
+			if (selecteds != null) {
+				for (int i = 0; i < selecteds.length; i++) {
+					if (selecteds[i] != null) {
+						selectedClasses.add(selecteds[i]);
+					}
+				}
 			}
 		}
 

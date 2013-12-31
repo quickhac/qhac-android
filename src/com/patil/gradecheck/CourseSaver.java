@@ -30,7 +30,6 @@ public class CourseSaver {
 		Editor editor = prefs.edit();
 		editor.putString("savedCourses", new Gson().toJson(courses).toString());
 		editor.putLong("lastUpdated", System.currentTimeMillis());
-		Log.d("GSON", new Gson().toJson(courses).toString());
 		editor.commit();
 	}
 	

@@ -101,13 +101,11 @@ public class GPACalculator {
 				} else {
 					gradePoint = convertGradePoint(grade, 0);
 				}
-				Log.d("GPA", "Add: " + String.valueOf(add));
 				add += gradePoint;
 				divide++;
 			}
 		}
 		double GPA = add / divide;
-		Log.d("GPA", String.valueOf("GPA"));
 		return GPA;
 	}
 
@@ -137,7 +135,6 @@ public class GPACalculator {
 		}
 
 		double grade = add / divide;
-		Log.d("GPA", "Grade: " + String.valueOf(grade));
 		return grade;
 	}
 }

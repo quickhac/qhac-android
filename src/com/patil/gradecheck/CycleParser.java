@@ -125,7 +125,6 @@ public class CycleParser {
 					assignments);
 			categories.add(category);
 		}
-		Log.d("CardUIGenerator", "cycles being parsed");
 		return new CycleGrades("", -1, categories);
 	}
 

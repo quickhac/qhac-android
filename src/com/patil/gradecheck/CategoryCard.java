@@ -27,7 +27,6 @@ public class CategoryCard extends RecyclableCard {
 		((TextView) convertView.findViewById(R.id.title)).setTextColor(Color
 				.parseColor(titleColor));
 		((TextView) convertView.findViewById(R.id.average)).setText("Average: " + description.split("DELIMAVERAGE")[1]);
-		Log.d("CardUIGenerator", "creating card");
 		String[] grows = description.split("DELIMAVERAGE");
 		String[] rows = grows[0].split("DELIMROW");
 		for (int i = 1; i < rows.length; i++) {

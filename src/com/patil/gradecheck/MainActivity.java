@@ -5,20 +5,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.List;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.message.BasicNameValuePair;
 
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
@@ -60,6 +52,11 @@ import android.widget.Toast;
 
 import com.fima.cardsui.objects.Card;
 import com.fima.cardsui.views.CardUI;
+import com.quickhac.common.GradeRetriever;
+import com.quickhac.common.districts.GradeSpeedDistrict;
+import com.quickhac.common.districts.impl.Austin;
+import com.quickhac.common.districts.impl.RoundRock;
+import com.quickhac.common.http.XHR;
 
 public class MainActivity extends FragmentActivity {
 
@@ -214,7 +211,7 @@ public class MainActivity extends FragmentActivity {
 									int whichButton) {
 								if (userName.getText().length() > 0
 										&& password.getText().length() > 0
-										&& studentId.length() > 0
+										&& studentId.getText().length() > 0
 										&& district.getSelectedItem() != null) {
 									String distr = "";
 									if (district.getSelectedItem().toString()
@@ -224,9 +221,10 @@ public class MainActivity extends FragmentActivity {
 											.toString().equals("RRISD")) {
 										distr = "RoundRock";
 									}
+									Log.d("really?", "text passed in" + studentId.getText().toString());
 									settingsManager.saveLoginInfo(userName
 											.getText().toString(), password
-											.getText().toString(), studentId
+											.getText().toString(), studentId.getText()
 											.toString(), distr);
 									restartActivity();
 								} else {
@@ -439,8 +437,6 @@ public class MainActivity extends FragmentActivity {
 					// Find appropriate position
 					int pos = 0;
 					for (int e = 0; e < courses.size(); e++) {
-						Log.d("SelectionOfItem", courses.get(e).title + " "
-								+ ((CourseCard) courseCard).getCardTitle());
 						if (courses.get(e).title
 								.equals(((CourseCard) courseCard)
 										.getCardTitle())) {
@@ -456,11 +452,12 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	public void loadCourseInfo(int course, String school) {
-		if(isNetworkAvailable()) {
-		new CycleScrapeTask(this).execute(new String[] {
-				String.valueOf(course), school });
+		if (isNetworkAvailable()) {
+			new CycleScrapeTask(this).execute(new String[] {
+					String.valueOf(course), school });
 		} else {
-			Toast.makeText(this, "You need internet to view assignments.", Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, "You need internet to view assignments.",
+					Toast.LENGTH_SHORT).show();
 		}
 	}
 
@@ -610,7 +607,6 @@ public class MainActivity extends FragmentActivity {
 		 * @param The response - either HTML or an error.
 		 */
 		public void handleResponse(String response) {
-			Log.d("THEHTML", response);
 			if (response.equals("UNKNOWN_ERROR")) {
 				dialog.dismiss();
 				// Error unknown
@@ -692,83 +688,39 @@ public class MainActivity extends FragmentActivity {
 		 */
 		public String scrapeAustin(String username, String password, String id,
 				HttpClient client) {
-			URI loginURL;
-			HttpPost loginPost;
-			HttpResponse loginResponse;
-			HttpEntity loginEntity;
-			List<NameValuePair> loginPairs = new ArrayList<NameValuePair>();
-			loginPairs.add(new BasicNameValuePair("txtUserName", username));
-			loginPairs.add(new BasicNameValuePair("txtPassword", password));
+			GradeSpeedDistrict district = new Austin();
+			final GradeRetriever retriever = new GradeRetriever(district);
+			retriever.login(username, password, id, new XHR.ResponseHandler() {
 
-			String gradeHTML = "UNKNOWN_ERROR";
-
-			try {
-				loginURL = new URI("https://gradespeed.austinisd.org/pc/");
-				loginPost = new HttpPost(loginURL);
-				loginPost.setEntity(new UrlEncodedFormEntity(loginPairs));
-				loginResponse = client.execute(loginPost);
-				loginEntity = loginResponse.getEntity();
-
-				InputStream loginStream = loginEntity.getContent();
-				BufferedReader loginReader = new BufferedReader(
-						new InputStreamReader(loginStream));
-				StringBuilder loginBuilder = new StringBuilder();
-				String loginLine = null;
-				while ((loginLine = loginReader.readLine()) != null) {
-					loginBuilder.append(loginLine);
-				}
-				String loginHTML = loginBuilder.toString();
-
-				HttpPost gradeRequest;
-				HttpResponse gradeResponse;
-
-				try {
-					if (!loginHTML.contains("Invalid")) {
-						gradeRequest = new HttpPost(
-								"https://gradespeed.austinisd.org/pc/ParentStudentGrades.aspx");
-						gradeResponse = client.execute(gradeRequest);
-
-						InputStream gradeStream = gradeResponse.getEntity()
-								.getContent();
-						BufferedReader gradeReader = new BufferedReader(
-								new InputStreamReader(gradeStream));
-
-						StringBuilder gradeBuilder = new StringBuilder();
-						String gradeLine = null;
-						while ((gradeLine = gradeReader.readLine()) != null) {
-							gradeBuilder.append(gradeLine);
-						}
-						gradeStream.close();
-						gradeHTML = gradeBuilder.toString();
-
-					} else {
-						gradeHTML = "INVALID_LOGIN";
+				@Override
+				public void onSuccess(String response) {
+					for (String line : response.split("\n")) {
+						Log.d("qhac-common-response", line);
 					}
-				} catch (UnsupportedEncodingException e) {
-					gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
-					e.printStackTrace();
-				} catch (ClientProtocolException e) {
-					gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
-					e.printStackTrace();
-				} catch (IOException e) {
-					gradeHTML = "IO_EXCEPTION";
-					e.printStackTrace();
+					retriever.getAverages(new XHR.ResponseHandler() {
+
+						@Override
+						public void onSuccess(String response) {
+							for (String line : response.split("\n")) {
+								Log.d("qhac-common-java", line);
+							}
+						}
+
+						@Override
+						public void onFailure(Exception e) {
+							// TODO Auto-generated method stub
+
+						}
+					});
 				}
-			} catch (UnsupportedEncodingException e) {
-				gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
-				e.printStackTrace();
-			} catch (ClientProtocolException e) {
-				gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
-				e.printStackTrace();
-			} catch (IOException e) {
-				gradeHTML = "IO_EXCEPTION";
-				e.printStackTrace();
-			} catch (URISyntaxException e) {
-				gradeHTML = "URI_SYNTAX_EXCEPTION";
-				e.printStackTrace();
-			}
-			Log.d("RRISDSupport", gradeHTML);
-			return gradeHTML;
+
+				@Override
+				public void onFailure(Exception e) {
+					// TODO Auto-generated method stub
+
+				}
+			});
+			return "";
 		}
 
 		/*
@@ -787,169 +739,40 @@ public class MainActivity extends FragmentActivity {
 
 		public String scrapeRoundRock(String username, String password,
 				String id, HttpClient client) {
-			URI loginURL;
-			HttpPost loginPost;
-			HttpResponse loginResponse;
-			HttpEntity loginEntity;
-			List<NameValuePair> loginPairs = new ArrayList<NameValuePair>();
-			loginPairs.add(new BasicNameValuePair("ctl00$plnMain$txtLogin",
-					username));
-			loginPairs.add(new BasicNameValuePair("ctl00$plnMain$txtPassword",
-					password));
-			loginPairs.add(new BasicNameValuePair("student_id", String
-					.valueOf(id)));
-			loginPairs.add(new BasicNameValuePair("student_id", id));
+			GradeSpeedDistrict district = new RoundRock();
+			final GradeRetriever retriever = new GradeRetriever(district);
+			retriever.login(username, password, id, new XHR.ResponseHandler() {
 
-			String gradeHTML = "UNKNOWN_ERROR";
+				@Override
+				public void onSuccess(String response) {
+					retriever.getAverages(new XHR.ResponseHandler() {
 
-			try {
-				loginURL = new URI(
-						"https://accesscenter.roundrockisd.org/homeaccess/default.aspx");
-				loginPost = new HttpPost(loginURL);
-				loginPost.setEntity(new UrlEncodedFormEntity(loginPairs));
-				loginResponse = client.execute(loginPost);
-				loginEntity = loginResponse.getEntity();
+						@Override
+						public void onSuccess(String response) {
+							Log.d("qhac-common-java", response);
 
-				InputStream loginStream = loginEntity.getContent();
-				BufferedReader loginReader = new BufferedReader(
-						new InputStreamReader(loginStream));
-				StringBuilder loginBuilder = new StringBuilder();
-				String loginLine = null;
-				while ((loginLine = loginReader.readLine()) != null) {
-					loginBuilder.append(loginLine);
-				}
-				String loginHTML = loginBuilder.toString();
-				Log.d("WHATTHEHECK", loginHTML);
-
-				HttpPost gradeRequest;
-				HttpResponse gradeResponse;
-
-				try {
-					if (!loginHTML.contains("Invalid")) {
-						gradeRequest = new HttpPost(
-								"https://accesscenter.roundrockisd.org/homeaccess/Student/DailySummary.aspx");
-						List<NameValuePair> pairs = new ArrayList<NameValuePair>();
-						pairs.add(new BasicNameValuePair("student_id", String
-								.valueOf(id)));
-						pairs.add(new BasicNameValuePair("student_id", id));
-						gradeRequest.setEntity(new UrlEncodedFormEntity(pairs));
-						gradeResponse = client.execute(gradeRequest);
-
-						InputStream gradeStream = gradeResponse.getEntity()
-								.getContent();
-						BufferedReader gradeReader = new BufferedReader(
-								new InputStreamReader(gradeStream));
-
-						StringBuilder gradeBuilder = new StringBuilder();
-						String gradeLine = null;
-						while ((gradeLine = gradeReader.readLine()) != null) {
-							gradeBuilder.append(gradeLine);
-						}
-						gradeStream.close();
-						String accessHTML = gradeBuilder.toString();
-						Log.d("WHATTHEHECK", accessHTML);
-
-						HttpPost realGradeRequest;
-						HttpResponse realGradeResponse;
-						try {
-							realGradeRequest = new HttpPost(
-									"https://accesscenter.roundrockisd.org/homeaccess/Student/Gradespeed.aspx?target=https://gradebook.roundrockisd.org/pc/displaygrades.aspx");
-							realGradeRequest
-									.setEntity(new UrlEncodedFormEntity(pairs));
-							realGradeResponse = client
-									.execute(realGradeRequest);
-							InputStream realGradeStream = realGradeResponse
-									.getEntity().getContent();
-							BufferedReader realGradeReader = new BufferedReader(
-									new InputStreamReader(realGradeStream));
-
-							StringBuilder realGradeBuilder = new StringBuilder();
-							String realGradeLine = null;
-							while ((realGradeLine = realGradeReader.readLine()) != null) {
-								realGradeBuilder.append(realGradeLine);
-							}
-							realGradeStream.close();
-							String realGradeHTML = realGradeBuilder.toString();
-							Log.d("WHATTHEHECK", realGradeHTML);
-
-							HttpPost realRealGradeRequest;
-							HttpResponse realRealGradeResponse;
-
-							try {
-								realRealGradeRequest = new HttpPost(
-										"https://accesscenter.roundrockisd.org/homeaccess/Student/Gradespeed.aspx?target=https://gradebook.roundrockisd.org/pc/displaygrades.aspx");
-								realRealGradeRequest
-										.setEntity(new UrlEncodedFormEntity(
-												pairs));
-								realRealGradeResponse = client
-										.execute(realRealGradeRequest);
-								InputStream realRealGradeStream = realRealGradeResponse
-										.getEntity().getContent();
-								BufferedReader realRealGradeReader = new BufferedReader(
-										new InputStreamReader(
-												realRealGradeStream));
-
-								StringBuilder realRealGradeBuilder = new StringBuilder();
-								String realRealGradeLine = null;
-								while ((realRealGradeLine = realRealGradeReader
-										.readLine()) != null) {
-									realRealGradeBuilder
-											.append(realRealGradeLine);
-								}
-								realRealGradeStream.close();
-								gradeHTML = realRealGradeBuilder.toString();
-							} catch (UnsupportedEncodingException e) {
-								gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
-								e.printStackTrace();
-							} catch (ClientProtocolException e) {
-								gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
-								e.printStackTrace();
-							} catch (IOException e) {
-								gradeHTML = "IO_EXCEPTION";
-								e.printStackTrace();
-							}
-						} catch (UnsupportedEncodingException e) {
-							gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
-							e.printStackTrace();
-						} catch (ClientProtocolException e) {
-							gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
-							e.printStackTrace();
-						} catch (IOException e) {
-							gradeHTML = "IO_EXCEPTION";
-							e.printStackTrace();
 						}
 
-					} else {
-						gradeHTML = "INVALID_LOGIN";
-					}
-				} catch (UnsupportedEncodingException e) {
-					gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
-					e.printStackTrace();
-				} catch (ClientProtocolException e) {
-					gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
-					e.printStackTrace();
-				} catch (IOException e) {
-					gradeHTML = "IO_EXCEPTION";
-					e.printStackTrace();
-				}
-			} catch (UnsupportedEncodingException e) {
-				gradeHTML = "UNSUPPORTED_ENCODING_EXCEPTION";
-				e.printStackTrace();
-			} catch (ClientProtocolException e) {
-				gradeHTML = "CLIENT_PROTOCOL_EXCEPTION";
-				e.printStackTrace();
-			} catch (IOException e) {
-				gradeHTML = "IO_EXCEPTION";
-				e.printStackTrace();
-			} catch (URISyntaxException e) {
-				gradeHTML = "URI_SYNTAX_EXCEPTION";
-				e.printStackTrace();
-			}
+						@Override
+						public void onFailure(Exception e) {
+							// TODO Auto-generated method stub
 
+						}
+					});
+				}
+
+				@Override
+				public void onFailure(Exception e) {
+					// TODO Auto-generated method stub
+
+				}
+			});
 			return "UNKNOWN_ERROR";
 		}
 
 	}
+
+	// Log.d
 
 	public class CycleScrapeTask extends AsyncTask<String, Void, String> {
 

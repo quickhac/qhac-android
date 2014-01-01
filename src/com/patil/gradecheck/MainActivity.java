@@ -862,6 +862,9 @@ public class MainActivity extends FragmentActivity {
 
 								@Override
 								public void onSuccess(String response) {
+									for( String line : response.split("\n") ) {
+									    Log.d( "ScrapingResponse", line );
+									}
 									ClassGrades grades = parser
 											.parseClassGrades(response, hash,
 													sem, cy);
@@ -879,7 +882,7 @@ public class MainActivity extends FragmentActivity {
 					gradesList.add(null);
 				}
 			}
-			classGradesList.add(gradesList);
+			classGradesList.set(c, gradesList);
 			return "";
 		}
 

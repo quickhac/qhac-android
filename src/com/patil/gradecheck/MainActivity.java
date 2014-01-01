@@ -1,8 +1,12 @@
 package com.patil.gradecheck;
 
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
 
 import org.jsoup.Jsoup;
+import org.ocpsoft.prettytime.PrettyTime;
 
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
@@ -12,7 +16,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -60,32 +63,29 @@ import com.quickhac.common.http.XHR;
 public class MainActivity extends FragmentActivity {
 
 	public static Course[] courses;
+	static ArrayList<ArrayList<ClassGrades>> classGradesList;
+
 	ListView drawerList;
 	DrawerLayout drawerLayout;
 	ActionBarDrawerToggle drawerToggle;
-
-	String currentTitle;
-
-	Button signInButton;
-
-	String cycleResponse;
-
-	CardUI cardView;
-	GradeParser parser;
-
-	TextView GPAText;
-	TextView lastUpdatedText;
-
-	GradeRetriever retriever;
-
 	// Handler to make sure drawer closes smoothly
 	Handler drawerHandler = new Handler();
 
-	SettingsManager settingsManager;
-	CardColorGenerator colorGenerator;
-	CourseSaver saver;
+	String currentTitle;
+	String cycleResponse;
 
-	static ArrayList<ArrayList<ClassGrades>> classGradesList = new ArrayList<ArrayList<ClassGrades>>();
+	Button signInButton;
+	TextView GPAText;
+	TextView lastUpdatedText;
+
+	CardUI cardView;
+	CardColorGenerator colorGenerator;
+
+	GradeParser parser;
+	GradeRetriever retriever;
+
+	SettingsManager settingsManager;
+	CourseSaver saver;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -98,11 +98,7 @@ public class MainActivity extends FragmentActivity {
 		signInButton = (Button) findViewById(R.id.button_signin);
 		GPAText = (TextView) findViewById(R.id.gpa_text);
 		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
-
-		// This is used to store persistent cookies
-		Drawable drawable = getResources().getDrawable(
-				getResources().getIdentifier("cookie_storage", "drawable",
-						getPackageName()));
+		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
 		saver = new CourseSaver(this);
 		makeDrawer();
 		startDisplayingGrades();
@@ -120,38 +116,23 @@ public class MainActivity extends FragmentActivity {
 						credentials[1], credentials[2], credentials[3] });
 			} else if (!isNetworkAvailable() && savedCourses != null) {
 				courses = savedCourses;
-				long lastUpdateMillis = System.currentTimeMillis()
-						- saver.getLastUpdated();
-				String toDisplay;
-				// If less than one hour
-				if (lastUpdateMillis < 3600000) {
-					int minutes = (int) ((lastUpdateMillis / (1000 * 60)) % 60);
-					if (minutes != 1) {
-						toDisplay = "Updated " + String.valueOf(minutes)
-								+ " minutes ago";
-					} else {
-						toDisplay = "Updated " + String.valueOf(minutes)
-								+ " minute ago";
-					}
-				} else {
-					int hours = (int) ((lastUpdateMillis / (1000 * 60 * 60)) % 24);
-					if (hours != 1) {
-						toDisplay = "Updated " + String.valueOf(hours)
-								+ " hours ago";
-					} else {
-
-						toDisplay = "Updated " + String.valueOf(hours)
-								+ " hour ago";
-					}
-				}
+				long lastUpdateMillis = saver.getLastUpdated();
+				String toDisplay = "Updated ";
+				PrettyTime p = new PrettyTime();
+				toDisplay += p.format(new Date(lastUpdateMillis));
 				lastUpdatedText.setText(toDisplay);
 				Toast.makeText(
 						this,
 						"No internet connection detected. Displaying saved grades.",
 						Toast.LENGTH_SHORT).show();
+				// Set up the classGradesList with unintialized
+				// class grades
+				for (int i = 0; i < courses.length; i++) {
+					classGradesList.add(null);
+				}
 				setupActionBar();
 				makeCourseCards();
-				calculateGPA();
+				displayGPA();
 			} else {
 				Toast.makeText(
 						this,
@@ -175,9 +156,38 @@ public class MainActivity extends FragmentActivity {
 		startLogin();
 	}
 
-	public void displayGPA(double GPA) {
-		GPAText.setVisibility(View.VISIBLE);
-		GPAText.setText("GPA: " + String.valueOf(GPA));
+	/*
+	 * Calculates and displays GPA.
+	 */
+	public void displayGPA() {
+		SharedPreferences sharedPref = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
+		if (gpaPref) {
+			List<String> weightedClasses = new ArrayList<String>();
+			Set<String> savedWeighted = sharedPref.getStringSet(
+					"pref_weightedClasses", null);
+			if (savedWeighted != null) {
+				String[] weighted = savedWeighted
+						.toArray(new String[savedWeighted.size()]);
+				if (weighted != null) {
+					for (int i = 0; i < weighted.length; i++) {
+						weightedClasses.add(weighted[i]);
+					}
+				}
+			}
+			double GPA = 0;
+			if (new SettingsManager(this).getLoginInfo()[3].equals("Austin")) {
+				GPA = GPACalc.weighted(courses, weightedClasses, 1);
+			} else if (new SettingsManager(this).getLoginInfo()[3]
+					.equals("RoundRock")) {
+				GPA = GPACalc.weighted(courses, weightedClasses, 2);
+			}
+			GPAText.setVisibility(View.VISIBLE);
+			GPAText.setText("GPA: " + String.valueOf(GPA));
+		} else {
+			GPAText.setVisibility(View.GONE);
+		}
 	}
 
 	/*
@@ -384,20 +394,21 @@ public class MainActivity extends FragmentActivity {
 		for (int i = 0; i < courses.length; i++) {
 			Course course = courses[i];
 			String gradeDescription = "";
-			int[] semesters = new int[2];
-			for (int d = 0; d < 2; d++) {
+			int[] semesters = new int[course.semesters.length];
+			for (int d = 0; d < semesters.length; d++) {
 				if (course.semesters[d].average != null) {
 					semesters[d] = course.semesters[d].average;
 				}
 			}
-			int[] exams = new int[2];
-			for (int d = 0; d < 2; d++) {
+			int[] exams = new int[course.semesters.length];
+			for (int d = 0; d < exams.length; d++) {
 				if (course.semesters[d].examGrade != null) {
 					exams[d] = course.semesters[d].examGrade;
 				}
 			}
-			int[] sixWeeksAverages = new int[6];
-			for (int d = 0; d < 6; d++) {
+			int[] sixWeeksAverages = new int[(course.semesters.length
+					* course.semesters[0].cycles.length)];
+			for (int d = 0; d < sixWeeksAverages.length; d++) {
 				if (d < 3) {
 					if (course.semesters[0].cycles[d].average != null) {
 						sixWeeksAverages[d] = course.semesters[0].cycles[d].average;
@@ -478,8 +489,8 @@ public class MainActivity extends FragmentActivity {
 
 	public void loadCourseInfo(int course, String school) {
 		if (isNetworkAvailable()) {
-			new CycleScrapeTask(this).execute(new String[] {
-					String.valueOf(course), school });
+			new CycleScrapeTask(this).execute(new String[] { String
+					.valueOf(course) });
 		} else {
 			Toast.makeText(this, "You need internet to view assignments.",
 					Toast.LENGTH_SHORT).show();
@@ -548,20 +559,9 @@ public class MainActivity extends FragmentActivity {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
+		// Restart activity if from settings to apply settings
 		if (resultCode == RESULT_OK) {
 			restartActivity();
-		}
-	}
-
-	public void calculateGPA() {
-		SharedPreferences sharedPref = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
-		if (gpaPref) {
-			double GPA = GPACalc.unweighted(courses);
-			displayGPA(GPA);
-		} else {
-			GPAText.setVisibility(View.GONE);
 		}
 	}
 
@@ -580,6 +580,7 @@ public class MainActivity extends FragmentActivity {
 		ProgressDialog dialog;
 		Context context;
 		String district;
+		String status;
 
 		public ScrapeTask(Context context) {
 			this.context = context;
@@ -608,11 +609,13 @@ public class MainActivity extends FragmentActivity {
 			district = school;
 
 			String html = "UNKNOWN_ERROR";
-
+			GradeSpeedDistrict dist;
 			if (school.equals("Austin")) {
-				html = scrapeAustin(username, password, id);
+				dist = new Austin();
+				html = scrape(username, password, id, dist);
 			} else if (school.equals("RoundRock")) {
-				html = scrapeRoundRock(username, password, id);
+				dist = new RoundRock();
+				html = scrape(username, password, id, dist);
 			}
 
 			return html;
@@ -648,8 +651,10 @@ public class MainActivity extends FragmentActivity {
 			} else {
 				setupActionBar();
 				makeCourseCards();
-				calculateGPA();
-				lastUpdatedText.setText("Updated a few seconds ago");
+				displayGPA();
+				PrettyTime p = new PrettyTime();
+				lastUpdatedText.setText("Updated "
+						+ p.format(new Date(System.currentTimeMillis() - 10)));
 				saveCourseInfo();
 				dialog.dismiss();
 			}
@@ -681,14 +686,19 @@ public class MainActivity extends FragmentActivity {
 		 * 
 		 * @return The HTML of AISD scrape.
 		 */
-		public String scrapeAustin(String username, String password, String id) {
-			GradeSpeedDistrict district = new Austin();
+		public String scrape(String username, String password, String id,
+				GradeSpeedDistrict district) {
 			retriever = new GradeRetriever(district);
 			parser = new GradeParser(district);
+			status = "SUCCESS";
 			retriever.login(username, password, id, new XHR.ResponseHandler() {
 
 				@Override
 				public void onSuccess(String response) {
+					if (response.contains("Invalid")) {
+						setStatus("INVALID_LOGIN");
+						return;
+					}
 					retriever.getAverages(new XHR.ResponseHandler() {
 
 						@Override
@@ -704,8 +714,7 @@ public class MainActivity extends FragmentActivity {
 
 						@Override
 						public void onFailure(Exception e) {
-							// TODO Auto-generated method stub
-
+							setStatus("UNKNOWN_ERROR");
 						}
 					});
 
@@ -713,66 +722,16 @@ public class MainActivity extends FragmentActivity {
 
 				@Override
 				public void onFailure(Exception e) {
-					// TODO Auto-generated method stub
-
+					setStatus("INVALID_LOGIN");
 				}
 			});
-			return "";
+			return status;
 		}
 
-		/*
-		 * Scrapes RRISD.
-		 * 
-		 * @param The username.
-		 * 
-		 * @param The password.
-		 * 
-		 * @param The student id.
-		 * 
-		 * @param The HttpClient.
-		 * 
-		 * @return The HTML of RRISD scrape. Not yet implemented.
-		 */
-
-		public String scrapeRoundRock(String username, String password,
-				String id) {
-			GradeSpeedDistrict district = new RoundRock();
-			retriever = new GradeRetriever(district);
-			parser = new GradeParser(district);
-			retriever.login(username, password, id, new XHR.ResponseHandler() {
-
-				@Override
-				public void onSuccess(String response) {
-					retriever.getAverages(new XHR.ResponseHandler() {
-
-						@Override
-						public void onSuccess(String response) {
-							courses = parser.parseAverages(response);
-							cycleResponse = response;
-							// Set up the classGradesList with unintialized
-							// class grades
-							for (int i = 0; i < courses.length; i++) {
-								classGradesList.add(null);
-							}
-						}
-
-						@Override
-						public void onFailure(Exception e) {
-							// TODO Auto-generated method stub
-
-						}
-					});
-
-				}
-
-				@Override
-				public void onFailure(Exception e) {
-					// TODO Auto-generated method stub
-
-				}
-			});
-			return "";
+		public void setStatus(String status) {
+			this.status = status;
 		}
+
 	}
 
 	public class CycleScrapeTask extends AsyncTask<String, Void, String> {
@@ -798,27 +757,11 @@ public class MainActivity extends FragmentActivity {
 		protected String doInBackground(String... information) {
 			int course = Integer.valueOf(information[0]);
 			position = course;
-			String school = information[1];
-			if (school.equals("Austin")) {
-				scrapeAustin(course);
-			} else if (school.equals("RoundRock")) {
-				scrapeRoundRock(course);
-			}
-
+			scrape(course);
 			return "LOADED SUCCESSFULLY";
-
 		}
 
 		protected void onPostExecute(String response) {
-			handleResponse(response);
-		}
-
-		/*
-		 * Looks at the response from the scraper and acts accordingly.
-		 * 
-		 * @param The response - either HTML or an error.
-		 */
-		public void handleResponse(String response) {
 			dialog.dismiss();
 			MainActivity.this.createFragment(position);
 		}
@@ -840,7 +783,7 @@ public class MainActivity extends FragmentActivity {
 		 * 
 		 * @return The HTML of AISD scrape with specific cycle info.
 		 */
-		public String scrapeAustin(int c) {
+		public String scrape(int c) {
 			Course course = courses[c];
 			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
 			for (int i = 0; i < 6; i++) {
@@ -862,8 +805,8 @@ public class MainActivity extends FragmentActivity {
 
 								@Override
 								public void onSuccess(String response) {
-									for( String line : response.split("\n") ) {
-									    Log.d( "ScrapingResponse", line );
+									for (String line : response.split("\n")) {
+										Log.d("ScrapingResponse", line);
 									}
 									ClassGrades grades = parser
 											.parseClassGrades(response, hash,
@@ -886,62 +829,6 @@ public class MainActivity extends FragmentActivity {
 			return "";
 		}
 
-		/*
-		 * Scrapes RRISD.
-		 * 
-		 * @param The username.
-		 * 
-		 * @param The password.
-		 * 
-		 * @param The student id.
-		 * 
-		 * @param The HttpClient.
-		 * 
-		 * @return The HTML of RRISD scrape. Not yet implemented.
-		 */
-
-		public String scrapeRoundRock(int c) {
-			Course course = courses[c];
-			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
-			for (int i = 0; i < 6; i++) {
-				int semester = 0;
-				int cycle = 0;
-				if (i < 3) {
-					semester = 0;
-					cycle = i;
-				} else {
-					semester = 1;
-					cycle = i - 3;
-				}
-				final String hash = course.semesters[semester].cycles[cycle].urlHash;
-				final int sem = semester;
-				final int cy = cycle;
-				if (hash != null) {
-					retriever.getCycle(hash, Jsoup.parse(cycleResponse),
-							new XHR.ResponseHandler() {
-
-								@Override
-								public void onSuccess(String response) {
-									ClassGrades grades = parser
-											.parseClassGrades(response, hash,
-													sem, cy);
-									gradesList.add(grades);
-								}
-
-								@Override
-								public void onFailure(Exception e) {
-									// TODO Auto-generated method stub
-
-								}
-
-							});
-				} else {
-					gradesList.add(null);
-				}
-			}
-			classGradesList.add(gradesList);
-			return "";
-		}
 	}
 
 	/*
@@ -1175,9 +1062,7 @@ public class MainActivity extends FragmentActivity {
 					cycle -= 3;
 				}
 				if (course.semesters[semester].cycles[cycle].average != null) {
-					titleText = "Cycle "
-							+ (cycleIndex + 1)
-							+ " - "
+					titleText = "Cycle " + (cycleIndex + 1) + " - "
 							+ course.semesters[semester].cycles[cycle].average;
 				} else {
 					titleText = "Cycle " + (cycleIndex + 1);

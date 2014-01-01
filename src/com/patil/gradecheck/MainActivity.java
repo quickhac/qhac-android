@@ -1,16 +1,8 @@
 package com.patil.gradecheck;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
+import org.jsoup.Jsoup;
 
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
@@ -52,7 +44,14 @@ import android.widget.Toast;
 
 import com.fima.cardsui.objects.Card;
 import com.fima.cardsui.views.CardUI;
+import com.quickhac.common.GPACalc;
+import com.quickhac.common.GradeCalc;
+import com.quickhac.common.GradeParser;
 import com.quickhac.common.GradeRetriever;
+import com.quickhac.common.data.Assignment;
+import com.quickhac.common.data.Category;
+import com.quickhac.common.data.ClassGrades;
+import com.quickhac.common.data.Course;
 import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
 import com.quickhac.common.districts.impl.RoundRock;
@@ -60,7 +59,7 @@ import com.quickhac.common.http.XHR;
 
 public class MainActivity extends FragmentActivity {
 
-	public static ArrayList<Course> courses;
+	public static Course[] courses;
 	ListView drawerList;
 	DrawerLayout drawerLayout;
 	ActionBarDrawerToggle drawerToggle;
@@ -69,12 +68,15 @@ public class MainActivity extends FragmentActivity {
 
 	Button signInButton;
 
-	HttpClient client;
+	String cycleResponse;
 
 	CardUI cardView;
+	GradeParser parser;
 
 	TextView GPAText;
 	TextView lastUpdatedText;
+
+	GradeRetriever retriever;
 
 	// Handler to make sure drawer closes smoothly
 	Handler drawerHandler = new Handler();
@@ -82,6 +84,8 @@ public class MainActivity extends FragmentActivity {
 	SettingsManager settingsManager;
 	CardColorGenerator colorGenerator;
 	CourseSaver saver;
+
+	static ArrayList<ArrayList<ClassGrades>> classGradesList = new ArrayList<ArrayList<ClassGrades>>();
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -106,7 +110,7 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	public void startDisplayingGrades() {
-		ArrayList<Course> savedCourses;
+		Course[] savedCourses;
 		savedCourses = saver.getSavedCourses();
 		String[] credentials = settingsManager.getLoginInfo();
 		if (credentials[0].length() > 0 && credentials[1].length() > 0
@@ -221,11 +225,12 @@ public class MainActivity extends FragmentActivity {
 											.toString().equals("RRISD")) {
 										distr = "RoundRock";
 									}
-									Log.d("really?", "text passed in" + studentId.getText().toString());
+									Log.d("really?", "text passed in"
+											+ studentId.getText().toString());
 									settingsManager.saveLoginInfo(userName
 											.getText().toString(), password
-											.getText().toString(), studentId.getText()
-											.toString(), distr);
+											.getText().toString(), studentId
+											.getText().toString(), distr);
 									restartActivity();
 								} else {
 									Toast.makeText(MainActivity.this,
@@ -315,9 +320,9 @@ public class MainActivity extends FragmentActivity {
 			// Highlight the selected item, update the title, and close the
 			// drawer
 			drawerList.setItemChecked(position - 1, true);
-			setTitle(courses.get(position - 1).title);
+			setTitle(courses[position - 1].title);
 			// Check if we already have info, otherwise load the course info
-			if (courses.get(position - 1).sixWeekGrades == null) {
+			if (classGradesList.get(position - 1) == null) {
 				drawerLayout.closeDrawer(drawerList);
 				loadCourseInfo(position - 1, settingsManager.getLoginInfo()[3]);
 			} else {
@@ -376,12 +381,33 @@ public class MainActivity extends FragmentActivity {
 	public void makeCourseCards() {
 		cardView = (CardUI) findViewById(R.id.cardsview);
 		cardView.setSwipeable(false);
-		for (int i = 0; i < courses.size(); i++) {
-			Course course = courses.get(i);
+		for (int i = 0; i < courses.length; i++) {
+			Course course = courses[i];
 			String gradeDescription = "";
-			int[] semesters = course.semesterAverages;
-			int[] exams = course.examGrades;
-			int[] sixWeeksAverages = course.sixWeeksAverages;
+			int[] semesters = new int[2];
+			for (int d = 0; d < 2; d++) {
+				if (course.semesters[d].average != null) {
+					semesters[d] = course.semesters[d].average;
+				}
+			}
+			int[] exams = new int[2];
+			for (int d = 0; d < 2; d++) {
+				if (course.semesters[d].examGrade != null) {
+					exams[d] = course.semesters[d].examGrade;
+				}
+			}
+			int[] sixWeeksAverages = new int[6];
+			for (int d = 0; d < 6; d++) {
+				if (d < 3) {
+					if (course.semesters[0].cycles[d].average != null) {
+						sixWeeksAverages[d] = course.semesters[0].cycles[d].average;
+					}
+				} else {
+					if (course.semesters[1].cycles[d - 3].average != null) {
+						sixWeeksAverages[d] = course.semesters[1].cycles[d - 3].average;
+					}
+				}
+			}
 			if (semesters[0] != -1) {
 				gradeDescription += "Semester 1: "
 						+ String.valueOf(semesters[0]) + "DELIMCOLUMN";
@@ -436,10 +462,9 @@ public class MainActivity extends FragmentActivity {
 
 					// Find appropriate position
 					int pos = 0;
-					for (int e = 0; e < courses.size(); e++) {
-						if (courses.get(e).title
-								.equals(((CourseCard) courseCard)
-										.getCardTitle())) {
+					for (int e = 0; e < courses.length; e++) {
+						if (courses[e].title.equals(((CourseCard) courseCard)
+								.getCardTitle())) {
 							pos = e;
 						}
 					}
@@ -465,10 +490,10 @@ public class MainActivity extends FragmentActivity {
 		// Create navigation drawer of courses
 
 		// Make array of all of the headings for the drawer
-		String[] titles = new String[courses.size() + 1];
+		String[] titles = new String[courses.length + 1];
 		titles[0] = "Overview";
-		for (int i = 0; i < courses.size(); i++) {
-			titles[i + 1] = courses.get(i).title;
+		for (int i = 0; i < courses.length; i++) {
+			titles[i + 1] = courses[i].title;
 		}
 		// Set adapter
 		drawerList.setAdapter(new ArrayAdapter<String>(this,
@@ -533,8 +558,7 @@ public class MainActivity extends FragmentActivity {
 				.getDefaultSharedPreferences(this);
 		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
 		if (gpaPref) {
-			GPACalculator calc = new GPACalculator(this, courses);
-			double GPA = calc.calculateGPA();
+			double GPA = GPACalc.unweighted(courses);
 			displayGPA(GPA);
 		} else {
 			GPAText.setVisibility(View.GONE);
@@ -583,15 +607,12 @@ public class MainActivity extends FragmentActivity {
 			String school = information[3];
 			district = school;
 
-			VerifiedHttpClientFactory httpClientFactory = new VerifiedHttpClientFactory();
-			client = httpClientFactory.getNewHttpClient();
-
 			String html = "UNKNOWN_ERROR";
 
 			if (school.equals("Austin")) {
-				html = scrapeAustin(username, password, id, client);
+				html = scrapeAustin(username, password, id);
 			} else if (school.equals("RoundRock")) {
-				html = scrapeRoundRock(username, password, id, client);
+				html = scrapeRoundRock(username, password, id);
 			}
 
 			return html;
@@ -625,40 +646,14 @@ public class MainActivity extends FragmentActivity {
 				signInButton.setVisibility(View.VISIBLE);
 				startLogin();
 			} else {
-				// HTML scraping worked
-				parseHTML(response);
-			}
-		}
-
-		/*
-		 * Parses general grade info using JSoup. The names and six weeks
-		 * averages of each grade are parsed and loaded into an ArrayList of
-		 * courses. Then, individual six weeks details (assignments) are
-		 * scraped. Then sets up UI.
-		 * 
-		 * @param The HTML of the response.
-		 */
-		public void parseHTML(String html) {
-			if (!html.equals("UNKNOWN_ERROR") && !html.equals("INVAILID_LOGIN")
-					&& !html.equals("IO_EXCEPTION")
-					&& !html.equals("UNSUPPORTED_ENCODING_EXCEPTION")
-					&& !html.equals("CLIENT_PROTOCOL_EXCEPTION")
-					&& !html.equals("URI_SYNTAX_EXCEPTION")) {
-				CourseParser parser = new CourseParser(html);
-				courses = parser.parseCourses();
 				setupActionBar();
 				makeCourseCards();
 				calculateGPA();
 				lastUpdatedText.setText("Updated a few seconds ago");
 				saveCourseInfo();
 				dialog.dismiss();
-			} else {
-				dialog.dismiss();
-				Toast.makeText(
-						context,
-						"Something went wrong. Make sure you're connected to the internet.",
-						Toast.LENGTH_SHORT).show();
 			}
+
 		}
 
 		public void saveCourseInfo() {
@@ -686,23 +681,24 @@ public class MainActivity extends FragmentActivity {
 		 * 
 		 * @return The HTML of AISD scrape.
 		 */
-		public String scrapeAustin(String username, String password, String id,
-				HttpClient client) {
+		public String scrapeAustin(String username, String password, String id) {
 			GradeSpeedDistrict district = new Austin();
-			final GradeRetriever retriever = new GradeRetriever(district);
+			retriever = new GradeRetriever(district);
+			parser = new GradeParser(district);
 			retriever.login(username, password, id, new XHR.ResponseHandler() {
 
 				@Override
 				public void onSuccess(String response) {
-					for (String line : response.split("\n")) {
-						Log.d("qhac-common-response", line);
-					}
 					retriever.getAverages(new XHR.ResponseHandler() {
 
 						@Override
 						public void onSuccess(String response) {
-							for (String line : response.split("\n")) {
-								Log.d("qhac-common-java", line);
+							courses = parser.parseAverages(response);
+							cycleResponse = response;
+							// Set up the classGradesList with unintialized
+							// class grades
+							for (int i = 0; i < courses.length; i++) {
+								classGradesList.add(null);
 							}
 						}
 
@@ -712,6 +708,7 @@ public class MainActivity extends FragmentActivity {
 
 						}
 					});
+
 				}
 
 				@Override
@@ -738,9 +735,10 @@ public class MainActivity extends FragmentActivity {
 		 */
 
 		public String scrapeRoundRock(String username, String password,
-				String id, HttpClient client) {
+				String id) {
 			GradeSpeedDistrict district = new RoundRock();
-			final GradeRetriever retriever = new GradeRetriever(district);
+			retriever = new GradeRetriever(district);
+			parser = new GradeParser(district);
 			retriever.login(username, password, id, new XHR.ResponseHandler() {
 
 				@Override
@@ -749,8 +747,13 @@ public class MainActivity extends FragmentActivity {
 
 						@Override
 						public void onSuccess(String response) {
-							Log.d("qhac-common-java", response);
-
+							courses = parser.parseAverages(response);
+							cycleResponse = response;
+							// Set up the classGradesList with unintialized
+							// class grades
+							for (int i = 0; i < courses.length; i++) {
+								classGradesList.add(null);
+							}
 						}
 
 						@Override
@@ -759,6 +762,7 @@ public class MainActivity extends FragmentActivity {
 
 						}
 					});
+
 				}
 
 				@Override
@@ -767,12 +771,9 @@ public class MainActivity extends FragmentActivity {
 
 				}
 			});
-			return "UNKNOWN_ERROR";
+			return "";
 		}
-
 	}
-
-	// Log.d
 
 	public class CycleScrapeTask extends AsyncTask<String, Void, String> {
 
@@ -799,10 +800,9 @@ public class MainActivity extends FragmentActivity {
 			position = course;
 			String school = information[1];
 			if (school.equals("Austin")) {
-				Log.d("CourseParser", "Starting scrape");
-				scrapeAustin(course, client);
+				scrapeAustin(course);
 			} else if (school.equals("RoundRock")) {
-
+				scrapeRoundRock(course);
 			}
 
 			return "LOADED SUCCESSFULLY";
@@ -840,69 +840,46 @@ public class MainActivity extends FragmentActivity {
 		 * 
 		 * @return The HTML of AISD scrape with specific cycle info.
 		 */
-		public String scrapeAustin(int c, HttpClient client) {
-
-			HttpGet request;
-			HttpResponse resp = null;
-			try {
-
-				Course course = courses.get(c);
-				String[] dataLinks = course.gradeLinks;
-				CycleGrades[] cycles = new CycleGrades[6];
-				for (int d = 0; d < dataLinks.length; d++) {
-					Log.d("CourseParser", String.valueOf(d));
-					String link = dataLinks[d];
-					if (!link.equals("NO_GRADE")) {
-						// Get HTML
-						String gradesHTML = "";
-						String gradeURL = "https://gradespeed.austinisd.org/pc/ParentStudentGrades.aspx"
-								+ link;
-						Log.d("CourseParser", "Parsing with link: " + link);
-						request = new HttpGet(gradeURL);
-						resp = client.execute(request);
-
-						InputStream in = resp.getEntity().getContent();
-						BufferedReader reader = new BufferedReader(
-								new InputStreamReader(in));
-						StringBuilder str = new StringBuilder();
-						String line = null;
-						while ((line = reader.readLine()) != null) {
-							str.append(line);
-						}
-						in.close();
-						gradesHTML = str.toString();
-						if (gradesHTML != null) {
-							if (gradesHTML.length() > 0) {
-								// Parse through each HTML and create grades
-								// object
-								CycleParser parser = new CycleParser(gradesHTML);
-								CycleGrades grades = parser.parseCycle();
-								grades.average = course.sixWeeksAverages[d];
-								grades.title = course.title;
-								cycles[d] = grades;
-							} else {
-								Toast.makeText(
-										context,
-										"Something went wrong. Check to make sure you're connected to the internet.",
-										Toast.LENGTH_SHORT).show();
-							}
-						}
-					} else {
-						Log.d("CourseParser", "Not parsing, NO_GRADE");
-						cycles[d] = null;
-					}
+		public String scrapeAustin(int c) {
+			Course course = courses[c];
+			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
+			for (int i = 0; i < 6; i++) {
+				int semester = 0;
+				int cycle = 0;
+				if (i < 3) {
+					semester = 0;
+					cycle = i;
+				} else {
+					semester = 1;
+					cycle = i - 3;
 				}
+				final String hash = course.semesters[semester].cycles[cycle].urlHash;
+				final int sem = semester;
+				final int cy = cycle;
+				if (hash != null) {
+					retriever.getCycle(hash, Jsoup.parse(cycleResponse),
+							new XHR.ResponseHandler() {
 
-				course.setSixWeekGrades(cycles);
-				courses.set(c, course);
+								@Override
+								public void onSuccess(String response) {
+									ClassGrades grades = parser
+											.parseClassGrades(response, hash,
+													sem, cy);
+									gradesList.add(grades);
+								}
 
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			} catch (ClientProtocolException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
+								@Override
+								public void onFailure(Exception e) {
+									// TODO Auto-generated method stub
+
+								}
+
+							});
+				} else {
+					gradesList.add(null);
+				}
 			}
+			classGradesList.add(gradesList);
 			return "";
 		}
 
@@ -920,11 +897,48 @@ public class MainActivity extends FragmentActivity {
 		 * @return The HTML of RRISD scrape. Not yet implemented.
 		 */
 
-		public String scrapeRoundRock(String username, String password,
-				String id, HttpClient client, String link) {
-			return "INVALID_LOGIN";
-		}
+		public String scrapeRoundRock(int c) {
+			Course course = courses[c];
+			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
+			for (int i = 0; i < 6; i++) {
+				int semester = 0;
+				int cycle = 0;
+				if (i < 3) {
+					semester = 0;
+					cycle = i;
+				} else {
+					semester = 1;
+					cycle = i - 3;
+				}
+				final String hash = course.semesters[semester].cycles[cycle].urlHash;
+				final int sem = semester;
+				final int cy = cycle;
+				if (hash != null) {
+					retriever.getCycle(hash, Jsoup.parse(cycleResponse),
+							new XHR.ResponseHandler() {
 
+								@Override
+								public void onSuccess(String response) {
+									ClassGrades grades = parser
+											.parseClassGrades(response, hash,
+													sem, cy);
+									gradesList.add(grades);
+								}
+
+								@Override
+								public void onFailure(Exception e) {
+									// TODO Auto-generated method stub
+
+								}
+
+							});
+				} else {
+					gradesList.add(null);
+				}
+			}
+			classGradesList.add(gradesList);
+			return "";
+		}
 	}
 
 	/*
@@ -959,11 +973,11 @@ public class MainActivity extends FragmentActivity {
 			viewPager.setAdapter(pagerAdapter);
 
 			int latest = 0;
-			CycleGrades[] grades = courses.get(index).sixWeekGrades;
+			ArrayList<ClassGrades> grades = classGradesList.get(index);
 			if (grades != null) {
 				// Set to latest cycle
-				for (int i = grades.length - 1; i >= 0; i--) {
-					if (grades[i] != null) {
+				for (int i = grades.size() - 1; i >= 0; i--) {
+					if (grades.get(i) != null) {
 						latest = i;
 						break;
 					}
@@ -975,12 +989,13 @@ public class MainActivity extends FragmentActivity {
 			} else {
 				Toast.makeText(
 						getView().getContext(),
-						"Something went wrong. Make sure you're still connected to the internet.",
+						"Something went wrong with creating the fragment. Make sure you're still connected to the internet.",
 						Toast.LENGTH_SHORT).show();
 			}
 		}
 
-		// Since this is an object collection, use a FragmentStatePagerAdapter,
+		// Since this is an object collection, use a
+		// FragmentStatePagerAdapter,
 		// and NOT a FragmentPagerAdapter.
 		public class CollectionPagerAdapter extends FragmentStatePagerAdapter {
 			public CollectionPagerAdapter(FragmentManager fm) {
@@ -1068,7 +1083,7 @@ public class MainActivity extends FragmentActivity {
 				semesterIndex = args.getInt(INDEX_SEMESTER);
 				title = (TextView) getView().findViewById(R.id.title_text);
 				courseIndex = args.getInt(INDEX_COURSE);
-				Course course = MainActivity.courses.get(courseIndex);
+				Course course = courses[courseIndex];
 
 				// Setting the right title for the card
 				String titleText = "";
@@ -1096,15 +1111,16 @@ public class MainActivity extends FragmentActivity {
 				cardUI.setSwipeable(false);
 				String desc = "";
 				if (type == 0) {
-					if (course.examGrades[semesterIndex] != -1) {
-						desc = String.valueOf(course.examGrades[semesterIndex]);
+					if (course.semesters[semesterIndex].examGrade != null) {
+						desc = String
+								.valueOf(course.semesters[semesterIndex].examGrade);
 					} else {
 						desc = "No Grade :(";
 					}
 				} else {
-					if (course.semesterAverages[semesterIndex] != -1) {
+					if (course.semesters[semesterIndex].average != null) {
 						desc = String
-								.valueOf(course.semesterAverages[semesterIndex]);
+								.valueOf(course.semesters[semesterIndex].average);
 					} else {
 						desc = "No Grade :(";
 					}
@@ -1147,11 +1163,19 @@ public class MainActivity extends FragmentActivity {
 				courseIndex = args.getInt(INDEX_COURSE);
 				cycleIndex = args.getInt(INDEX_CYCLE);
 				title = (TextView) getView().findViewById(R.id.title_text);
-				Course course = MainActivity.courses.get(courseIndex);
+				Course course = courses[courseIndex];
 				String titleText = "";
-				if (course.sixWeeksAverages[cycleIndex] != -1) {
-					titleText = "Cycle " + (cycleIndex + 1) + " - "
-							+ course.sixWeeksAverages[cycleIndex];
+				int semester = 0;
+				int cycle = cycleIndex;
+				if (cycleIndex > 2) {
+					semester = 1;
+					cycle -= 3;
+				}
+				if (course.semesters[semester].cycles[cycle].average != null) {
+					titleText = "Cycle "
+							+ (cycleIndex + 1)
+							+ " - "
+							+ course.semesters[semester].cycles[cycle].average;
 				} else {
 					titleText = "Cycle " + (cycleIndex + 1);
 				}
@@ -1159,50 +1183,52 @@ public class MainActivity extends FragmentActivity {
 				Log.d("CardUIGenerator",
 						"What cyclefragment sees: "
 								+ String.valueOf(courseIndex));
-				if (course.sixWeekGrades != null
-						&& course.sixWeekGrades[cycleIndex] != null) {
-					ArrayList<Category> categories = course.sixWeekGrades[cycleIndex].categories;
+				ArrayList<ClassGrades> gradesList = classGradesList
+						.get(courseIndex);
+				if (gradesList != null && gradesList.get(cycleIndex) != null) {
+					ClassGrades grades = gradesList.get(cycleIndex);
+					Category[] categories = grades.categories;
 					makeCategoryCards(categories);
 				} else {
 					// create an arraylist of categories of size 0
-					ArrayList<Category> categories = new ArrayList<Category>();
+					Category[] categories = new Category[0];
 					makeCategoryCards(categories);
 
 				}
 			}
 
-			public void makeCategoryCards(ArrayList<Category> categories) {
+			public void makeCategoryCards(Category[] categories) {
 				cardUI = (CardUI) getView().findViewById(R.id.cardsview);
 				cardUI.setSwipeable(false);
 
 				Log.d("CardUIGenerator", "category cards are being made");
-				if (categories.size() > 0) {
-					for (int i = 0; i < categories.size(); i++) {
-						Category category = categories.get(i);
+				if (categories.length > 0) {
+					for (int i = 0; i < categories.length; i++) {
+						Category category = categories[i];
 						String title = category.title;
 						if (category.title.length() > 0
-								&& category.assignments.size() > 0) {
-							// DELIMROW separates rows, DELIMCOLUMN separates
+								&& category.assignments.length > 0) {
+							// DELIMROW separates rows, DELIMCOLUMN
+							// separates
 							// columns
 							String desc = "";
 							desc += "ASSIGNMENTDELIMCOLUMNPOINTS EARNEDDELIMCOLUMNPOINTS POSSIBLEDELIMROW";
-							for (int d = 0; d < category.assignments.size(); d++) {
-								Assignment a = category.assignments.get(d);
+							for (int d = 0; d < category.assignments.length; d++) {
+								Assignment a = category.assignments[d];
 								desc += a.title + "DELIMCOLUMN";
 								desc += a.ptsEarned + "DELIMCOLUMN";
 								desc += a.ptsPossible + "DELIMROW";
 							}
 							desc += "DELIMAVERAGE"
-									+ String.valueOf(new GPACalculator(
-											getView().getContext(), courses)
-											.calculateCategoryAverage(category));
+									+ String.valueOf(GradeCalc
+											.categoryAverage(category.assignments));
 							CardColorGenerator gen = new CardColorGenerator();
 							String color = gen.getCardColor(i);
 
 							CategoryCard card = new CategoryCard(title, desc,
 									color, "#787878", false, false);
 							cardUI.addCard(card);
-						} else if (category.assignments.size() == 0) {
+						} else if (category.assignments.length == 0) {
 							// There aren't any grades for the category, so
 							// create a nogrades card
 							NoGradesCard card = new NoGradesCard(title,
@@ -1212,8 +1238,8 @@ public class MainActivity extends FragmentActivity {
 						}
 					}
 				}
-				Log.d("CardUIGens", String.valueOf(categories.size()));
-				if (categories.size() == 0) {
+				Log.d("CardUIGens", String.valueOf(categories.length));
+				if (categories.length == 0) {
 					Log.d("CardUIGens", "Creating nogrades");
 					// No categories, so create a nogrades card
 					NoGradesCard card = new NoGradesCard("Assignments",

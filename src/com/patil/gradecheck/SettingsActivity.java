@@ -1,6 +1,6 @@
 package com.patil.gradecheck;
 
-import java.util.ArrayList;
+import com.quickhac.common.data.Course;
 
 import android.os.Bundle;
 import android.preference.MultiSelectListPreference;
@@ -19,11 +19,11 @@ public class SettingsActivity extends PreferenceActivity {
 		MultiSelectListPreference listPreference = (MultiSelectListPreference) findPreference("pref_weightedClasses");
 		listPreference.setDialogTitle("Choose weighted classes");
 
-		final ArrayList<Course> courses = MainActivity.courses;
+		Course[] courses = MainActivity.courses;
 
-		CharSequence[] classes = new CharSequence[courses.size()];
-		for (int i = 0; i < courses.size(); i++) {
-			classes[i] = courses.get(i).title;
+		CharSequence[] classes = new CharSequence[courses.length];
+		for (int i = 0; i < courses.length; i++) {
+			classes[i] = courses[i].title;
 		}
 		listPreference.setEntryValues(classes);
 		listPreference.setEntries(classes);

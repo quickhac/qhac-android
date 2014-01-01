@@ -939,7 +939,7 @@ public class MainActivity extends FragmentActivity {
 					gradesList.add(null);
 				}
 			}
-			classGradesList.add(gradesList);
+			classGradesList.set(c, gradesList);
 			return "";
 		}
 	}

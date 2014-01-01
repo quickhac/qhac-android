@@ -105,6 +105,73 @@ public class MainActivity extends FragmentActivity {
 
 	}
 
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Pass the event to ActionBarDrawerToggle, if it returns
+		// true, then it has handled the app icon touch event
+		if (drawerToggle.onOptionsItemSelected(item)) {
+			return true;
+		}
+		switch (item.getItemId()) {
+		case (R.id.action_refresh):
+			restartActivity();
+			break;
+		case (R.id.action_signout):
+			settingsManager.eraseLoginInfo();
+			restartActivity();
+			break;
+		case (R.id.action_about):
+			AboutDialog about = new AboutDialog(this);
+			about.setTitle("QuickHAC for Android");
+			about.show();
+			break;
+		case (R.id.action_settings):
+			Intent intent = new Intent(this, SettingsActivity.class);
+			startActivityForResult(intent, 1);
+			break;
+		}
+
+		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		// Restart activity if from settings to apply settings
+		if (resultCode == RESULT_OK) {
+			restartActivity();
+		}
+	}
+
+	/* Called whenever we call invalidateOptionsMenu() */
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		// If the nav drawer is open, hide action items related to the content
+		// view
+		boolean drawerOpen = drawerLayout.isDrawerOpen(drawerList);
+		return super.onPrepareOptionsMenu(menu);
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		drawerToggle.onConfigurationChanged(newConfig);
+	}
+
+	@Override
+	protected void onPostCreate(Bundle savedInstanceState) {
+		super.onPostCreate(savedInstanceState);
+		// Sync the toggle state after onRestoreInstanceState has occurred.
+		drawerToggle.syncState();
+	}
+
 	public void startDisplayingGrades() {
 		Course[] savedCourses;
 		savedCourses = saver.getSavedCourses();
@@ -154,40 +221,6 @@ public class MainActivity extends FragmentActivity {
 	 */
 	public void onSignInClick(View v) {
 		startLogin();
-	}
-
-	/*
-	 * Calculates and displays GPA.
-	 */
-	public void displayGPA() {
-		SharedPreferences sharedPref = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
-		if (gpaPref) {
-			List<String> weightedClasses = new ArrayList<String>();
-			Set<String> savedWeighted = sharedPref.getStringSet(
-					"pref_weightedClasses", null);
-			if (savedWeighted != null) {
-				String[] weighted = savedWeighted
-						.toArray(new String[savedWeighted.size()]);
-				if (weighted != null) {
-					for (int i = 0; i < weighted.length; i++) {
-						weightedClasses.add(weighted[i]);
-					}
-				}
-			}
-			double GPA = 0;
-			if (new SettingsManager(this).getLoginInfo()[3].equals("Austin")) {
-				GPA = GPACalc.weighted(courses, weightedClasses, 1);
-			} else if (new SettingsManager(this).getLoginInfo()[3]
-					.equals("RoundRock")) {
-				GPA = GPACalc.weighted(courses, weightedClasses, 2);
-			}
-			GPAText.setVisibility(View.VISIBLE);
-			GPAText.setText("GPA: " + String.valueOf(GPA));
-		} else {
-			GPAText.setVisibility(View.GONE);
-		}
 	}
 
 	/*
@@ -258,16 +291,166 @@ public class MainActivity extends FragmentActivity {
 		alert.show();
 	}
 
+	public void loadCourseInfo(int course, String school) {
+		if (isNetworkAvailable()) {
+			new CycleScrapeTask(this).execute(new String[] { String
+					.valueOf(course) });
+		} else {
+			Toast.makeText(this, "You need internet to view assignments.",
+					Toast.LENGTH_SHORT).show();
+		}
+	}
+
 	/*
-	 * Helper method that restarts the activity.
+	 * Makes descriptions and loads in cards to display.
 	 */
-	public void restartActivity() {
-		Intent intent = getIntent();
-		overridePendingTransition(0, 0);
-		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-		finish();
-		overridePendingTransition(0, 0);
-		startActivity(intent);
+	public void makeCourseCards() {
+		cardView = (CardUI) findViewById(R.id.cardsview);
+		cardView.setSwipeable(false);
+		for (int i = 0; i < courses.length; i++) {
+			Course course = courses[i];
+			String gradeDescription = "";
+			int[] semesters = new int[course.semesters.length];
+			for (int d = 0; d < semesters.length; d++) {
+				if (course.semesters[d].average != null) {
+					semesters[d] = course.semesters[d].average;
+				}
+			}
+			int[] exams = new int[course.semesters.length];
+			for (int d = 0; d < exams.length; d++) {
+				if (course.semesters[d].examGrade != null) {
+					exams[d] = course.semesters[d].examGrade;
+				}
+			}
+			int[] sixWeeksAverages = new int[(course.semesters.length * course.semesters[0].cycles.length)];
+			for (int d = 0; d < sixWeeksAverages.length; d++) {
+				if (d < 3) {
+					if (course.semesters[0].cycles[d].average != null) {
+						sixWeeksAverages[d] = course.semesters[0].cycles[d].average;
+					}
+				} else {
+					if (course.semesters[1].cycles[d - 3].average != null) {
+						sixWeeksAverages[d] = course.semesters[1].cycles[d - 3].average;
+					}
+				}
+			}
+			if (semesters[0] != -1) {
+				gradeDescription += "Semester 1: "
+						+ String.valueOf(semesters[0]) + "DELIMCOLUMN";
+			} else {
+				gradeDescription += "Semester 1: N/A" + "DELIMCOLUMN";
+			}
+			if (semesters[1] != -1) {
+				gradeDescription += "Semester 2: "
+						+ String.valueOf(semesters[1]) + "DELIMROW";
+			} else {
+				gradeDescription += "Semester 2: N/A" + "DELIMROW";
+			}
+			for (int d = 0; d < 3; d++) {
+				if (sixWeeksAverages[d] != -1) {
+					gradeDescription += "Cycle " + (d + 1) + ": "
+							+ String.valueOf(sixWeeksAverages[d])
+							+ "DELIMCOLUMN";
+				} else {
+					gradeDescription += "Cycle " + (d + 1) + ": N/A"
+							+ "DELIMCOLUMN";
+				}
+				if (sixWeeksAverages[d + 3] != -1) {
+					gradeDescription += "Cycle " + (d + 4) + ": "
+							+ String.valueOf(sixWeeksAverages[d + 3])
+							+ "DELIMROW";
+				} else {
+					gradeDescription += "Cycle " + (d + 4) + ": N/A"
+							+ "DELIMROW";
+				}
+			}
+
+			if (exams[0] != -1) {
+				gradeDescription += "Exam 1: " + String.valueOf(exams[0])
+						+ "DELIMCOLUMN";
+			} else {
+				gradeDescription += "Exam 1: N/A" + "DELIMCOLUMN";
+			}
+			if (exams[1] != -1) {
+				gradeDescription += "Exam 2: " + String.valueOf(exams[1]);
+			} else {
+				gradeDescription += "Exam 2: N/A";
+			}
+			String color = colorGenerator.getCardColor(i);
+			final Card courseCard = new CourseCard(course.title,
+					gradeDescription, color, "#787878", false, true);
+
+			// Set onClick
+			courseCard.setOnClickListener(new OnClickListener() {
+
+				@Override
+				public void onClick(View v) {
+
+					// Find appropriate position
+					int pos = 0;
+					for (int e = 0; e < courses.length; e++) {
+						if (courses[e].title.equals(((CourseCard) courseCard)
+								.getCardTitle())) {
+							pos = e;
+						}
+					}
+					selectItem(pos + 1);
+				}
+			});
+			cardView.addCard(courseCard);
+		}
+		cardView.refresh();
+	}
+
+	/*
+	 * Calculates and displays GPA.
+	 */
+	public void displayGPA() {
+		SharedPreferences sharedPref = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
+		if (gpaPref) {
+			List<String> weightedClasses = new ArrayList<String>();
+			Set<String> savedWeighted = sharedPref.getStringSet(
+					"pref_weightedClasses", null);
+			if (savedWeighted != null) {
+				String[] weighted = savedWeighted
+						.toArray(new String[savedWeighted.size()]);
+				if (weighted != null) {
+					for (int i = 0; i < weighted.length; i++) {
+						weightedClasses.add(weighted[i]);
+					}
+				}
+			}
+			double GPA = 0;
+			if (new SettingsManager(this).getLoginInfo()[3].equals("Austin")) {
+				GPA = GPACalc.weighted(courses, weightedClasses, 1);
+			} else if (new SettingsManager(this).getLoginInfo()[3]
+					.equals("RoundRock")) {
+				GPA = GPACalc.weighted(courses, weightedClasses, 2);
+			}
+			GPAText.setVisibility(View.VISIBLE);
+			GPAText.setText("GPA: " + String.valueOf(GPA));
+		} else {
+			GPAText.setVisibility(View.GONE);
+		}
+	}
+
+	public void setupActionBar() {
+		// Create navigation drawer of courses
+
+		// Make array of all of the headings for the drawer
+		String[] titles = new String[courses.length + 1];
+		titles[0] = "Overview";
+		for (int i = 0; i < courses.length; i++) {
+			titles[i + 1] = courses[i].title;
+		}
+		// Set adapter
+		drawerList.setAdapter(new ArrayAdapter<String>(this,
+				R.layout.drawer_list_item, R.id.drawer_text, titles));
+
+		getActionBar().setDisplayHomeAsUpEnabled(true);
+		getActionBar().setHomeButtonEnabled(true);
 	}
 
 	/*
@@ -367,212 +550,6 @@ public class MainActivity extends FragmentActivity {
 	public void setTitle(CharSequence title) {
 		currentTitle = (String) title;
 		getActionBar().setTitle(title);
-	}
-
-	/* Called whenever we call invalidateOptionsMenu() */
-	@Override
-	public boolean onPrepareOptionsMenu(Menu menu) {
-		// If the nav drawer is open, hide action items related to the content
-		// view
-		boolean drawerOpen = drawerLayout.isDrawerOpen(drawerList);
-		return super.onPrepareOptionsMenu(menu);
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
-
-	/*
-	 * Makes descriptions and loads in cards to display.
-	 */
-	public void makeCourseCards() {
-		cardView = (CardUI) findViewById(R.id.cardsview);
-		cardView.setSwipeable(false);
-		for (int i = 0; i < courses.length; i++) {
-			Course course = courses[i];
-			String gradeDescription = "";
-			int[] semesters = new int[course.semesters.length];
-			for (int d = 0; d < semesters.length; d++) {
-				if (course.semesters[d].average != null) {
-					semesters[d] = course.semesters[d].average;
-				}
-			}
-			int[] exams = new int[course.semesters.length];
-			for (int d = 0; d < exams.length; d++) {
-				if (course.semesters[d].examGrade != null) {
-					exams[d] = course.semesters[d].examGrade;
-				}
-			}
-			int[] sixWeeksAverages = new int[(course.semesters.length
-					* course.semesters[0].cycles.length)];
-			for (int d = 0; d < sixWeeksAverages.length; d++) {
-				if (d < 3) {
-					if (course.semesters[0].cycles[d].average != null) {
-						sixWeeksAverages[d] = course.semesters[0].cycles[d].average;
-					}
-				} else {
-					if (course.semesters[1].cycles[d - 3].average != null) {
-						sixWeeksAverages[d] = course.semesters[1].cycles[d - 3].average;
-					}
-				}
-			}
-			if (semesters[0] != -1) {
-				gradeDescription += "Semester 1: "
-						+ String.valueOf(semesters[0]) + "DELIMCOLUMN";
-			} else {
-				gradeDescription += "Semester 1: N/A" + "DELIMCOLUMN";
-			}
-			if (semesters[1] != -1) {
-				gradeDescription += "Semester 2: "
-						+ String.valueOf(semesters[1]) + "DELIMROW";
-			} else {
-				gradeDescription += "Semester 2: N/A" + "DELIMROW";
-			}
-			for (int d = 0; d < 3; d++) {
-				if (sixWeeksAverages[d] != -1) {
-					gradeDescription += "Cycle " + (d + 1) + ": "
-							+ String.valueOf(sixWeeksAverages[d])
-							+ "DELIMCOLUMN";
-				} else {
-					gradeDescription += "Cycle " + (d + 1) + ": N/A"
-							+ "DELIMCOLUMN";
-				}
-				if (sixWeeksAverages[d + 3] != -1) {
-					gradeDescription += "Cycle " + (d + 4) + ": "
-							+ String.valueOf(sixWeeksAverages[d + 3])
-							+ "DELIMROW";
-				} else {
-					gradeDescription += "Cycle " + (d + 4) + ": N/A"
-							+ "DELIMROW";
-				}
-			}
-
-			if (exams[0] != -1) {
-				gradeDescription += "Exam 1: " + String.valueOf(exams[0])
-						+ "DELIMCOLUMN";
-			} else {
-				gradeDescription += "Exam 1: N/A" + "DELIMCOLUMN";
-			}
-			if (exams[1] != -1) {
-				gradeDescription += "Exam 2: " + String.valueOf(exams[1]);
-			} else {
-				gradeDescription += "Exam 2: N/A";
-			}
-			String color = colorGenerator.getCardColor(i);
-			final Card courseCard = new CourseCard(course.title,
-					gradeDescription, color, "#787878", false, true);
-
-			// Set onClick
-			courseCard.setOnClickListener(new OnClickListener() {
-
-				@Override
-				public void onClick(View v) {
-
-					// Find appropriate position
-					int pos = 0;
-					for (int e = 0; e < courses.length; e++) {
-						if (courses[e].title.equals(((CourseCard) courseCard)
-								.getCardTitle())) {
-							pos = e;
-						}
-					}
-					selectItem(pos + 1);
-				}
-			});
-			cardView.addCard(courseCard);
-		}
-		cardView.refresh();
-	}
-
-	public void loadCourseInfo(int course, String school) {
-		if (isNetworkAvailable()) {
-			new CycleScrapeTask(this).execute(new String[] { String
-					.valueOf(course) });
-		} else {
-			Toast.makeText(this, "You need internet to view assignments.",
-					Toast.LENGTH_SHORT).show();
-		}
-	}
-
-	public void setupActionBar() {
-		// Create navigation drawer of courses
-
-		// Make array of all of the headings for the drawer
-		String[] titles = new String[courses.length + 1];
-		titles[0] = "Overview";
-		for (int i = 0; i < courses.length; i++) {
-			titles[i + 1] = courses[i].title;
-		}
-		// Set adapter
-		drawerList.setAdapter(new ArrayAdapter<String>(this,
-				R.layout.drawer_list_item, R.id.drawer_text, titles));
-
-		getActionBar().setDisplayHomeAsUpEnabled(true);
-		getActionBar().setHomeButtonEnabled(true);
-	}
-
-	@Override
-	protected void onPostCreate(Bundle savedInstanceState) {
-		super.onPostCreate(savedInstanceState);
-		// Sync the toggle state after onRestoreInstanceState has occurred.
-		drawerToggle.syncState();
-	}
-
-	@Override
-	public void onConfigurationChanged(Configuration newConfig) {
-		super.onConfigurationChanged(newConfig);
-		drawerToggle.onConfigurationChanged(newConfig);
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		// Pass the event to ActionBarDrawerToggle, if it returns
-		// true, then it has handled the app icon touch event
-		if (drawerToggle.onOptionsItemSelected(item)) {
-			return true;
-		}
-		switch (item.getItemId()) {
-		case (R.id.action_refresh):
-			restartActivity();
-			break;
-		case (R.id.action_signout):
-			settingsManager.eraseLoginInfo();
-			restartActivity();
-			break;
-		case (R.id.action_about):
-			AboutDialog about = new AboutDialog(this);
-			about.setTitle("QuickHAC for Android");
-			about.show();
-			break;
-		case (R.id.action_settings):
-			Intent intent = new Intent(this, SettingsActivity.class);
-			startActivityForResult(intent, 1);
-			break;
-		}
-
-		return super.onOptionsItemSelected(item);
-	}
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		super.onActivityResult(requestCode, resultCode, data);
-		// Restart activity if from settings to apply settings
-		if (resultCode == RESULT_OK) {
-			restartActivity();
-		}
-	}
-
-	/*
-	 * Helper method to check if internet is available
-	 */
-	private boolean isNetworkAvailable() {
-		ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo activeNetworkInfo = connectivityManager
-				.getActiveNetworkInfo();
-		return activeNetworkInfo != null && activeNetworkInfo.isConnected();
 	}
 
 	public class ScrapeTask extends AsyncTask<String, Void, String> {
@@ -825,6 +802,7 @@ public class MainActivity extends FragmentActivity {
 					gradesList.add(null);
 				}
 			}
+			classGradesList.add(gradesList);
 			classGradesList.set(c, gradesList);
 			return "";
 		}
@@ -884,9 +862,6 @@ public class MainActivity extends FragmentActivity {
 			}
 		}
 
-		// Since this is an object collection, use a
-		// FragmentStatePagerAdapter,
-		// and NOT a FragmentPagerAdapter.
 		public class CollectionPagerAdapter extends FragmentStatePagerAdapter {
 			public CollectionPagerAdapter(FragmentManager fm) {
 				super(fm);
@@ -1148,6 +1123,28 @@ public class MainActivity extends FragmentActivity {
 			return inflater.inflate(R.layout.fragment_overview, container,
 					false);
 		}
+	}
+
+	/*
+	 * Helper method that restarts the activity.
+	 */
+	public void restartActivity() {
+		Intent intent = getIntent();
+		overridePendingTransition(0, 0);
+		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+		finish();
+		overridePendingTransition(0, 0);
+		startActivity(intent);
+	}
+
+	/*
+	 * Helper method to check if internet is available
+	 */
+	private boolean isNetworkAvailable() {
+		ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo activeNetworkInfo = connectivityManager
+				.getActiveNetworkInfo();
+		return activeNetworkInfo != null && activeNetworkInfo.isConnected();
 	}
 
 }

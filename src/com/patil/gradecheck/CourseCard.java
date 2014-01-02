@@ -36,7 +36,7 @@ public class CourseCard extends RecyclableCard {
 
 		if (descs[0].split("DELIMCOLUMN")[0].contains("N/A")) {
 			((TextView) convertView.findViewById(R.id.semester1))
-					.setText(descs[0].split("DELIMCOLUM")[0].substring(1,
+					.setText(descs[0].split("DELIMCOLUM")[0].substring(0,
 							descs[0].split("DELIMCOLUM")[0].indexOf("N/A"))
 							+ "-");
 			((TextView) convertView.findViewById(R.id.semester1))

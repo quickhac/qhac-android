@@ -59,6 +59,7 @@ import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
 import com.quickhac.common.districts.impl.RoundRock;
 import com.quickhac.common.http.XHR;
+import com.quickhac.common.util.Numeric;
 
 public class MainActivity extends FragmentActivity {
 
@@ -68,6 +69,7 @@ public class MainActivity extends FragmentActivity {
 	ListView drawerList;
 	DrawerLayout drawerLayout;
 	ActionBarDrawerToggle drawerToggle;
+	int lastPosition;
 	// Handler to make sure drawer closes smoothly
 	Handler drawerHandler = new Handler();
 
@@ -83,6 +85,7 @@ public class MainActivity extends FragmentActivity {
 
 	GradeParser parser;
 	GradeRetriever retriever;
+	GradeSpeedDistrict gradeSpeedDistrict;
 
 	SettingsManager settingsManager;
 	CourseSaver saver;
@@ -132,6 +135,16 @@ public class MainActivity extends FragmentActivity {
 		}
 
 		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	public void onBackPressed() {
+		// Go to overview fragment
+		if (lastPosition != 0) {
+			selectItem(0);
+		} else {
+			finish();
+		}
 	}
 
 	@Override
@@ -268,8 +281,6 @@ public class MainActivity extends FragmentActivity {
 											.toString().equals("RRISD")) {
 										distr = "RoundRock";
 									}
-									Log.d("really?", "text passed in"
-											+ studentId.getText().toString());
 									settingsManager.saveLoginInfo(userName
 											.getText().toString(), password
 											.getText().toString(), studentId
@@ -314,12 +325,16 @@ public class MainActivity extends FragmentActivity {
 			for (int d = 0; d < semesters.length; d++) {
 				if (course.semesters[d].average != null) {
 					semesters[d] = course.semesters[d].average;
+				} else {
+					semesters[d] = -1;
 				}
 			}
 			int[] exams = new int[course.semesters.length];
 			for (int d = 0; d < exams.length; d++) {
 				if (course.semesters[d].examGrade != null) {
 					exams[d] = course.semesters[d].examGrade;
+				} else {
+					exams[d] = -1;
 				}
 			}
 			int[] sixWeeksAverages = new int[(course.semesters.length * course.semesters[0].cycles.length)];
@@ -327,10 +342,14 @@ public class MainActivity extends FragmentActivity {
 				if (d < 3) {
 					if (course.semesters[0].cycles[d].average != null) {
 						sixWeeksAverages[d] = course.semesters[0].cycles[d].average;
+					} else {
+						sixWeeksAverages[d] = -1;
 					}
 				} else {
 					if (course.semesters[1].cycles[d - 3].average != null) {
 						sixWeeksAverages[d] = course.semesters[1].cycles[d - 3].average;
+					} else {
+						sixWeeksAverages[d] = -1;
 					}
 				}
 			}
@@ -424,13 +443,15 @@ public class MainActivity extends FragmentActivity {
 			}
 			double GPA = 0;
 			if (new SettingsManager(this).getLoginInfo()[3].equals("Austin")) {
-				GPA = GPACalc.weighted(courses, weightedClasses, 1);
+				GPA = GPACalc.weighted(courses, weightedClasses,
+						gradeSpeedDistrict.weightedGPABoost());
 			} else if (new SettingsManager(this).getLoginInfo()[3]
 					.equals("RoundRock")) {
-				GPA = GPACalc.weighted(courses, weightedClasses, 2);
+				GPA = GPACalc.weighted(courses, weightedClasses,
+						gradeSpeedDistrict.weightedGPABoost());
 			}
 			GPAText.setVisibility(View.VISIBLE);
-			GPAText.setText("GPA: " + String.valueOf(GPA));
+			GPAText.setText("GPA: " + String.valueOf(Numeric.round(GPA, 4)));
 		} else {
 			GPAText.setVisibility(View.GONE);
 		}
@@ -495,6 +516,7 @@ public class MainActivity extends FragmentActivity {
 
 	/** Swaps fragments in the main content view */
 	private void selectItem(int position) {
+		lastPosition = position;
 		drawerList.setItemChecked(position, true);
 		if (position == 0) {
 			Fragment fragment = new OverviewFragment();
@@ -502,6 +524,7 @@ public class MainActivity extends FragmentActivity {
 			FragmentManager fragmentManager = getSupportFragmentManager();
 
 			fragmentManager.beginTransaction()
+					.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
 					.replace(R.id.content_frame, fragment).commit();
 
 			// Highlight the selected item, update the title, and close the
@@ -586,13 +609,12 @@ public class MainActivity extends FragmentActivity {
 			district = school;
 
 			String html = "UNKNOWN_ERROR";
-			GradeSpeedDistrict dist;
 			if (school.equals("Austin")) {
-				dist = new Austin();
-				html = scrape(username, password, id, dist);
+				gradeSpeedDistrict = new Austin();
+				html = scrape(username, password, id, gradeSpeedDistrict);
 			} else if (school.equals("RoundRock")) {
-				dist = new RoundRock();
-				html = scrape(username, password, id, dist);
+				gradeSpeedDistrict = new RoundRock();
+				html = scrape(username, password, id, gradeSpeedDistrict);
 			}
 
 			return html;
@@ -782,9 +804,6 @@ public class MainActivity extends FragmentActivity {
 
 								@Override
 								public void onSuccess(String response) {
-									for (String line : response.split("\n")) {
-										Log.d("ScrapingResponse", line);
-									}
 									ClassGrades grades = parser
 											.parseClassGrades(response, hash,
 													sem, cy);
@@ -976,14 +995,16 @@ public class MainActivity extends FragmentActivity {
 				cardUI.setSwipeable(false);
 				String desc = "";
 				if (type == 0) {
-					if (course.semesters[semesterIndex].examGrade != null) {
+					if (course.semesters[semesterIndex].examGrade != null
+							&& course.semesters[semesterIndex].examGrade != -1) {
 						desc = String
 								.valueOf(course.semesters[semesterIndex].examGrade);
 					} else {
 						desc = "No Grade :(";
 					}
 				} else {
-					if (course.semesters[semesterIndex].average != null) {
+					if (course.semesters[semesterIndex].average != null
+							&& course.semesters[semesterIndex].average != -1) {
 						desc = String
 								.valueOf(course.semesters[semesterIndex].average);
 					} else {
@@ -1043,9 +1064,6 @@ public class MainActivity extends FragmentActivity {
 					titleText = "Cycle " + (cycleIndex + 1);
 				}
 				title.setText(titleText);
-				Log.d("CardUIGenerator",
-						"What cyclefragment sees: "
-								+ String.valueOf(courseIndex));
 				ArrayList<ClassGrades> gradesList = classGradesList
 						.get(courseIndex);
 				if (gradesList != null && gradesList.get(cycleIndex) != null) {
@@ -1064,46 +1082,79 @@ public class MainActivity extends FragmentActivity {
 				cardUI = (CardUI) getView().findViewById(R.id.cardsview);
 				cardUI.setSwipeable(false);
 
-				Log.d("CardUIGenerator", "category cards are being made");
-				if (categories.length > 0) {
-					for (int i = 0; i < categories.length; i++) {
-						Category category = categories[i];
-						String title = category.title;
-						if (category.title.length() > 0
-								&& category.assignments.length > 0) {
-							// DELIMROW separates rows, DELIMCOLUMN
-							// separates
-							// columns
-							String desc = "";
-							desc += "ASSIGNMENTDELIMCOLUMNPOINTS EARNEDDELIMCOLUMNPOINTS POSSIBLEDELIMROW";
-							for (int d = 0; d < category.assignments.length; d++) {
-								Assignment a = category.assignments[d];
-								desc += a.title + "DELIMCOLUMN";
-								desc += a.ptsEarned + "DELIMCOLUMN";
-								desc += a.ptsPossible + "DELIMROW";
-							}
-							desc += "DELIMAVERAGE"
-									+ String.valueOf(GradeCalc
-											.categoryAverage(category.assignments));
-							CardColorGenerator gen = new CardColorGenerator();
-							String color = gen.getCardColor(i);
+				if (categories != null) {
+					if (categories.length > 0) {
+						for (int i = 0; i < categories.length; i++) {
+							Category category = categories[i];
+							String title = category.title;
+							if (category.title.length() > 0
+									&& category.assignments.length > 0) {
+								// DELIMROW separates rows, DELIMCOLUMN
+								// separates
+								// columns
+								String desc = "";
+								desc += "ASSIGNMENTDELIMCOLUMNPOINTS EARNEDDELIMCOLUMNPOINTS POSSIBLEDELIMROW";
+								for (int d = 0; d < category.assignments.length; d++) {
+									Assignment a = category.assignments[d];
+									desc += a.title + "DELIMCOLUMN";
+									double ptsEarned;
+									double ptsPossible = a.ptsPossible;
+									if (a.ptsEarned != null) {
+										ptsEarned = a.ptsEarned;
+									} else {
+										ptsEarned = -1;
+									}
 
-							CategoryCard card = new CategoryCard(title, desc,
-									color, "#787878", false, false);
-							cardUI.addCard(card);
-						} else if (category.assignments.length == 0) {
-							// There aren't any grades for the category, so
-							// create a nogrades card
-							NoGradesCard card = new NoGradesCard(title,
-									"No Grades :(", "#787878", "#787878",
-									false, false);
-							cardUI.addCard(card);
+									if ((int) ptsEarned == ptsEarned) {
+										desc += (int) ptsEarned + "DELIMCOLUMN";
+									} else {
+										desc += ptsEarned + "DELIMCOLUMN";
+									}
+									if ((int) ptsPossible == ptsPossible) {
+										desc += (int) ptsPossible + "DELIMROW";
+									} else {
+										desc += ptsPossible + "DELIMROW";
+									}
+
+								}
+								if (category.assignments != null) {
+									Double average = GradeCalc
+											.categoryAverage(category.assignments);
+									if (average != null) {
+										desc += "DELIMAVERAGE"
+												+ String.valueOf(Numeric.round(
+														average, 4));
+									} else {
+										desc += "DELIMAVERAGE" + "N/A";
+									}
+								} else {
+									desc += "DELIMAVERAGE" + "N/A";
+								}
+								CardColorGenerator gen = new CardColorGenerator();
+								String color = gen.getCardColor(i);
+
+								CategoryCard card = new CategoryCard(title,
+										desc, color, "#787878", false, false);
+								cardUI.addCard(card);
+							} else if (category.assignments.length == 0) {
+								// There aren't any grades for the category, so
+								// create a nogrades card
+								NoGradesCard card = new NoGradesCard(title,
+										"No Grades :(", "#787878", "#787878",
+										false, false);
+								cardUI.addCard(card);
+							}
 						}
 					}
-				}
-				Log.d("CardUIGens", String.valueOf(categories.length));
-				if (categories.length == 0) {
-					Log.d("CardUIGens", "Creating nogrades");
+
+					if (categories.length == 0) {
+						// No categories, so create a nogrades card
+						NoGradesCard card = new NoGradesCard("Assignments",
+								"No Grades :(", "#787878", "#787878", false,
+								false);
+						cardUI.addCard(card);
+					}
+				} else {
 					// No categories, so create a nogrades card
 					NoGradesCard card = new NoGradesCard("Assignments",
 							"No Grades :(", "#787878", "#787878", false, false);
@@ -1112,7 +1163,6 @@ public class MainActivity extends FragmentActivity {
 
 				cardUI.refresh();
 			}
-
 		}
 	}
 

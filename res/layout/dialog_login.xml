@@ -7,9 +7,9 @@
     <EditText
         android:id="@+id/user"
         android:layout_width="match_parent"
-        android:paddingBottom="10dp"
         android:layout_height="wrap_content"
-        android:hint="@string/hint_username" />
+        android:hint="@string/hint_username"
+        android:paddingBottom="10dp" />
 
     <EditText
         android:id="@+id/pass"
@@ -25,13 +25,13 @@
         android:layout_height="wrap_content"
         android:hint="@string/hint_id"
         android:paddingBottom="10dp"
-        android:inputType="number" />
+        android:password="true" />
 
     <Spinner
         android:id="@+id/district"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingLeft="10dp"
-        android:paddingBottom="10dp" />
+        android:paddingBottom="10dp"
+        android:paddingLeft="10dp" />
 
 </LinearLayout>

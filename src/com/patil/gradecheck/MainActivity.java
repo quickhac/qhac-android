@@ -55,9 +55,11 @@ import com.quickhac.common.data.Assignment;
 import com.quickhac.common.data.Category;
 import com.quickhac.common.data.ClassGrades;
 import com.quickhac.common.data.Course;
+import com.quickhac.common.data.DisambiguationChoice;
 import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
 import com.quickhac.common.districts.impl.RoundRock;
+import com.quickhac.common.http.ASPNETPageState;
 import com.quickhac.common.http.XHR;
 import com.quickhac.common.util.Numeric;
 
@@ -624,11 +626,6 @@ public class MainActivity extends FragmentActivity {
 			handleResponse(response);
 		}
 
-		/*
-		 * Looks at the response from the scraper and acts accordingly.
-		 * 
-		 * @param The response - either HTML or an error.
-		 */
 		public void handleResponse(String response) {
 			if (response.equals("UNKNOWN_ERROR")) {
 				dialog.dismiss();
@@ -672,58 +669,65 @@ public class MainActivity extends FragmentActivity {
 			dialog.show();
 		}
 
-		/*
-		 * Scrapes AISD.
-		 * 
-		 * @param The username.
-		 * 
-		 * @param The password.
-		 * 
-		 * @param The student id.
-		 * 
-		 * @param The HttpClient.
-		 * 
-		 * @return The HTML of AISD scrape.
-		 */
-		public String scrape(String username, String password, String id,
-				GradeSpeedDistrict district) {
+		public String scrape(final String username, final String password,
+				final String id, GradeSpeedDistrict district) {
 			retriever = new GradeRetriever(district);
 			parser = new GradeParser(district);
 			status = "SUCCESS";
-			retriever.login(username, password, id, new XHR.ResponseHandler() {
+
+			final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
 
 				@Override
 				public void onSuccess(String response) {
-					if (response.contains("Invalid")) {
-						setStatus("INVALID_LOGIN");
-						return;
+					courses = parser.parseAverages(response);
+					cycleResponse = response;
+					// Set up the classGradesList with unintialized
+					// class grades
+					for (int i = 0; i < courses.length; i++) {
+						classGradesList.add(null);
 					}
-					retriever.getAverages(new XHR.ResponseHandler() {
+				}
 
-						@Override
-						public void onSuccess(String response) {
-							courses = parser.parseAverages(response);
-							cycleResponse = response;
-							// Set up the classGradesList with unintialized
-							// class grades
-							for (int i = 0; i < courses.length; i++) {
-								classGradesList.add(null);
-							}
-						}
+				@Override
+				public void onFailure(Exception e) {
+					setStatus("UNKNOWN_ERROR");
+				}
+			};
 
-						@Override
-						public void onFailure(Exception e) {
-							setStatus("UNKNOWN_ERROR");
-						}
-					});
+			final XHR.ResponseHandler disambiguateHandler = new XHR.ResponseHandler() {
 
+				@Override
+				public void onSuccess(String response) {
+					retriever.getAverages(getAveragesHandler);
+				}
+
+				@Override
+				public void onFailure(Exception e) {
+					setStatus("UNKNOWN_ERROR");
+				}
+			};
+
+			final GradeRetriever.LoginResponseHandler loginHandler = new GradeRetriever.LoginResponseHandler() {
+
+				@Override
+				public void onRequiresDisambiguation(String response,
+						DisambiguationChoice[] students, ASPNETPageState state) {
+					retriever.disambiguate(id, state, disambiguateHandler);
 				}
 
 				@Override
 				public void onFailure(Exception e) {
 					setStatus("INVALID_LOGIN");
 				}
-			});
+
+				@Override
+				public void onDoesNotRequireDisambiguation(String response) {
+					retriever.getAverages(getAveragesHandler);
+				}
+			};
+
+			retriever.login(username, password, loginHandler);
+
 			return status;
 		}
 

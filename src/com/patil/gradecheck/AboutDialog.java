@@ -18,7 +18,6 @@ public class AboutDialog extends Dialog {
 	public AboutDialog(Context context) {
 		super(context);
 		this.context = context;
-
 	}
 
 	@Override

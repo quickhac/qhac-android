@@ -216,7 +216,7 @@ public class MainActivity extends FragmentActivity {
 				}
 				setupActionBar();
 				makeCourseCards();
-				displayGPA();
+				displayGPA(false);
 			} else {
 				Toast.makeText(
 						this,
@@ -335,34 +335,39 @@ public class MainActivity extends FragmentActivity {
 			String secondSem = "";
 
 			for (int i = 0; i < firstSemesterCycles.length; i++) {
-				if (firstSemesterCycles[i].average != null && firstSemesterCycles[i].average != -1) {
+				if (firstSemesterCycles[i].average != null
+						&& firstSemesterCycles[i].average != -1) {
 					firstSem += String.valueOf(firstSemesterCycles[i].average)
 							+ "DELIMCOLUMN";
 				} else {
 					firstSem += "-DELIMCOLUMN";
 				}
 			}
-			if (firstSemester.examGrade != null && firstSemester.examGrade != -1) {
+			if (firstSemester.examGrade != null
+					&& firstSemester.examGrade != -1) {
 				firstSem += String.valueOf(firstSemester.examGrade)
 						+ "DELIMCOLUMN";
 			} else {
-				firstSem+="-DELIMCOLUMN";
+				firstSem += "-DELIMCOLUMN";
 			}
 			if (firstSemester.average != null && firstSemester.average != -1) {
 				firstSem += String.valueOf(firstSemester.average) + "DELIMROW";
 			} else {
 				firstSem += "-DELIMROW";
 			}
-			
-			for(int i = 0; i < secondSemesterCycles.length; i++) {
-				if(secondSemesterCycles[i].average != null && secondSemesterCycles[i].average != -1) {
-					secondSem += String.valueOf(secondSemesterCycles[i].average + "DELIMCOLUMN");
+
+			for (int i = 0; i < secondSemesterCycles.length; i++) {
+				if (secondSemesterCycles[i].average != null
+						&& secondSemesterCycles[i].average != -1) {
+					secondSem += String.valueOf(secondSemesterCycles[i].average
+							+ "DELIMCOLUMN");
 				} else {
 					secondSem += "-DELIMCOLUMN";
 				}
 			}
 
-			if (secondSemester.examGrade != null && secondSemester.examGrade != -1) {
+			if (secondSemester.examGrade != null
+					&& secondSemester.examGrade != -1) {
 				secondSem += String.valueOf(secondSemester.examGrade)
 						+ "DELIMCOLUMN";
 			} else {
@@ -404,34 +409,41 @@ public class MainActivity extends FragmentActivity {
 	/*
 	 * Calculates and displays GPA.
 	 */
-	public void displayGPA() {
+	public void displayGPA(boolean online) {
 		SharedPreferences sharedPref = PreferenceManager
 				.getDefaultSharedPreferences(this);
 		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
 		if (gpaPref) {
-			List<String> weightedClasses = new ArrayList<String>();
-			Set<String> savedWeighted = sharedPref.getStringSet(
-					"pref_weightedClasses", null);
-			if (savedWeighted != null) {
-				String[] weighted = savedWeighted
-						.toArray(new String[savedWeighted.size()]);
-				if (weighted != null) {
-					for (int i = 0; i < weighted.length; i++) {
-						weightedClasses.add(weighted[i]);
+			if (online) {
+				List<String> weightedClasses = new ArrayList<String>();
+				Set<String> savedWeighted = sharedPref.getStringSet(
+						"pref_weightedClasses", null);
+				if (savedWeighted != null) {
+					String[] weighted = savedWeighted
+							.toArray(new String[savedWeighted.size()]);
+					if (weighted != null) {
+						for (int i = 0; i < weighted.length; i++) {
+							weightedClasses.add(weighted[i]);
+						}
 					}
 				}
+				double GPA = 0;
+				if (new SettingsManager(this).getLoginInfo()[3]
+						.equals("Austin")) {
+					GPA = GPACalc.weighted(courses, weightedClasses,
+							gradeSpeedDistrict.weightedGPABoost());
+				} else if (new SettingsManager(this).getLoginInfo()[3]
+						.equals("RoundRock")) {
+					GPA = GPACalc.weighted(courses, weightedClasses,
+							gradeSpeedDistrict.weightedGPABoost());
+				}
+				GPAText.setVisibility(View.VISIBLE);
+				GPAText.setText("GPA: " + String.valueOf(Numeric.round(GPA, 4)));
+				saver.saveGPA(GPA);
+			} else {
+				GPAText.setVisibility(View.VISIBLE);
+				GPAText.setText("GPA: " + String.valueOf(Numeric.round(saver.getGPA(), 4)));
 			}
-			double GPA = 0;
-			if (new SettingsManager(this).getLoginInfo()[3].equals("Austin")) {
-				GPA = GPACalc.weighted(courses, weightedClasses,
-						gradeSpeedDistrict.weightedGPABoost());
-			} else if (new SettingsManager(this).getLoginInfo()[3]
-					.equals("RoundRock")) {
-				GPA = GPACalc.weighted(courses, weightedClasses,
-						gradeSpeedDistrict.weightedGPABoost());
-			}
-			GPAText.setVisibility(View.VISIBLE);
-			GPAText.setText("GPA: " + String.valueOf(Numeric.round(GPA, 4)));
 		} else {
 			GPAText.setVisibility(View.GONE);
 		}
@@ -625,7 +637,7 @@ public class MainActivity extends FragmentActivity {
 			} else {
 				setupActionBar();
 				makeCourseCards();
-				displayGPA();
+				displayGPA(true);
 				PrettyTime p = new PrettyTime();
 				lastUpdatedText.setText("Updated "
 						+ p.format(new Date(System.currentTimeMillis() - 10)));

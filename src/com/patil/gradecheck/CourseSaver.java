@@ -31,6 +31,29 @@ public class CourseSaver {
 		editor.putLong("lastUpdated", System.currentTimeMillis());
 		editor.commit();
 	}
+	
+	/*
+	 * Saves GPA value
+	 */
+	public void saveGPA(double GPA) {
+		String username = new SettingsManager(context).getLoginInfo()[0];
+		SharedPreferences prefs = context.getSharedPreferences(username,
+				Context.MODE_PRIVATE);
+		Editor editor = prefs.edit();
+		editor.putFloat("gpa", (float)GPA);
+		editor.commit();
+	}
+	
+	/*
+	 * Returns saved GPA
+	 */
+	public double getGPA() {
+		String username = new SettingsManager(context).getLoginInfo()[0];
+		SharedPreferences prefs = context.getSharedPreferences(username,
+				Context.MODE_PRIVATE);
+		float gpa= prefs.getFloat("gpa", 0);
+		return (double)gpa;
+	}
 
 	/*
 	 * Returns the cached courses

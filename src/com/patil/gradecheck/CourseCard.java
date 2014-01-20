@@ -56,7 +56,6 @@ public class CourseCard extends RecyclableCard {
 				String rgb = new ColorGenerator().getGradeColor(Integer
 						.parseInt(firstSemesterGrades[i]));
 				String[] values = rgb.split(",");
-				Log.d("colorizer", rgb);
 				int r = Integer.parseInt(values[0]);
 				int g = Integer.parseInt(values[1]);
 				int b = Integer.parseInt(values[2]);
@@ -84,7 +83,6 @@ public class CourseCard extends RecyclableCard {
 				
 				String rgb = new ColorGenerator().getGradeColor(Integer
 						.parseInt(secondSemesterGrades[i]));
-				Log.d("colorizer", rgb);
 				String[] values = rgb.split(",");
 				int r = Integer.parseInt(values[0]);
 				int g = Integer.parseInt(values[1]);

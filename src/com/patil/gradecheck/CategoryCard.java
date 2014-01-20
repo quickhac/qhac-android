@@ -1,7 +1,6 @@
 package com.patil.gradecheck;
 
 import android.graphics.Color;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageView;

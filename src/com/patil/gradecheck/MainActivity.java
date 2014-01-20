@@ -267,7 +267,7 @@ public class MainActivity extends FragmentActivity {
 
 		final AlertDialog.Builder alert = new AlertDialog.Builder(this);
 
-		alert.setTitle("Sign in")
+		alert.setTitle("Sign in").setCancelable(false)
 				.setView(textEntryView)
 				.setPositiveButton("Login",
 						new DialogInterface.OnClickListener() {

@@ -16,8 +16,9 @@ public class SettingsActivity extends PreferenceActivity {
 		getActionBar().setDisplayHomeAsUpEnabled(true);
 		addPreferencesFromResource(R.layout.activity_settings);
 
-		MultiSelectListPreference listPreference = (MultiSelectListPreference) findPreference("pref_weightedClasses");
-		listPreference.setDialogTitle("Choose weighted classes");
+		MultiSelectListPreference weightedPreference = (MultiSelectListPreference) findPreference("pref_weightedClasses");
+		
+		MultiSelectListPreference excludedPreference = (MultiSelectListPreference) findPreference("pref_excludedClasses");
 
 		Course[] courses = MainActivity.courses;
 
@@ -25,8 +26,10 @@ public class SettingsActivity extends PreferenceActivity {
 		for (int i = 0; i < courses.length; i++) {
 			classes[i] = courses[i].title;
 		}
-		listPreference.setEntryValues(classes);
-		listPreference.setEntries(classes);
+		weightedPreference.setEntryValues(classes);
+		weightedPreference.setEntries(classes);
+		excludedPreference.setEntryValues(classes);
+		excludedPreference.setEntries(classes);
 		
 	}
 

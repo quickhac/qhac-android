@@ -267,7 +267,8 @@ public class MainActivity extends FragmentActivity {
 
 		final AlertDialog.Builder alert = new AlertDialog.Builder(this);
 
-		alert.setTitle("Sign in").setCancelable(false)
+		alert.setTitle("Sign in")
+				.setCancelable(false)
 				.setView(textEntryView)
 				.setPositiveButton("Login",
 						new DialogInterface.OnClickListener() {
@@ -415,6 +416,7 @@ public class MainActivity extends FragmentActivity {
 		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
 		if (gpaPref) {
 			if (online) {
+
 				List<String> weightedClasses = new ArrayList<String>();
 				Set<String> savedWeighted = sharedPref.getStringSet(
 						"pref_weightedClasses", null);
@@ -427,14 +429,47 @@ public class MainActivity extends FragmentActivity {
 						}
 					}
 				}
+
+				List<String> excludedClasses = new ArrayList<String>();
+				Set<String> savedExcluded = sharedPref.getStringSet(
+						"pref_excludedClasses", null);
+				if (savedExcluded != null) {
+					String[] excluded = savedExcluded
+							.toArray(new String[savedExcluded.size()]);
+					if (excluded != null) {
+						for (int i = 0; i < excluded.length; i++) {
+							excludedClasses.add(excluded[i]);
+						}
+					}
+				}
+
+				// remove excluded classes from list of classes to calculate
+				ArrayList<Course> trimmed = new ArrayList<Course>();
+				for (int i = 0; i < courses.length; i++) {
+					boolean excluded = false;
+					for (int d = 0; d < excludedClasses.size(); d++) {
+						if(excludedClasses.get(d).equals(courses[i].title)) {
+							excluded = true;
+						}
+					}
+					if(!excluded) {
+						trimmed.add(courses[i]);
+					}
+				}
+				
+				Course[] toCalculate = new Course[trimmed.size()];
+				for(int i = 0; i < trimmed.size(); i++) {
+					toCalculate[i] = trimmed.get(i);
+				}
+
 				double GPA = 0;
 				if (new SettingsManager(this).getLoginInfo()[3]
 						.equals("Austin")) {
-					GPA = GPACalc.weighted(courses, weightedClasses,
+					GPA = GPACalc.weighted(toCalculate, weightedClasses,
 							gradeSpeedDistrict.weightedGPABoost());
 				} else if (new SettingsManager(this).getLoginInfo()[3]
 						.equals("RoundRock")) {
-					GPA = GPACalc.weighted(courses, weightedClasses,
+					GPA = GPACalc.weighted(toCalculate, weightedClasses,
 							gradeSpeedDistrict.weightedGPABoost());
 				}
 				GPAText.setVisibility(View.VISIBLE);
@@ -442,7 +477,8 @@ public class MainActivity extends FragmentActivity {
 				saver.saveGPA(GPA);
 			} else {
 				GPAText.setVisibility(View.VISIBLE);
-				GPAText.setText("GPA: " + String.valueOf(Numeric.round(saver.getGPA(), 4)));
+				GPAText.setText("GPA: "
+						+ String.valueOf(Numeric.round(saver.getGPA(), 4)));
 			}
 		} else {
 			GPAText.setVisibility(View.GONE);

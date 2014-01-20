@@ -13,5 +13,10 @@
             android:dialogTitle="@string/pref_chooseWeighted"
             android:key="pref_weightedClasses"
             android:title="@string/pref_chooseWeighted" />
+        
+        <MultiSelectListPreference
+            android:dialogTitle="@string/pref_chooseExcluded"
+            android:key="pref_excludedClasses"
+            android:title="@string/pref_chooseExcluded" />
     </PreferenceCategory>
 </PreferenceScreen>

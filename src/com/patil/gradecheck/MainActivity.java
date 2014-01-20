@@ -55,7 +55,9 @@ import com.quickhac.common.data.Assignment;
 import com.quickhac.common.data.Category;
 import com.quickhac.common.data.ClassGrades;
 import com.quickhac.common.data.Course;
+import com.quickhac.common.data.Cycle;
 import com.quickhac.common.data.DisambiguationChoice;
+import com.quickhac.common.data.Semester;
 import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
 import com.quickhac.common.districts.impl.RoundRock;
@@ -83,7 +85,7 @@ public class MainActivity extends FragmentActivity {
 	TextView lastUpdatedText;
 
 	CardUI cardView;
-	CardColorGenerator colorGenerator;
+	ColorGenerator colorGenerator;
 
 	GradeParser parser;
 	GradeRetriever retriever;
@@ -98,7 +100,7 @@ public class MainActivity extends FragmentActivity {
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
 		settingsManager = new SettingsManager(this);
-		colorGenerator = new CardColorGenerator();
+		colorGenerator = new ColorGenerator();
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
 		GPAText = (TextView) findViewById(R.id.gpa_text);
@@ -320,84 +322,60 @@ public class MainActivity extends FragmentActivity {
 	public void makeCourseCards() {
 		cardView = (CardUI) findViewById(R.id.cardsview);
 		cardView.setSwipeable(false);
-		for (int i = 0; i < courses.length; i++) {
-			Course course = courses[i];
-			String gradeDescription = "";
-			int[] semesters = new int[course.semesters.length];
-			for (int d = 0; d < semesters.length; d++) {
-				if (course.semesters[d].average != null) {
-					semesters[d] = course.semesters[d].average;
-				} else {
-					semesters[d] = -1;
-				}
-			}
-			int[] exams = new int[course.semesters.length];
-			for (int d = 0; d < exams.length; d++) {
-				if (course.semesters[d].examGrade != null) {
-					exams[d] = course.semesters[d].examGrade;
-				} else {
-					exams[d] = -1;
-				}
-			}
-			int[] sixWeeksAverages = new int[(course.semesters.length * course.semesters[0].cycles.length)];
-			for (int d = 0; d < sixWeeksAverages.length; d++) {
-				if (d < 3) {
-					if (course.semesters[0].cycles[d].average != null) {
-						sixWeeksAverages[d] = course.semesters[0].cycles[d].average;
-					} else {
-						sixWeeksAverages[d] = -1;
-					}
-				} else {
-					if (course.semesters[1].cycles[d - 3].average != null) {
-						sixWeeksAverages[d] = course.semesters[1].cycles[d - 3].average;
-					} else {
-						sixWeeksAverages[d] = -1;
-					}
-				}
-			}
-			if (semesters[0] != -1) {
-				gradeDescription += "Semester 1: "
-						+ String.valueOf(semesters[0]) + "DELIMCOLUMN";
-			} else {
-				gradeDescription += "Semester 1: N/A" + "DELIMCOLUMN";
-			}
-			if (semesters[1] != -1) {
-				gradeDescription += "Semester 2: "
-						+ String.valueOf(semesters[1]) + "DELIMROW";
-			} else {
-				gradeDescription += "Semester 2: N/A" + "DELIMROW";
-			}
-			for (int d = 0; d < 3; d++) {
-				if (sixWeeksAverages[d] != -1) {
-					gradeDescription += "Cycle " + (d + 1) + ": "
-							+ String.valueOf(sixWeeksAverages[d])
+		for (int k = 0; k < courses.length; k++) {
+
+			Course course = courses[k];
+
+			Semester firstSemester = course.semesters[0];
+			Semester secondSemester = course.semesters[1];
+			Cycle[] firstSemesterCycles = firstSemester.cycles;
+			Cycle[] secondSemesterCycles = secondSemester.cycles;
+
+			String firstSem = "";
+			String secondSem = "";
+
+			for (int i = 0; i < firstSemesterCycles.length; i++) {
+				if (firstSemesterCycles[i].average != null && firstSemesterCycles[i].average != -1) {
+					firstSem += String.valueOf(firstSemesterCycles[i].average)
 							+ "DELIMCOLUMN";
 				} else {
-					gradeDescription += "Cycle " + (d + 1) + ": N/A"
-							+ "DELIMCOLUMN";
+					firstSem += "-DELIMCOLUMN";
 				}
-				if (sixWeeksAverages[d + 3] != -1) {
-					gradeDescription += "Cycle " + (d + 4) + ": "
-							+ String.valueOf(sixWeeksAverages[d + 3])
-							+ "DELIMROW";
+			}
+			if (firstSemester.examGrade != null && firstSemester.examGrade != -1) {
+				firstSem += String.valueOf(firstSemester.examGrade)
+						+ "DELIMCOLUMN";
+			} else {
+				firstSem+="-DELIMCOLUMN";
+			}
+			if (firstSemester.average != null && firstSemester.average != -1) {
+				firstSem += String.valueOf(firstSemester.average) + "DELIMROW";
+			} else {
+				firstSem += "-DELIMROW";
+			}
+			
+			for(int i = 0; i < secondSemesterCycles.length; i++) {
+				if(secondSemesterCycles[i].average != null && secondSemesterCycles[i].average != -1) {
+					secondSem += String.valueOf(secondSemesterCycles[i].average + "DELIMCOLUMN");
 				} else {
-					gradeDescription += "Cycle " + (d + 4) + ": N/A"
-							+ "DELIMROW";
+					secondSem += "-DELIMCOLUMN";
 				}
 			}
 
-			if (exams[0] != -1) {
-				gradeDescription += "Exam 1: " + String.valueOf(exams[0])
+			if (secondSemester.examGrade != null && secondSemester.examGrade != -1) {
+				secondSem += String.valueOf(secondSemester.examGrade)
 						+ "DELIMCOLUMN";
 			} else {
-				gradeDescription += "Exam 1: N/A" + "DELIMCOLUMN";
+				secondSem += "-DELIMCOLUMN";
 			}
-			if (exams[1] != -1) {
-				gradeDescription += "Exam 2: " + String.valueOf(exams[1]);
+			if (secondSemester.average != null && secondSemester.average != -1) {
+				secondSem += String.valueOf(secondSemester.average);
 			} else {
-				gradeDescription += "Exam 2: N/A";
+				secondSem += "-";
 			}
-			String color = colorGenerator.getCardColor(i);
+
+			String gradeDescription = firstSem + secondSem;
+			String color = colorGenerator.getCardColor(k);
 			final Card courseCard = new CourseCard(course.title,
 					gradeDescription, color, "#787878", false, true);
 
@@ -1134,7 +1112,7 @@ public class MainActivity extends FragmentActivity {
 								} else {
 									desc += "DELIMAVERAGE" + "N/A";
 								}
-								CardColorGenerator gen = new CardColorGenerator();
+								ColorGenerator gen = new ColorGenerator();
 								String color = gen.getCardColor(i);
 
 								CategoryCard card = new CategoryCard(title,

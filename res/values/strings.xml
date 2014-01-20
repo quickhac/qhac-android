@@ -18,6 +18,15 @@
 	<string name="assignment">ASSIGNMENT</string>
 	<string name="points_earned">EARNED</string>
 	<string name="points_possible">POSSIBLE</string>
+	<string name="cycle1">Cycle 1</string>
+	<string name="cycle2">Cycle 2</string>
+	<string name="cycle3">Cycle 3</string>
+	<string name="cycle4">Cycle 4</string>
+	<string name="cycle5">Cycle 5</string>
+	<string name="cycle6">Cycle 6</string>
+	<string name="exam1">Exam 1</string>
+	<string name="exam2">Exam 2</string>
+	<string name="average">Average</string>
 	<string name="semester1">Semester 1</string>
 	<string name="semester2">Semester 2</string>
 	<string name="action_about">About</string>

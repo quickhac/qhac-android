@@ -1,6 +1,8 @@
 package com.patil.gradecheck;
 
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageView;
@@ -27,78 +29,77 @@ public class CourseCard extends RecyclableCard {
 
 	@Override
 	protected void applyTo(View convertView) {
-		TableLayout layout = (TableLayout) convertView
-				.findViewById(R.id.gradeTable);
+		TableLayout semester1Table = (TableLayout) convertView
+				.findViewById(R.id.semester1Table);
+		TableLayout semester2Table = (TableLayout) convertView
+				.findViewById(R.id.semester2Table);
 		((TextView) convertView.findViewById(R.id.title)).setText(titlePlay);
 		((TextView) convertView.findViewById(R.id.title)).setTextColor(Color
 				.parseColor(titleColor));
-		String[] descs = description.split("DELIMROW");
 
-		if (descs[0].split("DELIMCOLUMN")[0].contains("N/A")) {
-			((TextView) convertView.findViewById(R.id.semester1))
-					.setText(descs[0].split("DELIMCOLUM")[0].substring(0,
-							descs[0].split("DELIMCOLUM")[0].indexOf("N/A"))
-							+ "-");
-			((TextView) convertView.findViewById(R.id.semester1))
-					.setTextColor(Color.parseColor("#787878"));
-		} else {
-			((TextView) convertView.findViewById(R.id.semester1))
-					.setText(descs[0].split("DELIMCOLUM")[0]);
-		}
+		String[] firstSemesterGrades = description.split("DELIMROW")[0]
+				.split("DELIMCOLUMN");
+		String[] secondSemesterGrades = description.split("DELIMROW")[1]
+				.split("DELIMCOLUMN");
 
-		if (descs[0].split("DELIMCOLUMN")[1].contains("N/A")) {
-			((TextView) convertView.findViewById(R.id.semester2))
-					.setText(descs[0].split("DELIMCOLUM")[1].substring(1,
-							descs[0].split("DELIMCOLUM")[1].indexOf("N/A"))
-							+ "-");
-			((TextView) convertView.findViewById(R.id.semester2))
-					.setTextColor(Color.parseColor("#787878"));
-		} else {
-			((TextView) convertView.findViewById(R.id.semester2))
-					.setText(descs[0].split("DELIMCOLUMN")[1]);
-		}
+		TableRow row1 = new TableRow(convertView.getContext());
+		TableRow.LayoutParams lp1 = new TableRow.LayoutParams(
+				TableRow.LayoutParams.WRAP_CONTENT);
+		row1.setPadding(0, 5, 0, 5);
+		row1.setLayoutParams(lp1);
+		row1.setGravity(Gravity.CENTER);
+		for (int i = 0; i < firstSemesterGrades.length; i++) {
+			TextView text = new TextView(convertView.getContext());
+			text.setText(firstSemesterGrades[i]);
+			if (!firstSemesterGrades[i].equals("-")) {
 
-		for (int i = 1; i < descs.length; i++) {
-			String[] columns = descs[i].split("DELIMCOLUMN");
-
-			TableRow row = new TableRow(convertView.getContext());
-			TableRow.LayoutParams lp = new TableRow.LayoutParams(
-					TableRow.LayoutParams.WRAP_CONTENT);
-			row.setPadding(0, 5, 0, 5);
-			row.setLayoutParams(lp);
-
-			row.setGravity(Gravity.CENTER);
-
-			TextView semester1 = new TextView(convertView.getContext());
-			semester1.setPadding(10, 0, 0, 0);
-			if (columns[0].contains("N/A")) {
-				semester1.setText(columns[0].substring(0,
-						columns[0].indexOf("N/A"))
-						+ "-");
-				semester1.setTextColor(Color.parseColor(("#787878")));
-			} else {
-				semester1.setText(columns[0]);
+				String rgb = new ColorGenerator().getGradeColor(Integer
+						.parseInt(firstSemesterGrades[i]));
+				String[] values = rgb.split(",");
+				Log.d("colorizer", rgb);
+				int r = Integer.parseInt(values[0]);
+				int g = Integer.parseInt(values[1]);
+				int b = Integer.parseInt(values[2]);
+				text.setBackgroundColor(Color.rgb(r, g, b));
 			}
-			semester1.setTextSize(16);
-
-			TextView semester2 = new TextView(convertView.getContext());
-			semester2.setPadding(0, 0, 10, 0);
-
-			if (columns[1].contains("N/A")) {
-				semester2.setText(columns[1].substring(0,
-						columns[1].indexOf("N/A"))
-						+ "-");
-				semester2.setTextColor(Color.parseColor(("#787878")));
-			} else {
-				semester2.setText(columns[1]);
-			}
-			semester2.setGravity(Gravity.RIGHT);
-			semester2.setTextSize(16);
-
-			row.addView(semester1);
-			row.addView(semester2);
-			layout.addView(row);
+			text.setTypeface(Typeface.create("sans-serif-light",
+					Typeface.NORMAL));
+			text.setTextSize(24);
+			text.setGravity(Gravity.CENTER);
+			row1.addView(text);
 		}
+		semester1Table.addView(row1);
+
+		TableRow row2 = new TableRow(convertView.getContext());
+		TableRow.LayoutParams lp2 = new TableRow.LayoutParams(
+				TableRow.LayoutParams.WRAP_CONTENT);
+		row2.setPadding(0, 5, 0, 5);
+		row2.setLayoutParams(lp2);
+		row2.setGravity(Gravity.CENTER);
+		for (int i = 0; i < secondSemesterGrades.length; i++) {
+
+			TextView text = new TextView(convertView.getContext());
+			text.setText(secondSemesterGrades[i]);
+			if (!secondSemesterGrades[i].equals("-")) {
+				
+				String rgb = new ColorGenerator().getGradeColor(Integer
+						.parseInt(secondSemesterGrades[i]));
+				Log.d("colorizer", rgb);
+				String[] values = rgb.split(",");
+				int r = Integer.parseInt(values[0]);
+				int g = Integer.parseInt(values[1]);
+				int b = Integer.parseInt(values[2]);
+				text.setBackgroundColor(Color.rgb(r, g, b));
+			}
+			text.setTextSize(24);
+			text.setTypeface(Typeface.create("sans-serif-light",
+					Typeface.NORMAL));
+			text.setGravity(Gravity.CENTER);
+			text.setClickable(true);
+			row2.addView(text);
+
+		}
+		semester2Table.addView(row2);
 
 		((ImageView) convertView.findViewById(R.id.stripe))
 				.setBackgroundColor(Color.parseColor(color));

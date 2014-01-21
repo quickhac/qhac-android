@@ -81,7 +81,6 @@ public class MainActivity extends FragmentActivity {
 	String cycleResponse;
 
 	Button signInButton;
-	TextView GPAText;
 	TextView lastUpdatedText;
 
 	CardUI cardView;
@@ -103,7 +102,6 @@ public class MainActivity extends FragmentActivity {
 		colorGenerator = new ColorGenerator();
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
-		GPAText = (TextView) findViewById(R.id.gpa_text);
 		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
 		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
 		saver = new CourseSaver(this);
@@ -215,8 +213,7 @@ public class MainActivity extends FragmentActivity {
 					classGradesList.add(null);
 				}
 				setupActionBar();
-				makeCourseCards();
-				displayGPA(false);
+				makeCourseCards(false);
 			} else {
 				Toast.makeText(
 						this,
@@ -320,9 +317,20 @@ public class MainActivity extends FragmentActivity {
 	/*
 	 * Makes descriptions and loads in cards to display.
 	 */
-	public void makeCourseCards() {
+	public void makeCourseCards(boolean online) {
 		cardView = (CardUI) findViewById(R.id.cardsview);
 		cardView.setSwipeable(false);
+		// add GPA card if user has enabled
+		SharedPreferences sharedPref = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
+		if (gpaPref) {
+			double[] gpa = getGPA(online);
+			String description = String.valueOf(gpa[0]) + " | " + String.valueOf(gpa[1]) + " (weighted)";
+			Card GPACard = new NoGradesCard("GPA", description, "#787878", "#787878", false, false);
+			cardView.addCard(GPACard);
+		}
+
 		for (int k = 0; k < courses.length; k++) {
 
 			Course course = courses[k];
@@ -408,80 +416,73 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	/*
-	 * Calculates and displays GPA.
+	 * Returns array of weighted and unweighted GPA for displaying in GPA card.
 	 */
-	public void displayGPA(boolean online) {
+	public double[] getGPA(boolean online) {
 		SharedPreferences sharedPref = PreferenceManager
 				.getDefaultSharedPreferences(this);
-		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
-		if (gpaPref) {
-			if (online) {
-
-				List<String> weightedClasses = new ArrayList<String>();
-				Set<String> savedWeighted = sharedPref.getStringSet(
-						"pref_weightedClasses", null);
-				if (savedWeighted != null) {
-					String[] weighted = savedWeighted
-							.toArray(new String[savedWeighted.size()]);
-					if (weighted != null) {
-						for (int i = 0; i < weighted.length; i++) {
-							weightedClasses.add(weighted[i]);
-						}
+		if (online) {
+			List<String> weightedClasses = new ArrayList<String>();
+			Set<String> savedWeighted = sharedPref.getStringSet(
+					"pref_weightedClasses", null);
+			if (savedWeighted != null) {
+				String[] weighted = savedWeighted
+						.toArray(new String[savedWeighted.size()]);
+				if (weighted != null) {
+					for (int i = 0; i < weighted.length; i++) {
+						weightedClasses.add(weighted[i]);
 					}
 				}
-
-				List<String> excludedClasses = new ArrayList<String>();
-				Set<String> savedExcluded = sharedPref.getStringSet(
-						"pref_excludedClasses", null);
-				if (savedExcluded != null) {
-					String[] excluded = savedExcluded
-							.toArray(new String[savedExcluded.size()]);
-					if (excluded != null) {
-						for (int i = 0; i < excluded.length; i++) {
-							excludedClasses.add(excluded[i]);
-						}
-					}
-				}
-
-				// remove excluded classes from list of classes to calculate
-				ArrayList<Course> trimmed = new ArrayList<Course>();
-				for (int i = 0; i < courses.length; i++) {
-					boolean excluded = false;
-					for (int d = 0; d < excludedClasses.size(); d++) {
-						if(excludedClasses.get(d).equals(courses[i].title)) {
-							excluded = true;
-						}
-					}
-					if(!excluded) {
-						trimmed.add(courses[i]);
-					}
-				}
-				
-				Course[] toCalculate = new Course[trimmed.size()];
-				for(int i = 0; i < trimmed.size(); i++) {
-					toCalculate[i] = trimmed.get(i);
-				}
-
-				double GPA = 0;
-				if (new SettingsManager(this).getLoginInfo()[3]
-						.equals("Austin")) {
-					GPA = GPACalc.weighted(toCalculate, weightedClasses,
-							gradeSpeedDistrict.weightedGPABoost());
-				} else if (new SettingsManager(this).getLoginInfo()[3]
-						.equals("RoundRock")) {
-					GPA = GPACalc.weighted(toCalculate, weightedClasses,
-							gradeSpeedDistrict.weightedGPABoost());
-				}
-				GPAText.setVisibility(View.VISIBLE);
-				GPAText.setText("GPA: " + String.valueOf(Numeric.round(GPA, 4)));
-				saver.saveGPA(GPA);
-			} else {
-				GPAText.setVisibility(View.VISIBLE);
-				GPAText.setText("GPA: "
-						+ String.valueOf(Numeric.round(saver.getGPA(), 4)));
 			}
+
+			List<String> excludedClasses = new ArrayList<String>();
+			Set<String> savedExcluded = sharedPref.getStringSet(
+					"pref_excludedClasses", null);
+			if (savedExcluded != null) {
+				String[] excluded = savedExcluded
+						.toArray(new String[savedExcluded.size()]);
+				if (excluded != null) {
+					for (int i = 0; i < excluded.length; i++) {
+						excludedClasses.add(excluded[i]);
+					}
+				}
+			}
+
+			// remove excluded classes from list of classes to calculate
+			ArrayList<Course> trimmed = new ArrayList<Course>();
+			for (int i = 0; i < courses.length; i++) {
+				boolean excluded = false;
+				for (int d = 0; d < excludedClasses.size(); d++) {
+					if (excludedClasses.get(d).equals(courses[i].title)) {
+						excluded = true;
+					}
+				}
+				if (!excluded) {
+					trimmed.add(courses[i]);
+				}
+			}
+
+			Course[] toCalculate = new Course[trimmed.size()];
+			for (int i = 0; i < trimmed.size(); i++) {
+				toCalculate[i] = trimmed.get(i);
+			}
+
+			double weightedGPA = 0;
+			double unweightedGPA = 0;
+			unweightedGPA = GPACalc.unweighted(toCalculate);
+			if (new SettingsManager(this).getLoginInfo()[3].equals("Austin")) {
+				weightedGPA = GPACalc.weighted(toCalculate, weightedClasses,
+						gradeSpeedDistrict.weightedGPABoost());
+			} else if (new SettingsManager(this).getLoginInfo()[3]
+					.equals("RoundRock")) {
+				weightedGPA = GPACalc.weighted(toCalculate, weightedClasses,
+						gradeSpeedDistrict.weightedGPABoost());
+			}
+			saver.saveUnweightedGPA(unweightedGPA);
+			saver.saveWeightedGPA(weightedGPA);
+			return new double[] {Numeric.round(unweightedGPA, 4), Numeric.round(weightedGPA, 4) };
 		} else {
-			GPAText.setVisibility(View.GONE);
+			return new double[] {Numeric.round(saver.getUnweightedGPA(), 4), Numeric.round(saver.getWeightedGPA(), 4)} ;
 		}
 	}
 
@@ -672,8 +673,7 @@ public class MainActivity extends FragmentActivity {
 				startLogin();
 			} else {
 				setupActionBar();
-				makeCourseCards();
-				displayGPA(true);
+				makeCourseCards(true);
 				PrettyTime p = new PrettyTime();
 				lastUpdatedText.setText("Updated "
 						+ p.format(new Date(System.currentTimeMillis() - 10)));

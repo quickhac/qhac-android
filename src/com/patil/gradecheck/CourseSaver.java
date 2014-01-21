@@ -35,23 +35,46 @@ public class CourseSaver {
 	/*
 	 * Saves GPA value
 	 */
-	public void saveGPA(double GPA) {
+	public void saveWeightedGPA(double GPA) {
 		String username = new SettingsManager(context).getLoginInfo()[0];
 		SharedPreferences prefs = context.getSharedPreferences(username,
 				Context.MODE_PRIVATE);
 		Editor editor = prefs.edit();
-		editor.putFloat("gpa", (float)GPA);
+		editor.putFloat("weightedGPA", (float)GPA);
 		editor.commit();
 	}
 	
 	/*
 	 * Returns saved GPA
 	 */
-	public double getGPA() {
+	public double getWeightedGPA() {
 		String username = new SettingsManager(context).getLoginInfo()[0];
 		SharedPreferences prefs = context.getSharedPreferences(username,
 				Context.MODE_PRIVATE);
-		float gpa= prefs.getFloat("gpa", 0);
+		float gpa= prefs.getFloat("weightedGPA", 0);
+		return (double)gpa;
+	}
+	
+	/*
+	 * Saves GPA value
+	 */
+	public void saveUnweightedGPA(double GPA) {
+		String username = new SettingsManager(context).getLoginInfo()[0];
+		SharedPreferences prefs = context.getSharedPreferences(username,
+				Context.MODE_PRIVATE);
+		Editor editor = prefs.edit();
+		editor.putFloat("unweightedGPA", (float)GPA);
+		editor.commit();
+	}
+	
+	/*
+	 * Returns saved GPA
+	 */
+	public double getUnweightedGPA() {
+		String username = new SettingsManager(context).getLoginInfo()[0];
+		SharedPreferences prefs = context.getSharedPreferences(username,
+				Context.MODE_PRIVATE);
+		float gpa= prefs.getFloat("unweightedGPA", 0);
 		return (double)gpa;
 	}
 

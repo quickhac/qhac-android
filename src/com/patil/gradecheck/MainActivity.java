@@ -29,7 +29,6 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -326,8 +325,10 @@ public class MainActivity extends FragmentActivity {
 		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
 		if (gpaPref) {
 			double[] gpa = getGPA(online);
-			String description = String.valueOf(gpa[0]) + " | " + String.valueOf(gpa[1]) + " (weighted)";
-			Card GPACard = new NoGradesCard("GPA", description, "#787878", "#787878", false, false);
+			String description = String.valueOf(gpa[0]) + " | "
+					+ String.valueOf(gpa[1]) + " (weighted)";
+			Card GPACard = new NoGradesCard("GPA", description, "#787878",
+					"#787878", false, false);
 			cardView.addCard(GPACard);
 		}
 
@@ -409,6 +410,7 @@ public class MainActivity extends FragmentActivity {
 					}
 					selectItem(pos + 1);
 				}
+
 			});
 			cardView.addCard(courseCard);
 		}
@@ -480,9 +482,11 @@ public class MainActivity extends FragmentActivity {
 			}
 			saver.saveUnweightedGPA(unweightedGPA);
 			saver.saveWeightedGPA(weightedGPA);
-			return new double[] {Numeric.round(unweightedGPA, 4), Numeric.round(weightedGPA, 4) };
+			return new double[] { Numeric.round(unweightedGPA, 4),
+					Numeric.round(weightedGPA, 4) };
 		} else {
-			return new double[] {Numeric.round(saver.getUnweightedGPA(), 4), Numeric.round(saver.getWeightedGPA(), 4)} ;
+			return new double[] { Numeric.round(saver.getUnweightedGPA(), 4),
+					Numeric.round(saver.getWeightedGPA(), 4) };
 		}
 	}
 

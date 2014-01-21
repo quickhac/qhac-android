@@ -1,184 +1,147 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingBottom="6dp" >
+    android:orientation="horizontal"
+    android:paddingBottom="6dp"
+    android:weightSum="100" >
+
+    <ImageView
+        android:id="@+id/stripe"
+        android:layout_width="0dip"
+        android:layout_height="match_parent"
+        android:layout_weight="3"
+        android:adjustViewBounds="true"
+        android:baselineAlignBottom="true"
+        android:scaleType="centerCrop" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/contentLayout"
+        android:layout_width="0dip"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:weightSum="100" >
+        android:layout_marginLeft="8dip"
+        android:layout_weight="90"
+        android:orientation="vertical" >
 
-        <ImageView
-            android:id="@+id/stripe"
-            android:layout_width="0dip"
-            android:layout_height="match_parent"
-            android:layout_weight="3"
-            android:adjustViewBounds="true"
-            android:background="#FFFFFF"
-            android:baselineAlignBottom="true"
-            android:contentDescription="@string/color_stripe"
-            android:scaleType="centerCrop" />
-
-        <LinearLayout
-            android:id="@+id/contentLayout"
-            android:layout_width="0dip"
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="8dip"
-            android:layout_weight="90"
-            android:orientation="vertical" >
+            android:fontFamily="sans-serif-thin"
+            android:text="@string/card_title"
+            android:textColor="#33B6EA"
+            android:textSize="24sp" />
 
-            <TextView
-                android:id="@+id/title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="8dip"
-                android:fontFamily="sans-serif-thin"
-                android:text="@string/card_title"
-                android:textColor="#33B6EA"
-                android:textSize="24sp" />
+        <TableLayout
+            android:id="@+id/gradeTable"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="5dp"
+            android:shrinkColumns="*"
+            android:stretchColumns="*" >
 
-            <LinearLayout
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" >
+            <TableRow
+                android:id="@+id/semester1Table_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" >
 
-                <TableLayout
-                    android:id="@+id/semester1Table"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/cycle1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingTop="5dp"
-                    android:shrinkColumns="*"
-                    android:stretchColumns="*" >
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/cycle1"
+                    android:textSize="14sp" />
 
-                    <TableRow
-                        android:id="@+id/semester1Table_header"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" >
-
-                        <TextView
-                            android:id="@+id/cycle1"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_horizontal"
-                            android:fontFamily="sans-serif-light"
-                            android:text="@string/cycle1"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:id="@+id/cycle2"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_horizontal"
-                            android:fontFamily="sans-serif-light"
-                            android:text="@string/cycle2"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:id="@+id/cycle3"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_horizontal"
-                            android:fontFamily="sans-serif-light"
-                            android:text="@string/cycle3"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:id="@+id/exam1"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_horizontal"
-                            android:fontFamily="sans-serif-light"
-                            android:text="@string/exam1"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:id="@+id/average1"
-                            android:layout_width="wrap_content"
-                            android:fontFamily="sans-serif-light"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_horizontal"
-                            android:text="@string/average"
-                            android:textSize="14sp" />
-                    </TableRow>
-                </TableLayout>
-
-                <TableLayout
-                    android:id="@+id/semester2Table"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/cycle2"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingTop="5dp"
-                    android:shrinkColumns="*"
-                    android:stretchColumns="*" >
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/cycle2"
+                    android:textSize="14sp" />
 
-                    <TableRow
-                        android:id="@+id/semester2Table_header"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" >
+                <TextView
+                    android:id="@+id/cycle3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/cycle3"
+                    android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/cycle4"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-light"
-                            android:layout_gravity="center_horizontal"
-                            android:text="@string/cycle4"
-                            android:textSize="14sp" />
+                <TextView
+                    android:id="@+id/exam1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/exam1"
+                    android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/cycle5"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-light"
-                            android:layout_gravity="center_horizontal"
-                            android:text="@string/cycle5"
-                            android:textSize="14sp" />
+                <TextView
+                    android:id="@+id/average1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/average"
+                    android:textSize="14sp" />
+            </TableRow>
 
-                        <TextView
-                            android:id="@+id/cycle6"
-                            android:layout_width="wrap_content"
-                            android:fontFamily="sans-serif-light"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_horizontal"
-                            android:text="@string/cycle6"
-                            android:textSize="14sp" />
+            <TableRow
+                android:id="@+id/semester2Table_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" >
 
-                        <TextView
-                            android:id="@+id/exam2"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-light"
-                            android:layout_gravity="center_horizontal"
-                            android:text="@string/exam2"
-                            android:textSize="14sp" />
+                <TextView
+                    android:id="@+id/cycle4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/cycle4"
+                    android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/average2"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-light"
-                            android:layout_gravity="center_horizontal"
-                            android:text="@string/average"
-                            android:textSize="14sp" />
-                    </TableRow>
-                </TableLayout>
-            </LinearLayout>
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/cycle5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/cycle5"
+                    android:textSize="14sp" />
 
-        <LinearLayout
-            android:layout_width="0dip"
-            android:layout_height="fill_parent"
-            android:layout_weight="1"
-            android:orientation="vertical" >
+                <TextView
+                    android:id="@+id/cycle6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/cycle6"
+                    android:textSize="14sp" />
 
-            <ImageView
-                android:id="@+id/overflow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/selectable_background_cardbank" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/exam2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/exam2"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/average2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/average"
+                    android:textSize="14sp" />
+            </TableRow>
+        </TableLayout>
     </LinearLayout>
 
 </LinearLayout>

@@ -709,12 +709,14 @@ public class MainActivity extends FragmentActivity {
 
 				@Override
 				public void onSuccess(String response) {
-					courses = parser.parseAverages(response);
-					cycleResponse = response;
-					// Set up the classGradesList with unintialized
-					// class grades
-					for (int i = 0; i < courses.length; i++) {
-						classGradesList.add(null);
+					if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+						courses = parser.parseAverages(response);
+						cycleResponse = response;
+						// Set up the classGradesList with unintialized
+						// class grades
+						for (int i = 0; i < courses.length; i++) {
+							classGradesList.add(null);
+						}
 					}
 				}
 
@@ -728,7 +730,9 @@ public class MainActivity extends FragmentActivity {
 
 				@Override
 				public void onSuccess(String response) {
-					retriever.getAverages(getAveragesHandler);
+					if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+						retriever.getAverages(getAveragesHandler);
+					}
 				}
 
 				@Override

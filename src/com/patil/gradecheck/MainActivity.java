@@ -703,13 +703,14 @@ public class MainActivity extends FragmentActivity {
 				final String id, GradeSpeedDistrict district) {
 			retriever = new GradeRetriever(district);
 			parser = new GradeParser(district);
-			status = "SUCCESS";
+			status = "INVALID_LOGIN";
 
 			final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
 
 				@Override
 				public void onSuccess(String response) {
 					if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+						setStatus("SUCCESS");
 						courses = parser.parseAverages(response);
 						cycleResponse = response;
 						// Set up the classGradesList with unintialized
@@ -731,6 +732,7 @@ public class MainActivity extends FragmentActivity {
 				@Override
 				public void onSuccess(String response) {
 					if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+						setStatus("SUCCESS");
 						retriever.getAverages(getAveragesHandler);
 					}
 				}
@@ -746,6 +748,7 @@ public class MainActivity extends FragmentActivity {
 				@Override
 				public void onRequiresDisambiguation(String response,
 						DisambiguationChoice[] students, ASPNETPageState state) {
+					setStatus("SUCCESS");
 					retriever.disambiguate(id, state, disambiguateHandler);
 				}
 

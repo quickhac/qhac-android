@@ -30,37 +30,32 @@ public class CourseCard extends RecyclableCard {
 
 	@Override
 	protected void applyTo(View convertView) {
-		gradeTable = (TableLayout) convertView
-				.findViewById(R.id.gradeTable);
+		gradeTable = (TableLayout) convertView.findViewById(R.id.gradeTable);
 		titleView = (TextView) convertView.findViewById(R.id.title);
 		stripe = (ImageView) convertView.findViewById(R.id.stripe);
 
+
+		ColorGenerator generator = new ColorGenerator();
+		
 		Context context = convertView.getContext();
 		Typeface sansSerifLight = Typeface.create("sans-serif-light",
 				Typeface.NORMAL);
 
 		titleView.setText(titlePlay);
 		titleView.setTextColor(Color.parseColor(titleColor));
+		String[] data = (String[]) getData();
 
-		String[] firstSemesterGrades = description.split("DELIMROW")[0]
-				.split("DELIMCOLUMN");
-		String[] secondSemesterGrades = description.split("DELIMROW")[1]
-				.split("DELIMCOLUMN");
-
-		TableRow row1 = new TableRow(context);
-		row1.setPadding(0, 5, 0, 5);
+		TableRow row1 = (TableRow) convertView.findViewById(R.id.semester1Table);
 		row1.setGravity(Gravity.CENTER);
-		ColorGenerator generator = new ColorGenerator();
-		TableRow row2 = new TableRow(context);
-		row2.setPadding(0, 5, 0, 5);
+		TableRow row2 = (TableRow) convertView.findViewById(R.id.semester2Table);
+	
 		row2.setGravity(Gravity.CENTER);
-		for (int i = 0; i < firstSemesterGrades.length; i++) {
+		for (int i = 0; i < 5; i++) {
 			TextView text = new TextView(context);
-			text.setText(firstSemesterGrades[i]);
-			if (!firstSemesterGrades[i].equals("-")) {
-
+			text.setText(data[i]);
+			if (!data[i].equals("-")) {
 				int[] values = generator.getGradeColor(Integer
-						.parseInt(firstSemesterGrades[i]));
+						.parseInt(data[i]));
 				text.setBackgroundColor(Color.rgb(values[0], values[1],
 						values[2]));
 			}
@@ -71,11 +66,11 @@ public class CourseCard extends RecyclableCard {
 
 			// now do second semester
 			TextView text2 = new TextView(context);
-			text2.setText(secondSemesterGrades[i]);
-			if (!secondSemesterGrades[i].equals("-")) {
+			text2.setText(data[i + 5]);
+			if (!data[i + 5].equals("-")) {
 
 				int[] values = generator.getGradeColor(Integer
-						.parseInt(secondSemesterGrades[i]));
+						.parseInt(data[i + 5]));
 				text2.setBackgroundColor(Color.rgb(values[0], values[1],
 						values[2]));
 			}
@@ -84,10 +79,7 @@ public class CourseCard extends RecyclableCard {
 			text2.setGravity(Gravity.CENTER);
 			text2.setClickable(true);
 			row2.addView(text2);
-
 		}
-		gradeTable.addView(row1, 1);
-		gradeTable.addView(row2);
 
 		stripe.setBackgroundColor(Color.parseColor(color));
 		if (isClickable == true)

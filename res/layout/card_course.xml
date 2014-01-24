@@ -1,6 +1,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:animateLayoutChanges="true"
     android:orientation="horizontal"
     android:paddingBottom="6dp"
     android:weightSum="100" >
@@ -92,6 +93,14 @@
             </TableRow>
 
             <TableRow
+                android:id="@+id/semester1Table"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="5dp"
+                android:paddingTop="5dp" >
+            </TableRow>
+
+            <TableRow
                 android:id="@+id/semester2Table_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" >
@@ -140,6 +149,14 @@
                     android:fontFamily="sans-serif-light"
                     android:text="@string/average"
                     android:textSize="14sp" />
+            </TableRow>
+
+            <TableRow
+                android:id="@+id/semester2Table"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="5dp"
+                android:paddingTop="5dp" >
             </TableRow>
         </TableLayout>
     </LinearLayout>

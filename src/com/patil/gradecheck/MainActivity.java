@@ -8,6 +8,8 @@ import java.util.Set;
 import org.jsoup.Jsoup;
 import org.ocpsoft.prettytime.PrettyTime;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
 import android.app.ProgressDialog;
@@ -116,7 +118,6 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
 		settingsManager = new SettingsManager(this);
@@ -130,8 +131,6 @@ public class MainActivity extends FragmentActivity implements
 		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
 		saver = new CourseSaver(this);
 		makeDrawer();
-		startDisplayingGrades();
-
 	}
 
 	@Override
@@ -198,9 +197,7 @@ public class MainActivity extends FragmentActivity implements
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.main, menu);
 		this.menu = menu;
-		// Only show the refresh button after the grades are loaded
-		MenuItem item_refresh = menu.findItem(R.id.action_refresh);
-		item_refresh.setVisible(false);
+		startDisplayingGrades();
 		return true;
 	}
 
@@ -432,106 +429,126 @@ public class MainActivity extends FragmentActivity implements
 	/*
 	 * Makes descriptions and loads in cards to display.
 	 */
-	public void makeCourseCards(boolean online) {
+	public void makeCourseCards(final boolean online) {
+
 		cardView = (CardUI) findViewById(R.id.cardsview);
-		cardView.clearCards();
-		cardView.setSwipeable(false);
-		// add GPA card if user has enabled
-		SharedPreferences sharedPref = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
-		if (gpaPref) {
-			double[] gpa = getGPA(online);
-			String description = String.valueOf(gpa[0]) + " | "
-					+ String.valueOf(gpa[1]) + " (weighted)";
-			Card GPACard = new NoGradesCard("GPA", description, "#787878",
-					"#787878", false, false);
-			cardView.addCard(GPACard);
-		}
 
-		for (int k = 0; k < courses.length; k++) {
+		Runnable thread = new Runnable() {
 
-			Course course = courses[k];
-
-			Semester firstSemester = course.semesters[0];
-			Semester secondSemester = course.semesters[1];
-			Cycle[] firstSemesterCycles = firstSemester.cycles;
-			Cycle[] secondSemesterCycles = secondSemester.cycles;
-
-			String firstSem = "";
-			String secondSem = "";
-
-			for (int i = 0; i < firstSemesterCycles.length; i++) {
-				if (firstSemesterCycles[i].average != null
-						&& firstSemesterCycles[i].average != -1) {
-					firstSem += String.valueOf(firstSemesterCycles[i].average)
-							+ "DELIMCOLUMN";
-				} else {
-					firstSem += "-DELIMCOLUMN";
+			@Override
+			public void run() {
+				cardView.clearCards();
+				cardView.setSwipeable(false);
+				// add GPA card if user has enabled
+				SharedPreferences sharedPref = PreferenceManager
+						.getDefaultSharedPreferences(MainActivity.this);
+				boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
+				if (gpaPref) {
+					double[] gpa = getGPA(online);
+					String description = String.valueOf(gpa[0]) + " | "
+							+ String.valueOf(gpa[1]) + " (weighted)";
+					Card GPACard = new NoGradesCard("GPA", description,
+							"#787878", "#787878", false, false);
+					cardView.addCard(GPACard);
 				}
-			}
-			if (firstSemester.examGrade != null
-					&& firstSemester.examGrade != -1) {
-				firstSem += String.valueOf(firstSemester.examGrade)
-						+ "DELIMCOLUMN";
-			} else {
-				firstSem += "-DELIMCOLUMN";
-			}
-			if (firstSemester.average != null && firstSemester.average != -1) {
-				firstSem += String.valueOf(firstSemester.average) + "DELIMROW";
-			} else {
-				firstSem += "-DELIMROW";
-			}
 
-			for (int i = 0; i < secondSemesterCycles.length; i++) {
-				if (secondSemesterCycles[i].average != null
-						&& secondSemesterCycles[i].average != -1) {
-					secondSem += String.valueOf(secondSemesterCycles[i].average
-							+ "DELIMCOLUMN");
-				} else {
-					secondSem += "-DELIMCOLUMN";
-				}
-			}
+				for (int k = 0; k < courses.length; k++) {
 
-			if (secondSemester.examGrade != null
-					&& secondSemester.examGrade != -1) {
-				secondSem += String.valueOf(secondSemester.examGrade)
-						+ "DELIMCOLUMN";
-			} else {
-				secondSem += "-DELIMCOLUMN";
-			}
-			if (secondSemester.average != null && secondSemester.average != -1) {
-				secondSem += String.valueOf(secondSemester.average);
-			} else {
-				secondSem += "-";
-			}
+					Course course = courses[k];
 
-			String gradeDescription = firstSem + secondSem;
-			String color = colorGenerator.getCardColor(k);
-			final Card courseCard = new CourseCard(course.title,
-					gradeDescription, color, "#787878", false, true);
+					Semester firstSemester = course.semesters[0];
+					Semester secondSemester = course.semesters[1];
+					Cycle[] firstSemesterCycles = firstSemester.cycles;
+					Cycle[] secondSemesterCycles = secondSemester.cycles;
 
-			// Set onClick
-			courseCard.setOnClickListener(new OnClickListener() {
+					String[] cycleData = new String[(course.semesters.length * 2)
+							+ firstSemesterCycles.length
+							+ secondSemesterCycles.length];
 
-				@Override
-				public void onClick(View v) {
-
-					// Find appropriate position
-					int pos = 0;
-					for (int e = 0; e < courses.length; e++) {
-						if (courses[e].title.equals(((CourseCard) courseCard)
-								.getCardTitle())) {
-							pos = e;
+					for (int i = 0; i < firstSemesterCycles.length; i++) {
+						if (firstSemesterCycles[i].average != null
+								&& firstSemesterCycles[i].average != -1) {
+							cycleData[i] = String
+									.valueOf(firstSemesterCycles[i].average);
+						} else {
+							cycleData[i] = "-";
 						}
 					}
-					selectItem(pos + 1);
-				}
+					if (firstSemester.examGrade != null
+							&& firstSemester.examGrade != -1) {
+						cycleData[firstSemesterCycles.length] = String
+								.valueOf(firstSemester.examGrade);
+					} else {
+						cycleData[firstSemesterCycles.length] = "-";
+					}
 
-			});
-			cardView.addCard(courseCard);
-		}
-		cardView.refresh();
+					if (firstSemester.average != null
+							&& firstSemester.average != -1) {
+						cycleData[firstSemesterCycles.length + 1] = String
+								.valueOf(firstSemester.average);
+					} else {
+						cycleData[firstSemesterCycles.length + 1] = "-";
+					}
+
+					for (int i = 0; i < secondSemesterCycles.length; i++) {
+						if (secondSemesterCycles[i].average != null
+								&& secondSemesterCycles[i].average != -1) {
+							cycleData[i + firstSemesterCycles.length + 2] = String
+									.valueOf(secondSemesterCycles[i].average);
+						} else {
+							cycleData[i + firstSemesterCycles.length + 2] = "-";
+						}
+					}
+
+					if (secondSemester.examGrade != null
+							&& secondSemester.examGrade != -1) {
+						cycleData[firstSemesterCycles.length
+								+ secondSemesterCycles.length + 2] = String
+								.valueOf(secondSemester.examGrade);
+					} else {
+						cycleData[firstSemesterCycles.length
+								+ secondSemesterCycles.length + 2] = "-";
+					}
+					if (secondSemester.average != null
+							&& secondSemester.average != -1) {
+						cycleData[firstSemesterCycles.length
+								+ secondSemesterCycles.length + 3] = String
+								.valueOf(secondSemester.average);
+					} else {
+						cycleData[firstSemesterCycles.length
+								+ secondSemesterCycles.length + 3] = "-";
+					}
+					String color = colorGenerator.getCardColor(k);
+					final Card courseCard = new CourseCard(course.title, "",
+							color, "#787878", false, true);
+					courseCard.setData(cycleData);
+					// Set onClick
+					courseCard.setOnClickListener(new OnClickListener() {
+
+						@Override
+						public void onClick(View v) {
+
+							// Find appropriate position
+							int pos = 0;
+							for (int e = 0; e < courses.length; e++) {
+								if (courses[e].title
+										.equals(((CourseCard) courseCard)
+												.getCardTitle())) {
+									pos = e;
+								}
+							}
+							selectItem(pos + 1);
+						}
+
+					});
+					cardView.addCard(courseCard);
+				}
+				cardView.setPersistentDrawingCache(3);
+
+			}
+		};
+		thread.run();
+
 	}
 
 	/*
@@ -728,6 +745,20 @@ public class MainActivity extends FragmentActivity implements
 		getActionBar().setTitle(title);
 	}
 
+	public void setRefreshActionButtonState(final boolean refreshing) {
+		if (menu != null) {
+			final MenuItem refreshItem = menu.findItem(R.id.action_refresh);
+			if (refreshItem != null) {
+				if (refreshing) {
+					refreshItem
+							.setActionView(R.layout.actionbar_indeterminate_progress);
+				} else {
+					refreshItem.setActionView(null);
+				}
+			}
+		}
+	}
+
 	public class ScrapeTask extends AsyncTask<String, Void, String> {
 
 		ProgressDialog dialog;
@@ -792,15 +823,8 @@ public class MainActivity extends FragmentActivity implements
 			if (response.equals("UNKNOWN_ERROR")) {
 				if (showDialog) {
 					dialog.dismiss();
-				} else {
-
-					setProgressBarIndeterminateVisibility(false);
 				}
-
-				if (menu != null) {
-					MenuItem item_refresh = menu.findItem(R.id.action_refresh);
-					item_refresh.setVisible(true);
-				}
+				setRefreshActionButtonState(false);
 				// Error unknown
 				Toast.makeText(
 						context,
@@ -810,15 +834,9 @@ public class MainActivity extends FragmentActivity implements
 			} else if (response.equals("INVALID_LOGIN")) {
 				if (showDialog) {
 					dialog.dismiss();
-				} else {
-					setProgressBarIndeterminateVisibility(false);
-
 				}
 
-				if (menu != null) {
-					MenuItem item_refresh = menu.findItem(R.id.action_refresh);
-					item_refresh.setVisible(true);
-				}
+				setRefreshActionButtonState(false);
 				// Wrong credentials sent
 				Toast.makeText(
 						context,
@@ -831,24 +849,19 @@ public class MainActivity extends FragmentActivity implements
 				}
 				startLogin();
 			} else if (!firstLog) {
-				setupActionBar();
-				makeCourseCards(true);
 				PrettyTime p = new PrettyTime();
 				lastUpdatedText.setText("Updated "
 						+ p.format(new Date(System.currentTimeMillis() - 10)));
 				lastUpdatedText.setTextColor(Color.BLACK);
 				saver.saveCourses(courses, currentUsername, currentId);
+
+				makeCourseCards(true);
 				if (showDialog) {
 					dialog.dismiss();
-				} else {
-
-					setProgressBarIndeterminateVisibility(false);
 				}
 
-				if (menu != null) {
-					MenuItem item_refresh = menu.findItem(R.id.action_refresh);
-					item_refresh.setVisible(true);
-				}
+				setupActionBar();
+				setRefreshActionButtonState(false);
 			} else {
 				settingsManager.addStudent(username, password, id, school);
 				restartActivity();
@@ -863,16 +876,10 @@ public class MainActivity extends FragmentActivity implements
 				dialog.setCancelable(false);
 				dialog.setMessage("Loading Grades...");
 				dialog.show();
-			} else {
-				if (menu != null) {
-					MenuItem item_refresh = menu.findItem(R.id.action_refresh);
-					item_refresh.setVisible(false);
-				} else {
-					Log.d("menumenu", "null");
-				}
-				setProgressBarIndeterminateVisibility(true);
-
 			}
+
+			setRefreshActionButtonState(true);
+
 		}
 
 		public String scrape(final String username, final String password,

@@ -228,8 +228,8 @@ public class MainActivity extends FragmentActivity implements
 				currentDistrict = credentials[3];
 				if (isNetworkAvailable()) {
 					// We have internet, load grades
-					new ScrapeTask(this).execute(new String[] { credentials[0],
-							credentials[1], credentials[2], credentials[3] });
+					executeScrapeTask(credentials[0], credentials[1],
+							credentials[2], credentials[3], "no");
 				} else {
 					// No internet, try getting saved courses
 					Course[] savedCourses = saver.getSavedCourses(
@@ -352,11 +352,11 @@ public class MainActivity extends FragmentActivity implements
 											.toString().equals("RRISD")) {
 										distr = "RoundRock";
 									}
-									settingsManager.addStudent(userName
-											.getText().toString(), password
-											.getText().toString(), studentId
-											.getText().toString(), distr);
-									restartActivity();
+									executeScrapeTask(userName.getText()
+											.toString(), password.getText()
+											.toString(), studentId.getText()
+											.toString(), distr, "yes");
+
 								} else {
 									Toast.makeText(MainActivity.this,
 											"Please fill out all info.",
@@ -374,6 +374,13 @@ public class MainActivity extends FragmentActivity implements
 							}
 						}).setMessage("Use your GradeSpeed credentials.");
 		alert.show();
+	}
+
+	public void executeScrapeTask(String user, String pass, String id,
+			String distr, String firstLogOn) {
+		new ScrapeTask(this).execute(new String[] { user, pass, id, distr,
+				firstLogOn });
+
 	}
 
 	public void loadCourseInfo(int course, String school) {
@@ -688,8 +695,12 @@ public class MainActivity extends FragmentActivity implements
 
 		ProgressDialog dialog;
 		Context context;
-		String district;
 		String status;
+		String username;
+		String password;
+		String id;
+		String school;
+		boolean firstLog;
 
 		public ScrapeTask(Context context) {
 			this.context = context;
@@ -711,11 +722,16 @@ public class MainActivity extends FragmentActivity implements
 		 * @return A String of the webpage HTML.
 		 */
 		protected String doInBackground(String... information) {
-			String username = information[0];
-			String password = information[1];
-			String id = information[2];
-			String school = information[3];
-			district = school;
+			username = information[0];
+			password = information[1];
+			id = information[2];
+			school = information[3];
+			String firstLogin = information[4];
+			if (firstLogin.equals("yes")) {
+				firstLog = true;
+			} else {
+				firstLog = false;
+			}
 
 			String html = "UNKNOWN_ERROR";
 			if (school.equals("Austin")) {
@@ -749,9 +765,13 @@ public class MainActivity extends FragmentActivity implements
 						context,
 						"Invalid username, password, student ID, or school district.",
 						Toast.LENGTH_SHORT).show();
-				signInButton.setVisibility(View.VISIBLE);
+				// Only show signinbutton if there's no other student to show
+				// grades for
+				if (!(studentList.length > 0)) {
+					signInButton.setVisibility(View.VISIBLE);
+				}
 				startLogin();
-			} else {
+			} else if (!firstLog) {
 				setupActionBar();
 				makeCourseCards(true);
 				PrettyTime p = new PrettyTime();
@@ -759,6 +779,9 @@ public class MainActivity extends FragmentActivity implements
 						+ p.format(new Date(System.currentTimeMillis() - 10)));
 				saver.saveCourses(courses, currentUsername, currentId);
 				dialog.dismiss();
+			} else {
+				settingsManager.addStudent(username, password, id, school);
+				restartActivity();
 			}
 
 		}

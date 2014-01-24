@@ -13,7 +13,7 @@ import android.graphics.Color;
 import android.widget.TextView;
 
 public class AboutDialog extends Dialog {
-	private static Context context;
+	private Context context;
 
 	public AboutDialog(Context context) {
 		super(context);
@@ -36,7 +36,7 @@ public class AboutDialog extends Dialog {
 
 	}
 
-	public static String readRawTextFile(int id) {
+	public String readRawTextFile(int id) {
 		InputStream inputStream = context.getResources().openRawResource(id);
 
 		InputStreamReader in = new InputStreamReader(inputStream);

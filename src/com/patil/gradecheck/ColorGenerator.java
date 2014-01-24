@@ -1,8 +1,5 @@
 package com.patil.gradecheck;
 
-import android.graphics.Color;
-
-
 public class ColorGenerator {
 	/*
 	 * Helper class to generate colors for cards and grades
@@ -44,7 +41,8 @@ public class ColorGenerator {
 	}
 
 	/*
-	 * Returns a color for a grade. Colors according to severity. Returned is an array of ints, with rgb values
+	 * Returns a color for a grade. Colors according to severity. Returned is an
+	 * array of ints, with rgb values
 	 */
 	public int[] getGradeColor(double grade) {
 		double hue = 0;
@@ -53,9 +51,9 @@ public class ColorGenerator {
 		int asiannessLimited = Math.max(0, asianness);
 		double h = 0, s = 0, v = 0, r = 0, g = 0, b = 0;
 		if (grade < 0) {
-			return new int[] {225, 228, 225};
+			return new int[] { 225, 228, 225 };
 		} else {
-			
+
 			h = Math.min(0.25 * Math.pow(grade / 100, asiannessLimited)
 			// The following line limits the amount hue is allowed to
 			// change in the gradient depending on how far the hue is
@@ -119,6 +117,6 @@ public class ColorGenerator {
 			break;
 		}
 
-		return new int[] {(int)(r*255), (int)(g*255), (int)(b*255)};
+		return new int[] { (int) (r * 255), (int) (g * 255), (int) (b * 255) };
 	}
 }

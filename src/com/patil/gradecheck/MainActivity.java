@@ -972,9 +972,6 @@ public class MainActivity extends FragmentActivity implements
 						break;
 					}
 				}
-				if (latest >= 3) {
-					latest += 2;
-				}
 				viewPager.setCurrentItem(latest);
 			} else {
 				Toast.makeText(
@@ -998,27 +995,11 @@ public class MainActivity extends FragmentActivity implements
 					args.putInt(CycleFragment.INDEX_CYCLE, i);
 					fragment.setArguments(args);
 					return fragment;
-				} else if (i == 3 || i == 4) {
-					Fragment fragment = new SemesterExamFragment();
-					Bundle args = new Bundle();
-					args.putInt(SemesterExamFragment.INDEX_COURSE, index);
-					args.putInt(SemesterExamFragment.TYPE, i - 3);
-					args.putInt(SemesterExamFragment.INDEX_SEMESTER, 0);
-					fragment.setArguments(args);
-					return fragment;
-				} else if (i == 5 || i == 6 || i == 7) {
+				} else if (i == 3 || i == 4 || i == 5) {
 					Fragment fragment = new CycleFragment();
 					Bundle args = new Bundle();
 					args.putInt(CycleFragment.INDEX_COURSE, index);
-					args.putInt(CycleFragment.INDEX_CYCLE, i - 2);
-					fragment.setArguments(args);
-					return fragment;
-				} else if (i == 8 || i == 9) {
-					Fragment fragment = new SemesterExamFragment();
-					Bundle args = new Bundle();
-					args.putInt(SemesterExamFragment.INDEX_COURSE, index);
-					args.putInt(SemesterExamFragment.TYPE, i - 8);
-					args.putInt(SemesterExamFragment.INDEX_SEMESTER, 1);
+					args.putInt(CycleFragment.INDEX_CYCLE, i);
 					fragment.setArguments(args);
 					return fragment;
 				}
@@ -1027,97 +1008,12 @@ public class MainActivity extends FragmentActivity implements
 
 			@Override
 			public int getCount() {
-				return 10;
+				return 6;
 			}
 
 			@Override
 			public CharSequence getPageTitle(int position) {
 				return "OBJECT " + (position + 1);
-			}
-		}
-
-		/*
-		 * A fragment for a semester exam or semester average. Each class has 4
-		 * of these.
-		 */
-		public static class SemesterExamFragment extends Fragment {
-			CardUI cardUI;
-			public static final String INDEX_COURSE = "indexCourse";
-			public static final String TYPE = "type";
-			public static final String INDEX_SEMESTER = "indexSemester";
-
-			TextView title;
-
-			// Type 0 = exam, type 1 = semester average
-			int type;
-			int semesterIndex;
-			int courseIndex;
-
-			@Override
-			public View onCreateView(LayoutInflater inflater,
-					ViewGroup container, Bundle savedInstanceState) {
-				// Inflate the layout for this fragment
-				return inflater.inflate(R.layout.fragment_cycle, container,
-						false);
-			}
-
-			@Override
-			public void onViewCreated(View view, Bundle savedInstanceState) {
-				super.onViewCreated(view, savedInstanceState);
-				Bundle args = getArguments();
-				type = args.getInt(TYPE);
-				semesterIndex = args.getInt(INDEX_SEMESTER);
-				title = (TextView) getView().findViewById(R.id.title_text);
-				courseIndex = args.getInt(INDEX_COURSE);
-				Course course = courses[courseIndex];
-
-				// Setting the right title for the card
-				String titleText = "";
-				if (type == 0) {
-					if (semesterIndex == 0) {
-						titleText = "Exam 1";
-					} else {
-						titleText = "Exam 2";
-					}
-				} else if (type == 1) {
-					if (semesterIndex == 0) {
-						titleText = "Semester 1";
-					} else {
-						titleText = "Semester 2";
-					}
-				}
-
-				title.setText(titleText);
-
-				makeCard(course);
-			}
-
-			public void makeCard(Course course) {
-				cardUI = (CardUI) getView().findViewById(R.id.cardsview);
-				cardUI.setSwipeable(false);
-				String desc = "";
-				if (type == 0) {
-					if (course.semesters[semesterIndex].examGrade != null
-							&& course.semesters[semesterIndex].examGrade != -1) {
-						desc = String
-								.valueOf(course.semesters[semesterIndex].examGrade);
-					} else {
-						desc = "No Grade :(";
-					}
-				} else {
-					if (course.semesters[semesterIndex].average != null
-							&& course.semesters[semesterIndex].average != -1) {
-						desc = String
-								.valueOf(course.semesters[semesterIndex].average);
-					} else {
-						desc = "No Grade :(";
-					}
-				}
-				NoGradesCard card = new NoGradesCard(course.title, desc,
-						"#000000", "#787878", false, false);
-				cardUI.addCard(card);
-
-				cardUI.refresh();
 			}
 		}
 

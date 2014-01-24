@@ -16,6 +16,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -29,12 +30,14 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
@@ -108,9 +111,12 @@ public class MainActivity extends FragmentActivity implements
 	int initializationSpinnerCounter;
 	int currentStudentSelectedPosition;
 
+	Menu menu;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
 		settingsManager = new SettingsManager(this);
@@ -190,8 +196,11 @@ public class MainActivity extends FragmentActivity implements
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
+		this.menu = menu;
+		// Only show the refresh button after the grades are loaded
+		MenuItem item_refresh = menu.findItem(R.id.action_refresh);
+		item_refresh.setVisible(false);
 		return true;
 	}
 
@@ -220,20 +229,28 @@ public class MainActivity extends FragmentActivity implements
 			// We have a student to load
 			String[] credentials = settingsManager
 					.getLoginInfo(selectedStudent);
+
 			if (credentials[0] != null && credentials[1] != null
 					&& credentials[2] != null && credentials[3] != null) {
 				// Valid login info
 				currentUsername = credentials[0];
 				currentId = credentials[2];
 				currentDistrict = credentials[3];
-				if (isNetworkAvailable()) {
+
+				// See if there are any saved courses
+				Course[] savedCourses = saver.getSavedCourses(credentials[0],
+						credentials[2]);
+				if (isNetworkAvailable() && savedCourses != null) {
+					// We have saved courses, show those until grades are loaded
+					handleOnlineSavedCourses(savedCourses);
 					// We have internet, load grades
 					executeScrapeTask(credentials[0], credentials[1],
-							credentials[2], credentials[3], "no");
+							credentials[2], credentials[3], "no", false);
+				} else if (isNetworkAvailable() && savedCourses == null) {
+					// We have internet, load grades
+					executeScrapeTask(credentials[0], credentials[1],
+							credentials[2], credentials[3], "no", true);
 				} else {
-					// No internet, try getting saved courses
-					Course[] savedCourses = saver.getSavedCourses(
-							credentials[0], credentials[2]);
 					if (savedCourses != null) {
 						// We have saved courses
 						handleOfflineCourses(savedCourses);
@@ -277,6 +294,19 @@ public class MainActivity extends FragmentActivity implements
 		studentSpinner.setOnItemSelectedListener(this);
 		initializationSpinnerCounter = 0;
 		studentSpinner.setSelection(currentStudentSelectedPosition);
+	}
+
+	public void handleOnlineSavedCourses(Course[] savedCourses) {
+		courses = savedCourses;
+		String toDisplay = "Loading new grades...";
+		lastUpdatedText.setText(toDisplay);
+		lastUpdatedText.setTextColor(getResources().getColor(
+				R.color.pomegranate));
+		for (int i = 0; i < courses.length; i++) {
+			classGradesList.add(null);
+		}
+		setupActionBar();
+		makeCourseCards(false);
 	}
 
 	public void handleOfflineCourses(Course[] savedCourses) {
@@ -355,7 +385,7 @@ public class MainActivity extends FragmentActivity implements
 									executeScrapeTask(userName.getText()
 											.toString(), password.getText()
 											.toString(), studentId.getText()
-											.toString(), distr, "yes");
+											.toString(), distr, "yes", true);
 
 								} else {
 									Toast.makeText(MainActivity.this,
@@ -376,10 +406,16 @@ public class MainActivity extends FragmentActivity implements
 		alert.show();
 	}
 
+	/*
+	 * user = username pass = password id = student id distr = the school
+	 * district firstLogOn = if we're logging this user in for the first time
+	 * asyncRefresh = if we need to show a dialog or if we can just refresh the
+	 * ui asynchronously
+	 */
 	public void executeScrapeTask(String user, String pass, String id,
-			String distr, String firstLogOn) {
-		new ScrapeTask(this).execute(new String[] { user, pass, id, distr,
-				firstLogOn });
+			String distr, String firstLogOn, boolean asyncRefresh) {
+		new ScrapeTask(this, asyncRefresh).execute(new String[] { user, pass,
+				id, distr, firstLogOn });
 
 	}
 
@@ -398,6 +434,7 @@ public class MainActivity extends FragmentActivity implements
 	 */
 	public void makeCourseCards(boolean online) {
 		cardView = (CardUI) findViewById(R.id.cardsview);
+		cardView.clearCards();
 		cardView.setSwipeable(false);
 		// add GPA card if user has enabled
 		SharedPreferences sharedPref = PreferenceManager
@@ -701,9 +738,11 @@ public class MainActivity extends FragmentActivity implements
 		String id;
 		String school;
 		boolean firstLog;
+		boolean showDialog;
 
-		public ScrapeTask(Context context) {
+		public ScrapeTask(Context context, boolean showDialog) {
 			this.context = context;
+			this.showDialog = showDialog;
 		}
 
 		/*
@@ -751,7 +790,17 @@ public class MainActivity extends FragmentActivity implements
 
 		public void handleResponse(String response) {
 			if (response.equals("UNKNOWN_ERROR")) {
-				dialog.dismiss();
+				if (showDialog) {
+					dialog.dismiss();
+				} else {
+
+					setProgressBarIndeterminateVisibility(false);
+				}
+
+				if (menu != null) {
+					MenuItem item_refresh = menu.findItem(R.id.action_refresh);
+					item_refresh.setVisible(true);
+				}
 				// Error unknown
 				Toast.makeText(
 						context,
@@ -759,7 +808,17 @@ public class MainActivity extends FragmentActivity implements
 						Toast.LENGTH_SHORT).show();
 				signInButton.setVisibility(View.VISIBLE);
 			} else if (response.equals("INVALID_LOGIN")) {
-				dialog.dismiss();
+				if (showDialog) {
+					dialog.dismiss();
+				} else {
+					setProgressBarIndeterminateVisibility(false);
+
+				}
+
+				if (menu != null) {
+					MenuItem item_refresh = menu.findItem(R.id.action_refresh);
+					item_refresh.setVisible(true);
+				}
 				// Wrong credentials sent
 				Toast.makeText(
 						context,
@@ -777,8 +836,19 @@ public class MainActivity extends FragmentActivity implements
 				PrettyTime p = new PrettyTime();
 				lastUpdatedText.setText("Updated "
 						+ p.format(new Date(System.currentTimeMillis() - 10)));
+				lastUpdatedText.setTextColor(Color.BLACK);
 				saver.saveCourses(courses, currentUsername, currentId);
-				dialog.dismiss();
+				if (showDialog) {
+					dialog.dismiss();
+				} else {
+
+					setProgressBarIndeterminateVisibility(false);
+				}
+
+				if (menu != null) {
+					MenuItem item_refresh = menu.findItem(R.id.action_refresh);
+					item_refresh.setVisible(true);
+				}
 			} else {
 				settingsManager.addStudent(username, password, id, school);
 				restartActivity();
@@ -788,10 +858,21 @@ public class MainActivity extends FragmentActivity implements
 
 		protected void onPreExecute() {
 			super.onPreExecute();
-			dialog = new ProgressDialog(context);
-			dialog.setCancelable(false);
-			dialog.setMessage("Loading Grades...");
-			dialog.show();
+			if (showDialog) {
+				dialog = new ProgressDialog(context);
+				dialog.setCancelable(false);
+				dialog.setMessage("Loading Grades...");
+				dialog.show();
+			} else {
+				if (menu != null) {
+					MenuItem item_refresh = menu.findItem(R.id.action_refresh);
+					item_refresh.setVisible(false);
+				} else {
+					Log.d("menumenu", "null");
+				}
+				setProgressBarIndeterminateVisibility(true);
+
+			}
 		}
 
 		public String scrape(final String username, final String password,

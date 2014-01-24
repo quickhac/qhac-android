@@ -14,14 +14,42 @@
     </FrameLayout>
     <!-- The navigation drawer -->
 
-    <ListView
-        android:id="@+id/left_drawer"
+    <LinearLayout
+        android:id="@+id/menu"
         android:layout_width="240dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="#FFFFFF"
-        android:choiceMode="singleChoice"
-        android:divider="#C0C0C0"
-        android:dividerHeight="1px" />
+        android:orientation="vertical" >
+
+        <!--
+       <TextView
+            style="?android:attr/textAppearanceMedium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+           	android:paddingLeft="10dp"
+            android:text="@string/currentStudent"
+            android:textColor="#8C8C8C" />
+
+
+        -->
+
+        <Spinner
+            android:id="@+id/spinner_student"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_gravity="start"
+            android:textColor="#8C8C8C"
+            android:textSize="18sp" />
+
+        <ListView
+            android:id="@+id/left_drawer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:choiceMode="singleChoice"
+            android:divider="#C0C0C0"
+            android:dividerHeight="1px" />
+    </LinearLayout>
 
 </android.support.v4.widget.DrawerLayout>

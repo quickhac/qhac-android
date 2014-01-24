@@ -36,9 +36,11 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -64,7 +66,8 @@ import com.quickhac.common.http.ASPNETPageState;
 import com.quickhac.common.http.XHR;
 import com.quickhac.common.util.Numeric;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends FragmentActivity implements
+		OnItemSelectedListener {
 
 	public static Course[] courses;
 	static ArrayList<ArrayList<ClassGrades>> classGradesList;
@@ -92,6 +95,19 @@ public class MainActivity extends FragmentActivity {
 	SettingsManager settingsManager;
 	CourseSaver saver;
 
+	LinearLayout drawer;
+	Spinner studentSpinner;
+
+	String currentUsername;
+	String currentId;
+	String currentDistrict;
+	String[] studentList;
+	int addStudentIndex;
+	// Counter so that we don't fire off onItemSelected when spinner is
+	// initialized
+	int initializationSpinnerCounter;
+	int currentStudentSelectedPosition;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -102,6 +118,9 @@ public class MainActivity extends FragmentActivity {
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
 		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
+		studentSpinner = (Spinner) findViewById(R.id.spinner_student);
+		drawer = (LinearLayout) findViewById(R.id.menu);
+		initializationSpinnerCounter = 0;
 		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
 		saver = new CourseSaver(this);
 		makeDrawer();
@@ -121,13 +140,16 @@ public class MainActivity extends FragmentActivity {
 			restartActivity();
 			break;
 		case (R.id.action_signout):
-			settingsManager.eraseLoginInfo();
+			settingsManager.removeStudent(currentUsername, currentId);
 			restartActivity();
 			break;
 		case (R.id.action_about):
 			AboutDialog about = new AboutDialog(this);
 			about.setTitle("QuickHAC for Android");
 			about.show();
+			break;
+		case R.id.action_addStudent:
+			startLogin();
 			break;
 		case (R.id.action_settings):
 			Intent intent = new Intent(this, SettingsActivity.class);
@@ -162,7 +184,7 @@ public class MainActivity extends FragmentActivity {
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		// If the nav drawer is open, hide action items related to the content
 		// view
-		boolean drawerOpen = drawerLayout.isDrawerOpen(drawerList);
+		boolean drawerOpen = drawerLayout.isDrawerOpen(drawer);
 		return super.onPrepareOptionsMenu(menu);
 	}
 
@@ -187,46 +209,94 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	public void startDisplayingGrades() {
-		Course[] savedCourses;
-		savedCourses = saver.getSavedCourses();
-		String[] credentials = settingsManager.getLoginInfo();
-		if (credentials[0].length() > 0 && credentials[1].length() > 0
-				&& credentials[2].length() > 0 && credentials[3].length() > 0) {
-			if (isNetworkAvailable()) {
-				new ScrapeTask(this).execute(new String[] { credentials[0],
-						credentials[1], credentials[2], credentials[3] });
-			} else if (!isNetworkAvailable() && savedCourses != null) {
-				courses = savedCourses;
-				long lastUpdateMillis = saver.getLastUpdated();
-				String toDisplay = "Updated ";
-				PrettyTime p = new PrettyTime();
-				toDisplay += p.format(new Date(lastUpdateMillis));
-				lastUpdatedText.setText(toDisplay);
-				Toast.makeText(
-						this,
-						"No internet connection detected. Displaying saved grades.",
-						Toast.LENGTH_SHORT).show();
-				// Set up the classGradesList with unintialized
-				// class grades
-				for (int i = 0; i < courses.length; i++) {
-					classGradesList.add(null);
-				}
-				setupActionBar();
-				makeCourseCards(false);
-			} else {
-				Toast.makeText(
-						this,
-						"You must be connected to the internet to load grades for the first time.",
-						Toast.LENGTH_SHORT).show();
-			}
-			signInButton.setVisibility(View.GONE);
+		String selectedStudent = settingsManager.getSelectedStudent();
+		String[] students = settingsManager.getStudentList();
+		if (students != null) {
+			studentList = students;
 		} else {
-			/*
-			 * Prompt for login and set the login button as visible.
-			 */
+			studentList = new String[0];
+		}
+		if (selectedStudent != null) {
+			// We have a student to load
+			String[] credentials = settingsManager
+					.getLoginInfo(selectedStudent);
+			if (credentials[0] != null && credentials[1] != null
+					&& credentials[2] != null && credentials[3] != null) {
+				// Valid login info
+				currentUsername = credentials[0];
+				currentId = credentials[2];
+				currentDistrict = credentials[3];
+				if (isNetworkAvailable()) {
+					// We have internet, load grades
+					new ScrapeTask(this).execute(new String[] { credentials[0],
+							credentials[1], credentials[2], credentials[3] });
+				} else {
+					// No internet, try getting saved courses
+					Course[] savedCourses = saver.getSavedCourses(
+							credentials[0], credentials[2]);
+					if (savedCourses != null) {
+						// We have saved courses
+						handleOfflineCourses(savedCourses);
+					} else {
+						// No saved courses
+						Toast.makeText(
+								this,
+								"You must be connected to the internet to load grades for the first time.",
+								Toast.LENGTH_SHORT).show();
+					}
+				}
+			} else {
+				// Invalid login info, just delete the student
+				settingsManager.removeStudent(selectedStudent.split("%")[0],
+						selectedStudent.split("%")[1]);
+				restartActivity();
+			}
+		} else {
+			currentUsername = "";
+			currentId = "";
+			currentDistrict = "";
 			signInButton.setVisibility(View.VISIBLE);
 			startLogin();
 		}
+		makeStudentSpinner();
+	}
+
+	public void makeStudentSpinner() {
+		String[] students = new String[studentList.length + 1];
+		for (int i = 0; i < studentList.length; i++) {
+			if (studentList[i].equals(currentUsername + "%" + currentId)) {
+				currentStudentSelectedPosition = i;
+			}
+			students[i] = studentList[i].replace("%", " - ");
+		}
+		students[students.length - 1] = "Add student...";
+		addStudentIndex = students.length - 1;
+		ArrayAdapter<String> adp = new ArrayAdapter<String>(this,
+				R.layout.spinner_item, students);
+		studentSpinner.setAdapter(adp);
+		studentSpinner.setOnItemSelectedListener(this);
+		initializationSpinnerCounter = 0;
+		studentSpinner.setSelection(currentStudentSelectedPosition);
+	}
+
+	public void handleOfflineCourses(Course[] savedCourses) {
+		courses = savedCourses;
+		long lastUpdateMillis = saver
+				.getLastUpdated(currentUsername, currentId);
+		String toDisplay = "Updated ";
+		PrettyTime p = new PrettyTime();
+		toDisplay += p.format(new Date(lastUpdateMillis));
+		lastUpdatedText.setText(toDisplay);
+		Toast.makeText(this,
+				"No internet connection detected. Displaying saved grades.",
+				Toast.LENGTH_SHORT).show();
+		// Set up the classGradesList with unintialized
+		// class grades
+		for (int i = 0; i < courses.length; i++) {
+			classGradesList.add(null);
+		}
+		setupActionBar();
+		makeCourseCards(false);
 	}
 
 	/*
@@ -282,7 +352,7 @@ public class MainActivity extends FragmentActivity {
 											.toString().equals("RRISD")) {
 										distr = "RoundRock";
 									}
-									settingsManager.saveLoginInfo(userName
+									settingsManager.addStudent(userName
 											.getText().toString(), password
 											.getText().toString(), studentId
 											.getText().toString(), distr);
@@ -298,6 +368,9 @@ public class MainActivity extends FragmentActivity {
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
 									int whichButton) {
+								initializationSpinnerCounter = 0;
+								studentSpinner
+										.setSelection(currentStudentSelectedPosition);
 							}
 						}).setMessage("Use your GradeSpeed credentials.");
 		alert.show();
@@ -472,21 +545,24 @@ public class MainActivity extends FragmentActivity {
 			double weightedGPA = 0;
 			double unweightedGPA = 0;
 			unweightedGPA = GPACalc.unweighted(toCalculate);
-			if (new SettingsManager(this).getLoginInfo()[3].equals("Austin")) {
+			if (currentDistrict.equals("Austin")) {
 				weightedGPA = GPACalc.weighted(toCalculate, weightedClasses,
 						gradeSpeedDistrict.weightedGPABoost());
-			} else if (new SettingsManager(this).getLoginInfo()[3]
-					.equals("RoundRock")) {
+			} else if (currentDistrict.equals("RoundRock")) {
 				weightedGPA = GPACalc.weighted(toCalculate, weightedClasses,
 						gradeSpeedDistrict.weightedGPABoost());
 			}
-			saver.saveUnweightedGPA(unweightedGPA);
-			saver.saveWeightedGPA(weightedGPA);
+			saver.saveUnweightedGPA(unweightedGPA, currentUsername, currentId);
+			saver.saveWeightedGPA(weightedGPA, currentUsername, currentId);
 			return new double[] { Numeric.round(unweightedGPA, 4),
 					Numeric.round(weightedGPA, 4) };
 		} else {
-			return new double[] { Numeric.round(saver.getUnweightedGPA(), 4),
-					Numeric.round(saver.getWeightedGPA(), 4) };
+			return new double[] {
+					Numeric.round(
+							saver.getUnweightedGPA(currentUsername, currentId),
+							4),
+					Numeric.round(
+							saver.getWeightedGPA(currentUsername, currentId), 4) };
 		}
 	}
 
@@ -564,7 +640,7 @@ public class MainActivity extends FragmentActivity {
 			// drawer
 			drawerList.setItemChecked(position, true);
 			setTitle("Overview");
-			drawerLayout.closeDrawer(drawerList);
+			drawerLayout.closeDrawer(drawer);
 		} else {
 			// Highlight the selected item, update the title, and close the
 			// drawer
@@ -572,8 +648,8 @@ public class MainActivity extends FragmentActivity {
 			setTitle(courses[position - 1].title);
 			// Check if we already have info, otherwise load the course info
 			if (classGradesList.get(position - 1) == null) {
-				drawerLayout.closeDrawer(drawerList);
-				loadCourseInfo(position - 1, settingsManager.getLoginInfo()[3]);
+				drawerLayout.closeDrawer(drawer);
+				loadCourseInfo(position - 1, currentDistrict);
 			} else {
 				createFragment(position - 1);
 			}
@@ -586,7 +662,7 @@ public class MainActivity extends FragmentActivity {
 		drawerHandler.postDelayed(new Runnable() {
 			@Override
 			public void run() {
-				drawerLayout.closeDrawer(drawerList);
+				drawerLayout.closeDrawer(drawer);
 			}
 		}, 150);
 
@@ -681,14 +757,10 @@ public class MainActivity extends FragmentActivity {
 				PrettyTime p = new PrettyTime();
 				lastUpdatedText.setText("Updated "
 						+ p.format(new Date(System.currentTimeMillis() - 10)));
-				saveCourseInfo();
+				saver.saveCourses(courses, currentUsername, currentId);
 				dialog.dismiss();
 			}
 
-		}
-
-		public void saveCourseInfo() {
-			new CourseSaver(context).saveCourses(courses);
 		}
 
 		protected void onPreExecute() {
@@ -759,6 +831,7 @@ public class MainActivity extends FragmentActivity {
 
 				@Override
 				public void onDoesNotRequireDisambiguation(String response) {
+					setStatus("SUCCESS");
 					retriever.getAverages(getAveragesHandler);
 				}
 			};
@@ -814,15 +887,6 @@ public class MainActivity extends FragmentActivity {
 			dialog.show();
 		}
 
-		/*
-		 * Scrapes AISD for a cycle info.
-		 * 
-		 * @param The course to scrape for
-		 * 
-		 * @param The HttpClient.
-		 * 
-		 * @return The HTML of AISD scrape with specific cycle info.
-		 */
 		public String scrape(int c) {
 			Course course = courses[c];
 			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
@@ -853,7 +917,6 @@ public class MainActivity extends FragmentActivity {
 
 								@Override
 								public void onFailure(Exception e) {
-									// TODO Auto-generated method stub
 
 								}
 
@@ -891,7 +954,6 @@ public class MainActivity extends FragmentActivity {
 
 		@Override
 		public void onViewCreated(View view, Bundle savedInstanceState) {
-			// TODO Auto-generated method stub
 			super.onViewCreated(view, savedInstanceState);
 			Bundle args = getArguments();
 			index = args.getInt(INDEX);
@@ -1001,7 +1063,6 @@ public class MainActivity extends FragmentActivity {
 
 			@Override
 			public void onViewCreated(View view, Bundle savedInstanceState) {
-				// TODO Auto-generated method stub
 				super.onViewCreated(view, savedInstanceState);
 				Bundle args = getArguments();
 				type = args.getInt(TYPE);
@@ -1084,7 +1145,6 @@ public class MainActivity extends FragmentActivity {
 
 			@Override
 			public void onViewCreated(View view, Bundle savedInstanceState) {
-				// TODO Auto-generated method stub
 				super.onViewCreated(view, savedInstanceState);
 				Bundle args = getArguments();
 				courseIndex = args.getInt(INDEX_COURSE);
@@ -1236,6 +1296,28 @@ public class MainActivity extends FragmentActivity {
 		NetworkInfo activeNetworkInfo = connectivityManager
 				.getActiveNetworkInfo();
 		return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+	}
+
+	@Override
+	public void onItemSelected(AdapterView<?> parentView,
+			View selectedItemView, int position, long id) {
+		if (initializationSpinnerCounter > 0) {
+			if (position == addStudentIndex) {
+				drawerLayout.closeDrawer(drawer);
+				startLogin();
+			} else {
+				settingsManager.saveSelectedStudent(
+						studentList[position].split("%")[0],
+						studentList[position].split("%")[1]);
+				restartActivity();
+			}
+		}
+		initializationSpinnerCounter++;
+	}
+
+	@Override
+	public void onNothingSelected(AdapterView<?> arg0) {
+
 	}
 
 }

@@ -35,5 +35,6 @@
 	<string name="pref_showGPA_summ">Display GPA on overview page</string>
 	<string name="pref_chooseWeighted">Choose weighted classes</string>
 	<string name="pref_chooseExcluded">Choose excluded classes</string>
+	<string name="action_addStudent">Add student</string>
     
 </resources>

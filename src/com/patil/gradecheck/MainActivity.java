@@ -446,8 +446,8 @@ public class MainActivity extends FragmentActivity implements
 				boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
 				if (gpaPref) {
 					double[] gpa = getGPA(online);
-					String description = String.valueOf(gpa[0]) + " | "
-							+ String.valueOf(gpa[1]) + " (weighted)";
+					String description = String.valueOf(gpa[0]) + " / "
+							+ String.valueOf(gpa[1]);
 					Card GPACard = new NoGradesCard("GPA", description,
 							"#787878", "#787878", false, false);
 					cardView.addCard(GPACard);

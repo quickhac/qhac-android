@@ -48,7 +48,6 @@ public class ColorGenerator {
 
 	// DOESN'T WORK COMPLETELY
 	public int getHueFromHex(String hex) {
-		Log.d("colorgen", hex);
 		if (hex.equals("#FFFFFF")) {
 			return 180;
 		} else if (hex.equals("#1ABC9C")) {

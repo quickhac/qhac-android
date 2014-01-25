@@ -19,6 +19,7 @@ public class CategoryCard extends RecyclableCard {
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
 		super(title, description, color, titleColor, hasOverflow, isClickable);
 	}
+	
 
 	@Override
 	protected void applyTo(View convertView) {

@@ -166,23 +166,30 @@ public class MainActivity extends FragmentActivity implements
 
 		return super.onOptionsItemSelected(item);
 	}
-	
+
 	public void showSignOutDialog() {
-		AlertDialog dialog = new AlertDialog.Builder(this).setTitle("Sign out").setMessage("Are you sure you want to sign out?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-			
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				settingsManager.removeStudent(currentUsername, currentId);
-				dialog.dismiss();
-				restartActivity();
-			}
-		}).setNegativeButton("No", new DialogInterface.OnClickListener() {
-			
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				dialog.dismiss();
-			}
-		}).create();
+		AlertDialog dialog = new AlertDialog.Builder(this)
+				.setTitle("Sign out")
+				.setMessage("Are you sure you want to sign out?")
+				.setPositiveButton("Yes",
+						new DialogInterface.OnClickListener() {
+
+							@Override
+							public void onClick(DialogInterface dialog,
+									int which) {
+								settingsManager.removeStudent(currentUsername,
+										currentId);
+								dialog.dismiss();
+								restartActivity();
+							}
+						})
+				.setNegativeButton("No", new DialogInterface.OnClickListener() {
+
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.dismiss();
+					}
+				}).create();
 		dialog.show();
 	}
 
@@ -570,7 +577,6 @@ public class MainActivity extends FragmentActivity implements
 								+ secondSemesterCycles.length + 3] = "-";
 					}
 					String color = colorGenerator.getCardColor(k);
-					Log.d("colorgen", "The color:" + color);
 					final Card courseCard = new CourseCard(course.title, "",
 							color, "#787878", false, true);
 					courseCard.setData(cycleData);

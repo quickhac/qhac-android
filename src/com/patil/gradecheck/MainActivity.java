@@ -1204,8 +1204,13 @@ public class MainActivity extends FragmentActivity implements
 									Double av = GradeCalc
 											.categoryAverage(category.assignments);
 									if (av != null) {
-										average = String.valueOf(Numeric.round(
-												av, 2));
+										av = Numeric.round(av, 2);
+										double aver = Numeric.round(av, 2);
+										if((int)aver == aver) {
+										average = String.valueOf((int)aver);
+										} else {
+											average = String.valueOf(aver);
+										}
 									} else {
 										average = "-";
 									}

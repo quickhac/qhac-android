@@ -148,8 +148,7 @@ public class MainActivity extends FragmentActivity implements
 			restartActivity();
 			break;
 		case (R.id.action_signout):
-			settingsManager.removeStudent(currentUsername, currentId);
-			restartActivity();
+			showSignOutDialog();
 			break;
 		case (R.id.action_about):
 			AboutDialog about = new AboutDialog(this);
@@ -166,6 +165,25 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		return super.onOptionsItemSelected(item);
+	}
+	
+	public void showSignOutDialog() {
+		AlertDialog dialog = new AlertDialog.Builder(this).setTitle("Sign out").setMessage("Are you sure you want to sign out?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+			
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				settingsManager.removeStudent(currentUsername, currentId);
+				dialog.dismiss();
+				restartActivity();
+			}
+		}).setNegativeButton("No", new DialogInterface.OnClickListener() {
+			
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				dialog.dismiss();
+			}
+		}).create();
+		dialog.show();
 	}
 
 	@Override

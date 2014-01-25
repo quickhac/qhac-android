@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
@@ -49,6 +50,10 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.espian.showcaseview.ShowcaseView;
+import com.espian.showcaseview.targets.ActionViewTarget;
+import com.espian.showcaseview.targets.ActionViewTarget.Type;
+import com.espian.showcaseview.targets.ViewTarget;
 import com.fima.cardsui.objects.Card;
 import com.fima.cardsui.views.CardUI;
 import com.quickhac.common.GPACalc;
@@ -188,6 +193,21 @@ public class MainActivity extends FragmentActivity implements
 		// If the nav drawer is open, hide action items related to the content
 		// view
 		boolean drawerOpen = drawerLayout.isDrawerOpen(drawer);
+		if (drawerOpen) {
+			if (isFirstDrawer()) {
+				if (studentList != null) {
+					if (studentList.length > 0) {
+						ActionViewTarget target = new ActionViewTarget(this,
+								ActionViewTarget.Type.HOME);
+						ShowcaseView sv = ShowcaseView.insertShowcaseView(
+								target, this, R.string.showcase_student,
+								R.string.showcase_student_description);
+						sv.setShowcaseIndicatorScale(1.75f);
+						setFirstDrawer(false);
+					}
+				}
+			}
+		}
 		return super.onPrepareOptionsMenu(menu);
 	}
 
@@ -198,6 +218,18 @@ public class MainActivity extends FragmentActivity implements
 		if (!alreadyLoadedGrades) {
 			startDisplayingGrades();
 			alreadyLoadedGrades = true;
+		}
+		if (isFirstOverview()) {
+			if (studentList != null) {
+				if (studentList.length > 0) {
+					ActionViewTarget target = new ActionViewTarget(this,
+							ActionViewTarget.Type.TITLE);
+					ShowcaseView sv = ShowcaseView.insertShowcaseView(target,
+							this, R.string.showcase_navigation,
+							R.string.showcase_navigation_description);
+					setFirstOverview(false);
+				}
+			}
 		}
 		return true;
 	}
@@ -1153,9 +1185,40 @@ public class MainActivity extends FragmentActivity implements
 			} else {
 				Toast.makeText(
 						getView().getContext(),
-						"Something went wrong with creating the fragment. Make sure you're still connected to the internet.",
+						"Something went wrong with creating the cycles. Make sure you're still connected to the internet.",
 						Toast.LENGTH_SHORT).show();
 			}
+
+			if (isFirstCycle()) {
+				ShowcaseView sv = ShowcaseView.insertShowcaseViewWithType(
+						ShowcaseView.ITEM_ACTION_ITEM, R.id.action_nextCycle,
+						getActivity(), R.string.showcase_cycle,
+						R.string.showcase_cycle_description,
+						new ShowcaseView.ConfigOptions());
+				setFirstCycle(false);
+			}
+		}
+
+		/*
+		 * Helper method to say if it's the first time the cycle screen is
+		 * loaded.
+		 */
+		public boolean isFirstCycle() {
+			SharedPreferences prefs = PreferenceManager
+					.getDefaultSharedPreferences(getView().getContext());
+			boolean firstLaunch = prefs.getBoolean("firstCycle", true);
+			return firstLaunch;
+		}
+
+		/*
+		 * Helper method to set the value of first cycle screen load.
+		 */
+		public void setFirstCycle(boolean first) {
+			SharedPreferences prefs = PreferenceManager
+					.getDefaultSharedPreferences(getView().getContext());
+			Editor edit = prefs.edit();
+			edit.putBoolean("firstCycle", first);
+			edit.commit();
 		}
 
 		public class CollectionPagerAdapter extends FragmentStatePagerAdapter {
@@ -1222,7 +1285,6 @@ public class MainActivity extends FragmentActivity implements
 				Bundle args = getArguments();
 				courseIndex = args.getInt(INDEX_COURSE);
 				cycleIndex = args.getInt(INDEX_CYCLE);
-				final ClassFragment fragment = (ClassFragment) getParentFragment();
 				title = (TextView) getView().findViewById(R.id.title_text);
 				Course course = courses[courseIndex];
 				String titleText = "";
@@ -1371,6 +1433,49 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public void onNothingSelected(AdapterView<?> arg0) {
 
+	}
+
+	/*
+	 * Helper method to say if it's the first time the overview screen is
+	 * loaded.
+	 */
+	public boolean isFirstOverview() {
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		boolean firstLaunch = prefs.getBoolean("firstOverview", true);
+		return firstLaunch;
+	}
+
+	/*
+	 * Helper method to set the value of first overview screen load.
+	 */
+	public void setFirstOverview(boolean first) {
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		Editor edit = prefs.edit();
+		edit.putBoolean("firstOverview", first);
+		edit.commit();
+	}
+
+	/*
+	 * Helper method to say if it's the first time the drawer is open.
+	 */
+	public boolean isFirstDrawer() {
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		boolean firstLaunch = prefs.getBoolean("firstDrawer", true);
+		return firstLaunch;
+	}
+
+	/*
+	 * Helper method to set the value of first drawer open.
+	 */
+	public void setFirstDrawer(boolean first) {
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		Editor edit = prefs.edit();
+		edit.putBoolean("firstDrawer", first);
+		edit.commit();
 	}
 
 }

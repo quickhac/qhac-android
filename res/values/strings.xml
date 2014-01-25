@@ -39,6 +39,12 @@
     <string name="action_jumpCycle">Go to cycle</string>
     <string name="action_cycleright">Next cycle</string>
     <string name="action_cycleleft">Previous cycle</string>
+    <string name="showcase_navigation">See Your Classes</string>
+    <string name="showcase_navigation_description">Tap or swipe from the left edge to see all your classes.</string>
+    <string name="showcase_student">View Students</string>
+    <string name="showcase_student_description">You can add students and switch between them.</string>
+    <string name="showcase_cycle">Switch Between Cycles</string>
+    <string name="showcase_cycle_description">Use the buttons or swipe left and right to switch between cycles.</string>
     <string name="left_sign">&lt;</string>
     <string name="right_sign">&gt;</string>
     <string name="white">#FFFFFF</string>

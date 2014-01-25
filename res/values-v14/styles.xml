@@ -8,5 +8,9 @@
     <style name="AppBaseTheme" parent="android:Theme.Holo.Light">
         <!-- API 14 theme customizations can go here. -->
     </style>
+    
+    <style name="CustomAppTheme" parent="android:Theme.Holo.Light">
+    <item name="showcaseViewStyle">@style/CustomShowcaseTheme</item>
+</style>
 
 </resources>

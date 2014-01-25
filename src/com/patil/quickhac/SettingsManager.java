@@ -1,4 +1,4 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import java.util.Arrays;
 import java.util.HashSet;

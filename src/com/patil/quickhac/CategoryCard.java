@@ -1,4 +1,4 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import android.graphics.Color;
 import android.view.Gravity;
@@ -10,6 +10,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.fima.cardsui.objects.RecyclableCard;
+import com.patil.quickhac.R;
 import com.quickhac.common.data.Assignment;
 import com.quickhac.common.data.Category;
 
@@ -19,7 +20,6 @@ public class CategoryCard extends RecyclableCard {
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
 		super(title, description, color, titleColor, hasOverflow, isClickable);
 	}
-	
 
 	@Override
 	protected void applyTo(View convertView) {

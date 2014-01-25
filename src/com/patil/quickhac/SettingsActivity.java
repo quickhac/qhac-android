@@ -1,5 +1,6 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
+import com.patil.quickhac.R;
 import com.quickhac.common.data.Course;
 
 import android.os.Bundle;

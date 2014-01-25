@@ -1,6 +1,7 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import com.fima.cardsui.objects.RecyclableCard;
+import com.patil.quickhac.R;
 
 import android.graphics.Color;
 import android.view.View;

@@ -1,4 +1,4 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import java.io.IOException;
 import java.net.Socket;

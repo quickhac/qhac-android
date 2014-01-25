@@ -1,4 +1,4 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -13,6 +13,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.fima.cardsui.objects.RecyclableCard;
+import com.patil.quickhac.R;
 
 public class CourseCard extends RecyclableCard {
 

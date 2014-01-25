@@ -1,7 +1,8 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import android.content.Context;
 import android.util.Log;
+import com.patil.quickhac.R;
 
 public class ColorGenerator {
 	/*

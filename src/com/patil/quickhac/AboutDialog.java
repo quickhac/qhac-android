@@ -1,4 +1,4 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,6 +11,7 @@ import android.text.Html;
 import android.text.util.Linkify;
 import android.graphics.Color;
 import android.widget.TextView;
+import com.patil.quickhac.R;
 
 public class AboutDialog extends Dialog {
 	private Context context;

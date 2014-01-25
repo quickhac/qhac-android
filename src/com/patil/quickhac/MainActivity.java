@@ -1,4 +1,4 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -56,6 +56,7 @@ import com.espian.showcaseview.targets.ActionViewTarget.Type;
 import com.espian.showcaseview.targets.ViewTarget;
 import com.fima.cardsui.objects.Card;
 import com.fima.cardsui.views.CardUI;
+import com.patil.quickhac.R;
 import com.quickhac.common.GPACalc;
 import com.quickhac.common.GradeCalc;
 import com.quickhac.common.GradeParser;

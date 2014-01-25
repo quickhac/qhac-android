@@ -1,4 +1,4 @@
-package com.patil.gradecheck;
+package com.patil.quickhac;
 
 import android.content.Context;
 import android.content.SharedPreferences;

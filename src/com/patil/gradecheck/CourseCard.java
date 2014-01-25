@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.Gravity;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TableLayout;
@@ -18,10 +19,14 @@ public class CourseCard extends RecyclableCard {
 	TableLayout gradeTable;
 	TextView titleView;
 	ImageView stripe;
+	
+	// Array of buttons to take to each cycle
+	public TextView[] cycleButtons;
 
 	public CourseCard(String title, String description, String color,
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
 		super(title, description, color, titleColor, hasOverflow, isClickable);
+		cycleButtons = new TextView[6];
 	}
 
 	public String getCardTitle() {
@@ -62,6 +67,18 @@ public class CourseCard extends RecyclableCard {
 			text.setTypeface(sansSerifLight);
 			text.setTextSize(24);
 			text.setGravity(Gravity.CENTER);
+			text.setClickable(false);
+			if(i < 3) {
+				cycleButtons[i] = text; 
+			}
+			text.setOnClickListener(new OnClickListener() {
+
+				@Override
+				public void onClick(View arg0) {
+					
+				}
+				
+			});
 			row1.addView(text);
 
 			// now do second semester
@@ -77,7 +94,10 @@ public class CourseCard extends RecyclableCard {
 			text2.setTextSize(24);
 			text2.setTypeface(sansSerifLight);
 			text2.setGravity(Gravity.CENTER);
-			text2.setClickable(true);
+			text2.setClickable(false);
+			if(i < 3) {
+				cycleButtons[i + 3] = text; 
+			}
 			row2.addView(text2);
 		}
 

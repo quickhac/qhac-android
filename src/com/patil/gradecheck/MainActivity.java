@@ -33,6 +33,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -54,7 +55,6 @@ import com.quickhac.common.GPACalc;
 import com.quickhac.common.GradeCalc;
 import com.quickhac.common.GradeParser;
 import com.quickhac.common.GradeRetriever;
-import com.quickhac.common.data.Assignment;
 import com.quickhac.common.data.Category;
 import com.quickhac.common.data.ClassGrades;
 import com.quickhac.common.data.Course;
@@ -686,7 +686,7 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	/** Swaps fragments in the main content view */
-	private void selectItem(int position) {
+	public void selectItem(int position) {
 		lastPosition = position;
 		drawerList.setItemChecked(position, true);
 		if (position == 0) {
@@ -1060,6 +1060,58 @@ public class MainActivity extends FragmentActivity implements
 			return inflater.inflate(R.layout.fragment_class, container, false);
 		}
 
+		@Override
+		public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+			inflater.inflate(R.menu.fragment_class, menu);
+
+		}
+
+		@Override
+		public boolean onOptionsItemSelected(MenuItem item) {
+			MainActivity activity = (MainActivity) getActivity();
+			// Pass the event to ActionBarDrawerToggle, if it returns
+			// true, then it has handled the app icon touch event
+			if (activity.drawerToggle.onOptionsItemSelected(item)) {
+				return true;
+			}
+			switch (item.getItemId()) {
+			case R.id.action_jumpCycle:
+				showJumpCycleDialog();
+				break;
+			}
+
+			return super.onOptionsItemSelected(item);
+		}
+
+		public void showJumpCycleDialog() {
+
+			AlertDialog.Builder builderSingle = new AlertDialog.Builder(
+					getView().getContext());
+			builderSingle.setTitle("Jump to cycle");
+			String[] items = new String[6];
+			for (int i = 0; i < 6; i++) {
+				items[i] = ("Cycle " + String.valueOf(i + 1));
+			}
+			builderSingle.setNegativeButton("Cancel",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+						}
+					});
+			builderSingle.setItems(items,
+					new DialogInterface.OnClickListener() {
+
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							viewPager.setCurrentItem(which);
+							dialog.dismiss();
+						}
+					});
+
+			builderSingle.show();
+		}
+
 		public ViewPager getViewPager() {
 			return viewPager;
 		}
@@ -1067,6 +1119,7 @@ public class MainActivity extends FragmentActivity implements
 		@Override
 		public void onViewCreated(View view, Bundle savedInstanceState) {
 			super.onViewCreated(view, savedInstanceState);
+			setHasOptionsMenu(true);
 			Bundle args = getArguments();
 			index = args.getInt(INDEX);
 
@@ -1206,8 +1259,9 @@ public class MainActivity extends FragmentActivity implements
 									if (av != null) {
 										av = Numeric.round(av, 2);
 										double aver = Numeric.round(av, 2);
-										if((int)aver == aver) {
-										average = String.valueOf((int)aver);
+										if ((int) aver == aver) {
+											average = String
+													.valueOf((int) aver);
 										} else {
 											average = String.valueOf(aver);
 										}

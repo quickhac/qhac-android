@@ -8,8 +8,6 @@ import java.util.Set;
 import org.jsoup.Jsoup;
 import org.ocpsoft.prettytime.PrettyTime;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
 import android.app.ProgressDialog;
@@ -39,7 +37,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
@@ -519,6 +516,7 @@ public class MainActivity extends FragmentActivity implements
 								+ secondSemesterCycles.length + 3] = "-";
 					}
 					String color = colorGenerator.getCardColor(k);
+					Log.d("colorgen", "The color:" + color);
 					final Card courseCard = new CourseCard(course.title, "",
 							color, "#787878", false, true);
 					courseCard.setData(cycleData);
@@ -527,7 +525,6 @@ public class MainActivity extends FragmentActivity implements
 
 						@Override
 						public void onClick(View v) {
-
 							// Find appropriate position
 							int pos = 0;
 							for (int e = 0; e < courses.length; e++) {
@@ -1240,7 +1237,6 @@ public class MainActivity extends FragmentActivity implements
 								}
 								ColorGenerator gen = new ColorGenerator(getActivity());
 								String color = gen.getCardColor(i);
-
 								CategoryCard card = new CategoryCard(title,
 										desc, color, "#787878", false, false);
 								cardUI.addCard(card);

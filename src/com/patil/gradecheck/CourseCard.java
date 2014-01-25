@@ -55,7 +55,7 @@ public class CourseCard extends RecyclableCard {
 			text.setText(data[i]);
 			if (!data[i].equals("-")) {
 				int[] values = generator.getGradeColor(Integer
-						.parseInt(data[i]));
+						.parseInt(data[i]), color);
 				text.setBackgroundColor(Color.rgb(values[0], values[1],
 						values[2]));
 			}
@@ -70,7 +70,7 @@ public class CourseCard extends RecyclableCard {
 			if (!data[i + 5].equals("-")) {
 
 				int[] values = generator.getGradeColor(Integer
-						.parseInt(data[i + 5]));
+						.parseInt(data[i + 5]), color);
 				text2.setBackgroundColor(Color.rgb(values[0], values[1],
 						values[2]));
 			}

@@ -36,5 +36,27 @@
 	<string name="pref_chooseWeighted">Choose weighted classes</string>
 	<string name="pref_chooseExcluded">Choose excluded classes</string>
 	<string name="action_addStudent">Add student</string>
+	
+	    <string name="white">#FFFFFF</string>
+    <string name="turquoise">#1ABC9C</string>
+    <string name="green_sea">#16A085</string>
+    <string name="emerald">#2ECC71</string>
+    <string name="nephritis">#27AE60</string>
+    <string name="petermann_river">#3498DB</string>
+    <string name="belize_hole">#2980B9</string>
+    <string name="amethyst">#9B59B6</string>
+    <string name="wisteria">#8E44AD</string>
+    <string name="wet_asphalt">#34495E</string>
+    <string name="midnight_blue">#2C3E50</string>
+    <string name="sun_flower">#F1C40F</string>
+    <string name="orange">#F39C12</string>
+    <string name="carrot">#E67E22</string>
+    <string name="pumpkin">#D35400</string>
+    <string name="alizarin">#E74C3C</string>
+    <string name="pomegranate">#C0392B</string>
+    <string name="clouds">#ECF0F1</string>
+    <string name="silver">#BDC3C7</string>
+    <string name="concrete">#95A5A6</string>
+    <string name="asbestos">#7F8C8D</string>
     
 </resources>

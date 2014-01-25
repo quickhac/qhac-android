@@ -1,42 +1,48 @@
 package com.patil.gradecheck;
 
+import android.content.Context;
+
 public class ColorGenerator {
 	/*
 	 * Helper class to generate colors for cards and grades
 	 */
 
-	public ColorGenerator() {
+	Context context;
 
+	public ColorGenerator(Context context) {
+		this.context = context;
 	}
 
 	/*
 	 * Returns a color for each class.
 	 */
 	public String getCardColor(int i) {
-		String color;
+		int colorInt;
 		if (i == 0) {
-			color = "#009bce";
+			colorInt = context.getResources().getColor(R.color.petermann_river);
 		} else if (i == 1) {
-			color = "#9c34d0";
+			colorInt = context.getResources().getColor(R.color.wisteria);
 		} else if (i == 2) {
-			color = "#5f8f00";
+			colorInt = context.getResources().getColor(R.color.pomegranate);
 		} else if (i == 3) {
-			color = "#fd8700";
+			colorInt = context.getResources().getColor(R.color.carrot);
 		} else if (i == 4) {
-			color = "#d20000";
+			colorInt = context.getResources().getColor(R.color.nephritis);
 		} else if (i == 5) {
-			color = "#33b5e5";
+			colorInt = context.getResources().getColor(R.color.belize_hole);
 		} else if (i == 6) {
-			color = "#aa6fc7";
+			colorInt = context.getResources().getColor(R.color.amethyst);
 		} else if (i == 7) {
-			color = "#9fd400";
+			colorInt = context.getResources().getColor(R.color.alizarin);
 		} else if (i == 8) {
-			color = "#ffbd38";
+			colorInt = context.getResources().getColor(R.color.orange);
 		} else if (i == 9) {
-			color = "#ff5252";
+			colorInt = context.getResources().getColor(R.color.turquoise);
 		} else {
-			color = "#020202";
+			colorInt = context.getResources().getColor(R.color.midnight_blue);
 		}
+
+		String color = "#" + Integer.toHexString(colorInt);
 		return color;
 	}
 

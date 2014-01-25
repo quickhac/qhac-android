@@ -35,7 +35,7 @@ public class CourseCard extends RecyclableCard {
 		stripe = (ImageView) convertView.findViewById(R.id.stripe);
 
 
-		ColorGenerator generator = new ColorGenerator();
+		ColorGenerator generator = new ColorGenerator(convertView.getContext());
 		
 		Context context = convertView.getContext();
 		Typeface sansSerifLight = Typeface.create("sans-serif-light",

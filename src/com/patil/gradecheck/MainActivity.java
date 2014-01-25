@@ -121,7 +121,7 @@ public class MainActivity extends FragmentActivity implements
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
 		settingsManager = new SettingsManager(this);
-		colorGenerator = new ColorGenerator();
+		colorGenerator = new ColorGenerator(this);
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
 		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
@@ -1238,7 +1238,7 @@ public class MainActivity extends FragmentActivity implements
 								} else {
 									desc += "DELIMAVERAGE" + "N/A";
 								}
-								ColorGenerator gen = new ColorGenerator();
+								ColorGenerator gen = new ColorGenerator(getActivity());
 								String color = gen.getCardColor(i);
 
 								CategoryCard card = new CategoryCard(title,

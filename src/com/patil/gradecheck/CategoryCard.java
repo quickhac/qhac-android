@@ -50,9 +50,9 @@ public class CategoryCard extends RecyclableCard {
 			name.setTextSize(16);
 
 			if (columns[1].equals("-1")) {
-				grade.setText("N/A");
+				grade.setText("-");
 			} else if(columns[1].equals("-2")) {
-				grade.setText("N/A");
+				grade.setText("-");
 			} else {
 				grade.setText(columns[1]);
 			}
@@ -62,7 +62,7 @@ public class CategoryCard extends RecyclableCard {
 			if (columns[2].equals("-1")) {
 				possible.setText("100");
 			} else if (columns[2].equals("-2")) {
-				possible.setText("N/A");
+				possible.setText("-");
 			} else {
 				possible.setText(columns[2]);
 			}

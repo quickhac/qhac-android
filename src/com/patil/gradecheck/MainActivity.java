@@ -1234,10 +1234,10 @@ public class MainActivity extends FragmentActivity implements
 												+ String.valueOf(Numeric.round(
 														average, 4));
 									} else {
-										desc += "DELIMAVERAGE" + "N/A";
+										desc += "DELIMAVERAGE" + "-";
 									}
 								} else {
-									desc += "DELIMAVERAGE" + "N/A";
+									desc += "DELIMAVERAGE" + "-";
 								}
 								ColorGenerator gen = new ColorGenerator(
 										getActivity());

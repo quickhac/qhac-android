@@ -1157,6 +1157,7 @@ public class MainActivity extends FragmentActivity implements
 				Bundle args = getArguments();
 				courseIndex = args.getInt(INDEX_COURSE);
 				cycleIndex = args.getInt(INDEX_CYCLE);
+				final ClassFragment fragment = (ClassFragment) getParentFragment();
 				title = (TextView) getView().findViewById(R.id.title_text);
 				Course course = courses[courseIndex];
 				String titleText = "";
@@ -1198,52 +1199,25 @@ public class MainActivity extends FragmentActivity implements
 							String title = category.title;
 							if (category.title.length() > 0
 									&& category.assignments.length > 0) {
-								// DELIMROW separates rows, DELIMCOLUMN
-								// separates
-								// columns
-								String desc = "";
-								desc += "ASSIGNMENTDELIMCOLUMNPOINTS EARNEDDELIMCOLUMNPOINTS POSSIBLEDELIMROW";
-								for (int d = 0; d < category.assignments.length; d++) {
-									Assignment a = category.assignments[d];
-									desc += a.title + "DELIMCOLUMN";
-									double ptsEarned;
-									double ptsPossible = a.ptsPossible;
-									if (a.ptsEarned != null) {
-										ptsEarned = a.ptsEarned;
-									} else {
-										ptsEarned = -1;
-									}
-
-									if ((int) ptsEarned == ptsEarned) {
-										desc += (int) ptsEarned + "DELIMCOLUMN";
-									} else {
-										desc += ptsEarned + "DELIMCOLUMN";
-									}
-									if ((int) ptsPossible == ptsPossible) {
-										desc += (int) ptsPossible + "DELIMROW";
-									} else {
-										desc += ptsPossible + "DELIMROW";
-									}
-
-								}
+								String average;
 								if (category.assignments != null) {
-									Double average = GradeCalc
+									Double av = GradeCalc
 											.categoryAverage(category.assignments);
-									if (average != null) {
-										desc += "DELIMAVERAGE"
-												+ String.valueOf(Numeric.round(
-														average, 4));
+									if (av != null) {
+										average = String.valueOf(Numeric.round(
+												av, 2));
 									} else {
-										desc += "DELIMAVERAGE" + "-";
+										average = "-";
 									}
 								} else {
-									desc += "DELIMAVERAGE" + "-";
+									average = "-";
 								}
 								ColorGenerator gen = new ColorGenerator(
 										getActivity());
 								String color = gen.getCardColor(i);
 								CategoryCard card = new CategoryCard(title,
-										desc, color, "#787878", false, false);
+										average, color, "#787878", false, false);
+								card.setData(category);
 								cardUI.addCard(card);
 							} else if (category.assignments.length == 0) {
 								// There aren't any grades for the category, so

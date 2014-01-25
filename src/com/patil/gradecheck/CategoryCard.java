@@ -10,6 +10,8 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.fima.cardsui.objects.RecyclableCard;
+import com.quickhac.common.data.Assignment;
+import com.quickhac.common.data.Category;
 
 public class CategoryCard extends RecyclableCard {
 
@@ -25,55 +27,58 @@ public class CategoryCard extends RecyclableCard {
 		((TextView) convertView.findViewById(R.id.title)).setText(titlePlay);
 		((TextView) convertView.findViewById(R.id.title)).setTextColor(Color
 				.parseColor(titleColor));
-		((TextView) convertView.findViewById(R.id.average)).setText("Average: " + description.split("DELIMAVERAGE")[1]);
-		String[] grows = description.split("DELIMAVERAGE");
-		String[] rows = grows[0].split("DELIMROW");
-		for (int i = 1; i < rows.length; i++) {
-			String[] columns = rows[i].split("DELIMCOLUMN");
+		((TextView) convertView.findViewById(R.id.average)).setText("Average: "
+				+ description);
 
+		Category category = (Category) getData();
+		for (int i = 0; i < category.assignments.length; i++) {
+			Assignment assignment = category.assignments[i];
 			TableRow row = new TableRow(convertView.getContext());
 			TableRow.LayoutParams lp = new TableRow.LayoutParams(
 					TableRow.LayoutParams.WRAP_CONTENT);
 			row.setPadding(0, 5, 0, 5);
 			row.setLayoutParams(lp);
-			/*
-			 * // alternate colors if (i % 2 == 0) {
-			 * row.setBackgroundColor(Color.LTGRAY); } else { }
-			 */
 			row.setGravity(Gravity.CENTER);
+
 			TextView name = new TextView(convertView.getContext());
-			name.setPadding(10, 0, 0, 0);
 			TextView grade = new TextView(convertView.getContext());
 			TextView possible = new TextView(convertView.getContext());
-			possible.setPadding(0, 0, 10, 0);
-			name.setText(columns[0]);
-			name.setTextSize(16);
 
-			if (columns[1].equals("-1")) {
-				grade.setText("-");
-			} else if(columns[1].equals("-2")) {
-				grade.setText("-");
+			name.setText(assignment.title);
+
+			if (assignment.ptsEarned != null) {
+				double ptsEarned = assignment.ptsEarned;
+				if ((int) ptsEarned == ptsEarned) {
+					grade.setText(String.valueOf((int) ptsEarned));
+				} else {
+					grade.setText(String.valueOf(ptsEarned));
+				}
 			} else {
-				grade.setText(columns[1]);
+				grade.setText("-");
 			}
+
+			if ((int) assignment.ptsPossible == assignment.ptsPossible) {
+				possible.setText(String.valueOf((int) assignment.ptsPossible));
+			} else {
+				possible.setText(String.valueOf(assignment.ptsPossible));
+			}
+
+			name.setTextSize(16);
+			name.setPadding(10, 0, 0, 0);
+
 			grade.setGravity(Gravity.CENTER_HORIZONTAL);
 			grade.setTextSize(16);
 
-			if (columns[2].equals("-1")) {
-				possible.setText("100");
-			} else if (columns[2].equals("-2")) {
-				possible.setText("-");
-			} else {
-				possible.setText(columns[2]);
-			}
 			possible.setGravity(Gravity.RIGHT);
 			possible.setTextSize(16);
+			possible.setPadding(0, 0, 10, 0);
 
 			row.addView(name);
 			row.addView(grade);
 			row.addView(possible);
 			layout.addView(row);
 		}
+
 		((ImageView) convertView.findViewById(R.id.stripe))
 				.setBackgroundColor(Color.parseColor(color));
 

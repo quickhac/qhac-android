@@ -3,22 +3,32 @@
     <item
         android:id="@+id/action_refresh"
         android:icon="@drawable/action_refresh"
+        android:menuCategory="system"
+        android:orderInCategory="4"
         android:showAsAction="ifRoom"
         android:title="@string/action_refresh"/>
     <item
         android:id="@+id/action_addStudent"
+        android:menuCategory="system"
+        android:orderInCategory="5"
         android:showAsAction="never"
         android:title="@string/action_addStudent"/>
     <item
         android:id="@+id/action_signout"
+        android:menuCategory="system"
+        android:orderInCategory="6"
         android:showAsAction="never"
         android:title="@string/action_signout"/>
     <item
         android:id="@+id/action_settings"
+        android:menuCategory="system"
+        android:orderInCategory="7"
         android:showAsAction="never"
         android:title="@string/action_settings"/>
     <item
         android:id="@+id/action_about"
+        android:menuCategory="system"
+        android:orderInCategory="8"
         android:showAsAction="never"
         android:title="@string/action_about"/>
 

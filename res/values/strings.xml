@@ -37,6 +37,8 @@
     <string name="pref_chooseExcluded">Choose excluded classes</string>
     <string name="action_addStudent">Add student</string>
     <string name="action_jumpCycle">Go to cycle</string>
+    <string name="action_cycleright">Next cycle</string>
+    <string name="action_cycleleft">Previous cycle</string>
     <string name="left_sign">&lt;</string>
     <string name="right_sign">&gt;</string>
     <string name="white">#FFFFFF</string>

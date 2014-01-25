@@ -1,10 +1,21 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <item
+        android:id="@+id/action_previousCycle"
+        android:icon="@drawable/action_cycleprevious"
+        android:showAsAction="always"
+        android:title="@string/action_cycleleft"/>
+    <item
+        android:id="@+id/action_nextCycle"
+        android:icon="@drawable/action_cyclenext"
+        android:showAsAction="always"
+        android:title="@string/action_cycleright"/>
+    <item
         android:id="@+id/action_jumpCycle"
         android:icon="@drawable/action_jumpcycle"
-        android:showAsAction="always"
+        android:menuCategory="system"
+        android:orderInCategory="1"
+        android:showAsAction="ifRoom"
         android:title="@string/action_jumpCycle"/>
-    
 
 </menu>

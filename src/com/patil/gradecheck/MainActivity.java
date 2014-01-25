@@ -1068,26 +1068,38 @@ public class MainActivity extends FragmentActivity implements
 
 		@Override
 		public boolean onOptionsItemSelected(MenuItem item) {
-			MainActivity activity = (MainActivity) getActivity();
-			// Pass the event to ActionBarDrawerToggle, if it returns
-			// true, then it has handled the app icon touch event
-			if (activity.drawerToggle.onOptionsItemSelected(item)) {
-				return true;
-			}
 			switch (item.getItemId()) {
 			case R.id.action_jumpCycle:
 				showJumpCycleDialog();
+				break;
+			case R.id.action_previousCycle:
+				goPreviousCycle();
+				break;
+			case R.id.action_nextCycle:
+				goNextCycle();
 				break;
 			}
 
 			return super.onOptionsItemSelected(item);
 		}
 
+		public void goPreviousCycle() {
+			if (viewPager.getCurrentItem() != 0) {
+				viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
+			}
+		}
+
+		public void goNextCycle() {
+			if (viewPager.getCurrentItem() != 5) {
+				viewPager.setCurrentItem(viewPager.getCurrentItem() + 1);
+			}
+		}
+
 		public void showJumpCycleDialog() {
 
 			AlertDialog.Builder builderSingle = new AlertDialog.Builder(
 					getView().getContext());
-			builderSingle.setTitle("Jump to cycle");
+			builderSingle.setTitle("Go to cycle");
 			String[] items = new String[6];
 			for (int i = 0; i < 6; i++) {
 				items[i] = ("Cycle " + String.valueOf(i + 1));

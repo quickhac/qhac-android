@@ -98,7 +98,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="16dip"
-                android:fontFamily="sans-serif-thin"
+                android:fontFamily="sans-serif-light"
                 android:paddingTop="5dp"
                 android:textColor="#787878"
                 android:textSize="18sp" />

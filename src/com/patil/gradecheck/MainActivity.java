@@ -109,6 +109,7 @@ public class MainActivity extends FragmentActivity implements
 	// initialized
 	int initializationSpinnerCounter;
 	int currentStudentSelectedPosition;
+	boolean alreadyLoadedGrades = false;
 
 	Menu menu;
 
@@ -194,7 +195,10 @@ public class MainActivity extends FragmentActivity implements
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.main, menu);
 		this.menu = menu;
-		startDisplayingGrades();
+		if (!alreadyLoadedGrades) {
+			startDisplayingGrades();
+			alreadyLoadedGrades = true;
+		}
 		return true;
 	}
 
@@ -1235,7 +1239,8 @@ public class MainActivity extends FragmentActivity implements
 								} else {
 									desc += "DELIMAVERAGE" + "N/A";
 								}
-								ColorGenerator gen = new ColorGenerator(getActivity());
+								ColorGenerator gen = new ColorGenerator(
+										getActivity());
 								String color = gen.getCardColor(i);
 								CategoryCard card = new CategoryCard(title,
 										desc, color, "#787878", false, false);

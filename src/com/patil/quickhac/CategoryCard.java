@@ -13,6 +13,7 @@ import com.fima.cardsui.objects.RecyclableCard;
 import com.patil.quickhac.R;
 import com.quickhac.common.data.Assignment;
 import com.quickhac.common.data.Category;
+import com.quickhac.common.util.Numeric;
 
 public class CategoryCard extends RecyclableCard {
 
@@ -23,6 +24,8 @@ public class CategoryCard extends RecyclableCard {
 
 	@Override
 	protected void applyTo(View convertView) {
+		Category category = (Category) getData();
+		
 		TableLayout layout = (TableLayout) convertView
 				.findViewById(R.id.gradeTable);
 		((TextView) convertView.findViewById(R.id.title)).setText(titlePlay);
@@ -30,8 +33,11 @@ public class CategoryCard extends RecyclableCard {
 				.parseColor(titleColor));
 		((TextView) convertView.findViewById(R.id.average)).setText("Average: "
 				+ description);
+		((TextView) convertView.findViewById(R.id.weight)).setText(
+				Numeric.doubleToPrettyString(category.weight) + "%");
+		((TextView) convertView.findViewById(R.id.weight)).setTextColor(Color
+				.parseColor(titleColor));
 
-		Category category = (Category) getData();
 		for (int i = 0; i < category.assignments.length; i++) {
 			Assignment assignment = category.assignments[i];
 			TableRow row = new TableRow(convertView.getContext());
@@ -43,40 +49,19 @@ public class CategoryCard extends RecyclableCard {
 
 			TextView name = new TextView(convertView.getContext());
 			TextView grade = new TextView(convertView.getContext());
-			TextView possible = new TextView(convertView.getContext());
 
 			name.setText(assignment.title);
-
-			if (assignment.ptsEarned != null) {
-				double ptsEarned = assignment.ptsEarned;
-				if ((int) ptsEarned == ptsEarned) {
-					grade.setText(String.valueOf((int) ptsEarned));
-				} else {
-					grade.setText(String.valueOf(ptsEarned));
-				}
-			} else {
-				grade.setText("-");
-			}
-
-			if ((int) assignment.ptsPossible == assignment.ptsPossible) {
-				possible.setText(String.valueOf((int) assignment.ptsPossible));
-			} else {
-				possible.setText(String.valueOf(assignment.ptsPossible));
-			}
+			grade.setText(assignment.pointsString());
 
 			name.setTextSize(16);
 			name.setPadding(10, 0, 0, 0);
 
-			grade.setGravity(Gravity.CENTER_HORIZONTAL);
+			grade.setGravity(Gravity.RIGHT);
 			grade.setTextSize(16);
-
-			possible.setGravity(Gravity.RIGHT);
-			possible.setTextSize(16);
-			possible.setPadding(0, 0, 10, 0);
+			grade.setPadding(0, 0, 10, 0);
 
 			row.addView(name);
 			row.addView(grade);
-			row.addView(possible);
 			layout.addView(row);
 		}
 

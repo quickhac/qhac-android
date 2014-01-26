@@ -16,8 +16,6 @@
     <string name="hint_id">Student ID</string>
     <string name="action_signout">Sign out</string>
     <string name="assignment">ASSIGNMENT</string>
-    <string name="points_earned">EARNED</string>
-    <string name="points_possible">POSSIBLE</string>
     <string name="cycle1">Cycle 1</string>
     <string name="cycle2">Cycle 2</string>
     <string name="cycle3">Cycle 3</string>
@@ -68,6 +66,7 @@
     <string name="silver">#BDC3C7</string>
     <string name="concrete">#95A5A6</string>
     <string name="asbestos">#7F8C8D</string>
+    <string name="grade">GRADE</string>
     
 
 </resources>

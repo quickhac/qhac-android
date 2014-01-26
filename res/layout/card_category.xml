@@ -29,16 +29,40 @@
             android:layout_marginLeft="8dip"
             android:layout_weight="90"
             android:orientation="vertical" >
-
-            <TextView
-                android:id="@+id/title"
-                android:layout_width="wrap_content"
+            
+            <RelativeLayout
+                android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dip"
-                android:fontFamily="sans-serif-light"
-                android:text="@string/card_title"
-                android:textColor="#33B6EA"
-                android:textSize="24sp" />
+                android:orientation="horizontal">
+                
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dip"
+                    android:layout_marginRight="4dip"
+                    android:layout_toLeftOf="@+id/weight"
+                    android:layout_alignParentLeft="true"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/card_title"
+                    android:textColor="#33B6EA"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/weight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="8dip"
+                    android:layout_gravity="right"
+                    android:layout_alignParentRight="true"
+                    android:gravity="right"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/card_title"
+                    android:textColor="#33B6EA"
+                    android:textSize="24sp" />
+            </RelativeLayout>
 
             <LinearLayout
                 android:layout_width="fill_parent"
@@ -74,18 +98,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginRight="15dp"
-                            android:gravity="center_horizontal"
-                            android:text="@string/points_earned"
-                            android:textColor="#787878"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
                             android:gravity="right"
-                            android:text="@string/points_possible"
+                            android:text="@string/grade"
                             android:textColor="#787878"
                             android:textSize="16sp"
                             android:textStyle="bold" />

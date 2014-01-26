@@ -65,7 +65,7 @@ import com.quickhac.common.data.Category;
 import com.quickhac.common.data.ClassGrades;
 import com.quickhac.common.data.Course;
 import com.quickhac.common.data.Cycle;
-import com.quickhac.common.data.DisambiguationChoice;
+import com.quickhac.common.data.StudentInfo;
 import com.quickhac.common.data.Semester;
 import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
@@ -988,7 +988,7 @@ public class MainActivity extends FragmentActivity implements
 
 				@Override
 				public void onRequiresDisambiguation(String response,
-						DisambiguationChoice[] students, ASPNETPageState state) {
+						StudentInfo[] students, ASPNETPageState state) {
 					setStatus("SUCCESS");
 					retriever.disambiguate(id, state, disambiguateHandler);
 				}

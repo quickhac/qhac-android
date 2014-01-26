@@ -1,1 +1,1 @@
-This software is provided as-is with no warranty, express or implied, to the extent permitted by applicable law. You are responsible for any consequences of using this software.
+This software is provided as-is with no warranty, express or implied, to the extent permitted by applicable law. You are responsible for any consequences of using this software. Libraries used include: JSoup, HttpClientAndroidLib, CardsUILib (by Nadav Fima), and ShowCaseViewLibrary.

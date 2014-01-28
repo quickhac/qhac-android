@@ -10,7 +10,6 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.fima.cardsui.objects.RecyclableCard;
-import com.patil.quickhac.R;
 import com.quickhac.common.data.Assignment;
 import com.quickhac.common.data.Category;
 import com.quickhac.common.util.Numeric;

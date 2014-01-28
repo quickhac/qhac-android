@@ -31,7 +31,6 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -52,11 +51,8 @@ import android.widget.Toast;
 
 import com.espian.showcaseview.ShowcaseView;
 import com.espian.showcaseview.targets.ActionViewTarget;
-import com.espian.showcaseview.targets.ActionViewTarget.Type;
-import com.espian.showcaseview.targets.ViewTarget;
 import com.fima.cardsui.objects.Card;
 import com.fima.cardsui.views.CardUI;
-import com.patil.quickhac.R;
 import com.quickhac.common.GPACalc;
 import com.quickhac.common.GradeCalc;
 import com.quickhac.common.GradeParser;
@@ -65,8 +61,8 @@ import com.quickhac.common.data.Category;
 import com.quickhac.common.data.ClassGrades;
 import com.quickhac.common.data.Course;
 import com.quickhac.common.data.Cycle;
-import com.quickhac.common.data.StudentInfo;
 import com.quickhac.common.data.Semester;
+import com.quickhac.common.data.StudentInfo;
 import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
 import com.quickhac.common.districts.impl.RoundRock;
@@ -642,9 +638,9 @@ public class MainActivity extends FragmentActivity implements
 				}
 			}
 
-			// remove excluded classes from list of classes to calculate
-			ArrayList<Course> trimmed = new ArrayList<Course>();
-			for (int i = 0; i < courses.length; i++) {
+			// remove excluded classes from list of weighed classes to calculate
+			List<String> toWeighted = new ArrayList<String>();
+			for (int i = 0; i < weightedClasses.size(); i++) {
 				boolean excluded = false;
 				for (int d = 0; d < excludedClasses.size(); d++) {
 					if (excludedClasses.get(d).equals(courses[i].title)) {
@@ -652,23 +648,19 @@ public class MainActivity extends FragmentActivity implements
 					}
 				}
 				if (!excluded) {
-					trimmed.add(courses[i]);
+					toWeighted.add(weightedClasses.get(i));
 				}
 			}
-
-			Course[] toCalculate = new Course[trimmed.size()];
-			for (int i = 0; i < trimmed.size(); i++) {
-				toCalculate[i] = trimmed.get(i);
-			}
+		
 
 			double weightedGPA = 0;
 			double unweightedGPA = 0;
-			unweightedGPA = GPACalc.unweighted(toCalculate);
+			unweightedGPA = GPACalc.unweighted(courses);
 			if (currentDistrict.equals("Austin")) {
-				weightedGPA = GPACalc.weighted(toCalculate, weightedClasses,
+				weightedGPA = GPACalc.weighted(courses, toWeighted,
 						gradeSpeedDistrict.weightedGPABoost());
 			} else if (currentDistrict.equals("RoundRock")) {
-				weightedGPA = GPACalc.weighted(toCalculate, weightedClasses,
+				weightedGPA = GPACalc.weighted(courses, toWeighted,
 						gradeSpeedDistrict.weightedGPABoost());
 			}
 			saver.saveUnweightedGPA(unweightedGPA, currentUsername, currentId);

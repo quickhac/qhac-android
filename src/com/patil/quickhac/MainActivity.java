@@ -60,8 +60,6 @@ import com.quickhac.common.GradeRetriever;
 import com.quickhac.common.data.Category;
 import com.quickhac.common.data.ClassGrades;
 import com.quickhac.common.data.Course;
-import com.quickhac.common.data.Cycle;
-import com.quickhac.common.data.Semester;
 import com.quickhac.common.data.StudentInfo;
 import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
@@ -518,73 +516,11 @@ public class MainActivity extends FragmentActivity implements
 				for (int k = 0; k < courses.length; k++) {
 
 					Course course = courses[k];
-
-					Semester firstSemester = course.semesters[0];
-					Semester secondSemester = course.semesters[1];
-					Cycle[] firstSemesterCycles = firstSemester.cycles;
-					Cycle[] secondSemesterCycles = secondSemester.cycles;
-
-					String[] cycleData = new String[(course.semesters.length * 2)
-							+ firstSemesterCycles.length
-							+ secondSemesterCycles.length];
-
-					for (int i = 0; i < firstSemesterCycles.length; i++) {
-						if (firstSemesterCycles[i].average != null
-								&& firstSemesterCycles[i].average != -1) {
-							cycleData[i] = String
-									.valueOf(firstSemesterCycles[i].average);
-						} else {
-							cycleData[i] = "-";
-						}
-					}
-					if (firstSemester.examGrade != null
-							&& firstSemester.examGrade != -1) {
-						cycleData[firstSemesterCycles.length] = String
-								.valueOf(firstSemester.examGrade);
-					} else {
-						cycleData[firstSemesterCycles.length] = "-";
-					}
-
-					if (firstSemester.average != null
-							&& firstSemester.average != -1) {
-						cycleData[firstSemesterCycles.length + 1] = String
-								.valueOf(firstSemester.average);
-					} else {
-						cycleData[firstSemesterCycles.length + 1] = "-";
-					}
-
-					for (int i = 0; i < secondSemesterCycles.length; i++) {
-						if (secondSemesterCycles[i].average != null
-								&& secondSemesterCycles[i].average != -1) {
-							cycleData[i + firstSemesterCycles.length + 2] = String
-									.valueOf(secondSemesterCycles[i].average);
-						} else {
-							cycleData[i + firstSemesterCycles.length + 2] = "-";
-						}
-					}
-
-					if (secondSemester.examGrade != null
-							&& secondSemester.examGrade != -1) {
-						cycleData[firstSemesterCycles.length
-								+ secondSemesterCycles.length + 2] = String
-								.valueOf(secondSemester.examGrade);
-					} else {
-						cycleData[firstSemesterCycles.length
-								+ secondSemesterCycles.length + 2] = "-";
-					}
-					if (secondSemester.average != null
-							&& secondSemester.average != -1) {
-						cycleData[firstSemesterCycles.length
-								+ secondSemesterCycles.length + 3] = String
-								.valueOf(secondSemester.average);
-					} else {
-						cycleData[firstSemesterCycles.length
-								+ secondSemesterCycles.length + 3] = "-";
-					}
+					
 					String color = colorGenerator.getCardColor(k);
 					final Card courseCard = new CourseCard(course.title, "",
 							color, "#787878", false, true);
-					courseCard.setData(cycleData);
+					courseCard.setData(course);
 					// Set onClick
 					courseCard.setOnClickListener(new OnClickListener() {
 

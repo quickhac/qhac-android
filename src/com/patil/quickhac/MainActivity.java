@@ -503,7 +503,15 @@ public class MainActivity extends FragmentActivity implements
 					String description = String.valueOf(gpa[0]) + " / "
 							+ String.valueOf(gpa[1]);
 					Card GPACard = new NoGradesCard("GPA", description,
-							"#787878", "#787878", false, false);
+							"#787878", "#787878", false, true);
+					GPACard.setOnClickListener(new OnClickListener() {
+						
+						@Override
+						public void onClick(View v) {
+							Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+							startActivity(intent);
+						}
+					});
 					cardView.addCard(GPACard);
 				}
 

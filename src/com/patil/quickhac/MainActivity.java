@@ -503,10 +503,11 @@ public class MainActivity extends FragmentActivity implements
 					Card GPACard = new NoGradesCard("GPA", description,
 							"#787878", "#787878", false, true);
 					GPACard.setOnClickListener(new OnClickListener() {
-						
+
 						@Override
 						public void onClick(View v) {
-							Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+							Intent intent = new Intent(MainActivity.this,
+									SettingsActivity.class);
 							startActivity(intent);
 						}
 					});
@@ -516,7 +517,7 @@ public class MainActivity extends FragmentActivity implements
 				for (int k = 0; k < courses.length; k++) {
 
 					Course course = courses[k];
-					
+
 					String color = colorGenerator.getCardColor(k);
 					final Card courseCard = new CourseCard(course.title, "",
 							color, "#787878", false, true);
@@ -595,7 +596,6 @@ public class MainActivity extends FragmentActivity implements
 					toWeighted.add(weightedClasses.get(i));
 				}
 			}
-		
 
 			double weightedGPA = 0;
 			double unweightedGPA = 0;
@@ -995,44 +995,38 @@ public class MainActivity extends FragmentActivity implements
 		public String scrape(int c) {
 			Course course = courses[c];
 			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
-			for (int i = 0; i < 6; i++) {
-				int semester = 0;
-				int cycle = 0;
-				if (i < 3) {
-					semester = 0;
-					cycle = i;
-				} else {
-					semester = 1;
-					cycle = i - 3;
-				}
-				final String hash = course.semesters[semester].cycles[cycle].urlHash;
-				final int sem = semester;
-				final int cy = cycle;
-				if (hash != null) {
-					retriever.getCycle(hash, Jsoup.parse(cycleResponse),
-							new XHR.ResponseHandler() {
+			for (int semesterIndex = 0; semesterIndex < course.semesters.length; semesterIndex++) {
+				for (int cycleIndex = 0; cycleIndex < course.semesters[semesterIndex].cycles.length; cycleIndex++) {
+					final String hash = course.semesters[semesterIndex].cycles[cycleIndex].urlHash;
+					final int sem = semesterIndex;
+					final int cy = cycleIndex;
+					if (hash != null) {
+						retriever.getCycle(hash, Jsoup.parse(cycleResponse),
+								new XHR.ResponseHandler() {
 
-								@Override
-								public void onSuccess(String response) {
-									ClassGrades grades = parser
-											.parseClassGrades(response, hash,
-													sem, cy);
-									gradesList.add(grades);
-								}
+									@Override
+									public void onSuccess(String response) {
+										ClassGrades grades = parser
+												.parseClassGrades(response,
+														hash, sem, cy);
+										gradesList.add(grades);
+									}
 
-								@Override
-								public void onFailure(Exception e) {
+									@Override
+									public void onFailure(Exception e) {
 
-								}
+									}
 
-							});
-				} else {
-					gradesList.add(null);
+								});
+					} else {
+						gradesList.add(null);
+					}
 				}
 			}
+
 			classGradesList.add(gradesList);
 			classGradesList.set(c, gradesList);
-			return "";
+			return "SUCCESS";
 		}
 
 	}
@@ -1083,7 +1077,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		public void goNextCycle() {
-			if (viewPager.getCurrentItem() != 5) {
+			if (viewPager.getCurrentItem() != classGradesList.get(index).size() - 1) {
 				viewPager.setCurrentItem(viewPager.getCurrentItem() + 1);
 			}
 		}
@@ -1093,8 +1087,8 @@ public class MainActivity extends FragmentActivity implements
 			AlertDialog.Builder builderSingle = new AlertDialog.Builder(
 					getView().getContext());
 			builderSingle.setTitle("Go to cycle");
-			String[] items = new String[6];
-			for (int i = 0; i < 6; i++) {
+			String[] items = new String[classGradesList.get(index).size()];
+			for (int i = 0; i < classGradesList.get(index).size(); i++) {
 				items[i] = ("Cycle " + String.valueOf(i + 1));
 			}
 			builderSingle.setNegativeButton("Cancel",
@@ -1189,32 +1183,22 @@ public class MainActivity extends FragmentActivity implements
 
 			@Override
 			public Fragment getItem(int i) {
-				if (i == 0 || i == 1 || i == 2) {
-					Fragment fragment = new CycleFragment();
-					Bundle args = new Bundle();
-					args.putInt(CycleFragment.INDEX_COURSE, index);
-					args.putInt(CycleFragment.INDEX_CYCLE, i);
-					fragment.setArguments(args);
-					return fragment;
-				} else if (i == 3 || i == 4 || i == 5) {
-					Fragment fragment = new CycleFragment();
-					Bundle args = new Bundle();
-					args.putInt(CycleFragment.INDEX_COURSE, index);
-					args.putInt(CycleFragment.INDEX_CYCLE, i);
-					fragment.setArguments(args);
-					return fragment;
-				}
-				return null;
+				Fragment fragment = new CycleFragment();
+				Bundle args = new Bundle();
+				args.putInt(CycleFragment.INDEX_COURSE, index);
+				args.putInt(CycleFragment.INDEX_CYCLE, i);
+				fragment.setArguments(args);
+				return fragment;
 			}
 
 			@Override
 			public int getCount() {
-				return 6;
+				return classGradesList.get(index).size();
 			}
 
 			@Override
 			public CharSequence getPageTitle(int position) {
-				return "OBJECT " + (position + 1);
+				return "Cycle " + (position + 1);
 			}
 		}
 
@@ -1251,10 +1235,8 @@ public class MainActivity extends FragmentActivity implements
 				String titleText = "";
 				int semester = 0;
 				int cycle = cycleIndex;
-				if (cycleIndex > 2) {
-					semester = 1;
-					cycle -= 3;
-				}
+				semester = cycleIndex / (course.semesters[0].cycles.length);
+				cycle = cycleIndex % (course.semesters[0].cycles.length);
 				if (course.semesters[semester].cycles[cycle].average != null) {
 					titleText = "Cycle " + (cycleIndex + 1) + " - "
 							+ course.semesters[semester].cycles[cycle].average;

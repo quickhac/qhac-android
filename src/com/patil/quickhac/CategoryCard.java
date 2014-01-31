@@ -1,6 +1,8 @@
 package com.patil.quickhac;
 
+import android.content.Context;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageView;
@@ -12,9 +14,15 @@ import android.widget.TextView;
 import com.fima.cardsui.objects.RecyclableCard;
 import com.quickhac.common.data.Assignment;
 import com.quickhac.common.data.Category;
+import com.quickhac.common.data.GradeValue;
 import com.quickhac.common.util.Numeric;
 
 public class CategoryCard extends RecyclableCard {
+
+	TableLayout gradeTable;
+	TextView titleView;
+	ImageView stripe;
+	ColorGenerator generator;
 
 	public CategoryCard(String title, String description, String color,
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
@@ -24,16 +32,29 @@ public class CategoryCard extends RecyclableCard {
 	@Override
 	protected void applyTo(View convertView) {
 		Category category = (Category) getData();
-		
-		TableLayout layout = (TableLayout) convertView
-				.findViewById(R.id.gradeTable);
-		((TextView) convertView.findViewById(R.id.title)).setText(titlePlay);
-		((TextView) convertView.findViewById(R.id.title)).setTextColor(Color
-				.parseColor(titleColor));
+		Context context = convertView.getContext();
+		generator = new ColorGenerator(context);
+		makeTitle(convertView);
+		makeStripe(convertView);
+		makeGradeTable(convertView, category, context);
+		makeClickable(convertView);
+
+		if (hasOverflow == true)
+			((ImageView) convertView.findViewById(R.id.overflow))
+					.setVisibility(View.VISIBLE);
+		else
+			((ImageView) convertView.findViewById(R.id.overflow))
+					.setVisibility(View.GONE);
+	}
+
+	public void makeGradeTable(View convertView, Category category,
+			Context context) {
+		gradeTable = (TableLayout) convertView.findViewById(R.id.gradeTable);
+
 		((TextView) convertView.findViewById(R.id.average)).setText("Average: "
 				+ description);
-		((TextView) convertView.findViewById(R.id.weight)).setText(
-				Numeric.doubleToPrettyString(category.weight) + "%");
+		((TextView) convertView.findViewById(R.id.weight)).setText(Numeric
+				.doubleToPrettyString(category.weight) + "%");
 		((TextView) convertView.findViewById(R.id.weight)).setTextColor(Color
 				.parseColor(titleColor));
 
@@ -50,7 +71,8 @@ public class CategoryCard extends RecyclableCard {
 			TextView grade = new TextView(convertView.getContext());
 
 			name.setText(assignment.title);
-			grade.setText(assignment.pointsString());
+			String gradeString = makeGradeString(assignment);
+			grade.setText(gradeString);
 
 			name.setTextSize(16);
 			name.setPadding(10, 0, 0, 0);
@@ -61,22 +83,49 @@ public class CategoryCard extends RecyclableCard {
 
 			row.addView(name);
 			row.addView(grade);
-			layout.addView(row);
+			gradeTable.addView(row);
 		}
+	}
 
-		((ImageView) convertView.findViewById(R.id.stripe))
-				.setBackgroundColor(Color.parseColor(color));
+	public String makeGradeString(Assignment assignment) {
+		GradeValue ptsEarned = assignment.ptsEarned;
+		Log.d("watawa", ptsEarned.toString());
+		if (ptsEarned != null) {
+			if (ptsEarned.type == GradeValue.TYPE_LETTER) {
+				return ptsEarned.toString();
+			} else if (ptsEarned.type == GradeValue.TYPE_DOUBLE
+					|| ptsEarned.type == GradeValue.TYPE_INTEGER) {
+				String pts = Numeric.doubleToPrettyString(ptsEarned.value_d);
+				if (assignment.ptsPossible != 100) {
+					pts += "/"
+							+ Numeric
+									.doubleToPrettyString(assignment.ptsPossible);
+				}
+				if (assignment.weight != 1.0) {
+					pts += ("\u00D7" + Numeric
+							.doubleToPrettyString(assignment.weight));
+				}
+				return pts;
+			}
+		}
+		return "-";
+	}
 
-		if (isClickable == true)
+	public void makeClickable(View convertView) {
+		if (isClickable)
 			((LinearLayout) convertView.findViewById(R.id.contentLayout))
 					.setBackgroundResource(R.drawable.selectable_background_cardbank);
+	}
 
-		if (hasOverflow == true)
-			((ImageView) convertView.findViewById(R.id.overflow))
-					.setVisibility(View.VISIBLE);
-		else
-			((ImageView) convertView.findViewById(R.id.overflow))
-					.setVisibility(View.GONE);
+	public void makeStripe(View convertView) {
+		stripe = (ImageView) convertView.findViewById(R.id.stripe);
+		stripe.setBackgroundColor(Color.parseColor(color));
+	}
+
+	public void makeTitle(View convertView) {
+		titleView = (TextView) convertView.findViewById(R.id.title);
+		titleView.setText(titlePlay);
+		titleView.setTextColor(Color.parseColor(titleColor));
 	}
 
 	@Override

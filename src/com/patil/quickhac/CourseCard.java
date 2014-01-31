@@ -24,9 +24,6 @@ public class CourseCard extends RecyclableCard {
 	ImageView stripe;
 	ColorGenerator generator;
 
-	// Array of buttons to take to each cycle
-	public TextView[] cycleButtons;
-
 	public CourseCard(String title, String description, String color,
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
 		super(title, description, color, titleColor, hasOverflow, isClickable);
@@ -40,7 +37,7 @@ public class CourseCard extends RecyclableCard {
 	protected void applyTo(View convertView) {
 		Course course = (Course) getData();
 		Context context = convertView.getContext();
-		generator = new ColorGenerator(convertView.getContext());
+		generator = new ColorGenerator(context);
 		makeTitle(convertView);
 		makeStripe(convertView);
 		makeGradeTable(convertView, course, context);

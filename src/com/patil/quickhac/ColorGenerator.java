@@ -1,8 +1,8 @@
 package com.patil.quickhac;
 
+import com.quickhac.common.data.GradeValue;
+
 import android.content.Context;
-import android.util.Log;
-import com.patil.quickhac.R;
 
 public class ColorGenerator {
 	/*
@@ -98,8 +98,7 @@ public class ColorGenerator {
 	}
 
 	/*
-	 * Takes in a hex color, returns the color in HSV
-	 * DOESN'T WORK COMPLETELY
+	 * Takes in a hex color, returns the color in HSV DOESN'T WORK COMPLETELY
 	 */
 	public float[] hexToHSV(String hexColor) {
 		int[] rgb = hexToRGB(hexColor);
@@ -179,7 +178,7 @@ public class ColorGenerator {
 	 * array of ints, with rgb values hexColor is supplied if you want the grade
 	 * shade to have a different color - NOT YET FUNCTIONAL
 	 */
-	public int[] getGradeColor(double grade, String hexColor) {
+	public int[] getGradeColorNumber(double grade, String hexColor) {
 		double hue = 0;
 
 		int asianness = 4;
@@ -254,5 +253,39 @@ public class ColorGenerator {
 		}
 
 		return new int[] { (int) (r * 255), (int) (g * 255), (int) (b * 255) };
+	}
+
+	public int[] getGradeColorLetter(int letter, String color) {
+		switch(letter) {
+		case GradeValue.VALUE_A_PLUS:
+			return getGradeColorNumber(98, color);
+		case GradeValue.VALUE_A:
+			return getGradeColorNumber(95, color);
+		case GradeValue.VALUE_A_MINUS:
+			return getGradeColorNumber(92, color);
+		case GradeValue.VALUE_B_PLUS:
+			return getGradeColorNumber(88, color);
+		case GradeValue.VALUE_B:
+			return getGradeColorNumber(85, color);
+		case GradeValue.VALUE_B_MINUS:
+			return getGradeColorNumber(82, color);
+		case GradeValue.VALUE_C_PLUS:
+			return getGradeColorNumber(78, color);
+		case GradeValue.VALUE_C:
+			return getGradeColorNumber(75, color);
+		case GradeValue.VALUE_C_MINUS:
+			return getGradeColorNumber(72, color);
+		case GradeValue.VALUE_D_PLUS:
+			return getGradeColorNumber(68, color);
+		case GradeValue.VALUE_D:
+			return getGradeColorNumber(65, color);
+		case GradeValue.VALUE_D_MINUS:
+			return getGradeColorNumber(62, color);
+		case GradeValue.VALUE_F:
+			return getGradeColorNumber(50, color);
+		default:
+			return getGradeColorNumber(100, color);
+		}
+	
 	}
 }

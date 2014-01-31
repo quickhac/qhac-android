@@ -14,8 +14,8 @@ import android.widget.TextView;
 import com.fima.cardsui.objects.RecyclableCard;
 import com.quickhac.common.data.Course;
 import com.quickhac.common.data.Cycle;
+import com.quickhac.common.data.GradeValue;
 import com.quickhac.common.data.Semester;
-import com.quickhac.common.util.Numeric;
 
 public class CourseCard extends RecyclableCard {
 
@@ -46,7 +46,7 @@ public class CourseCard extends RecyclableCard {
 		makeGradeTable(convertView, course, context);
 		makeClickable(convertView);
 	}
-	
+
 	public void makeClickable(View convertView) {
 		if (isClickable) {
 			((LinearLayout) convertView.findViewById(R.id.contentLayout))
@@ -82,11 +82,8 @@ public class CourseCard extends RecyclableCard {
 				TextView cycleText = new TextView(context);
 				String cycleGrade = "";
 				if (cycle.average != null) {
-					cycleGrade = Numeric.doubleToPrettyString(cycle.average);
-					int[] values = generator
-							.getGradeColor(cycle.average, color);
-					cycleText.setBackgroundColor(Color.rgb(values[0],
-							values[1], values[2]));
+					cycleGrade = cycle.average.toString();
+					cycleText.setBackgroundColor(getGradeColor(cycle.average));
 				}
 				cycleText.setText(cycleGrade);
 				cycleText.setPadding(0, 5, 0, 5);
@@ -95,62 +92,71 @@ public class CourseCard extends RecyclableCard {
 				cycleText.setGravity(Gravity.CENTER);
 				semesterRow.addView(cycleText);
 			}
-			// Make exam related stuffs
-			// Header
-			TextView examHeader = new TextView(context);
-			examHeader.setText("Exam " + String.valueOf(semesterIndex + 1));
-			examHeader.setGravity(Gravity.CENTER_HORIZONTAL);
-			examHeader.setTypeface(sansSerifLight);
-			examHeader.setTextSize(14);
-			semesterHeader.addView(examHeader);
-			// Grade
-			TextView examText = new TextView(context);
-			String examGrade = "";
-			if (semester.examGrade != null) {
-				if (semester.examGrade != -1) {
-					examGrade = Numeric
-							.doubleToPrettyString(semester.examGrade);
-					int[] values = generator.getGradeColor(semester.examGrade,
-							color);
-					examText.setBackgroundColor(Color.rgb(values[0], values[1],
-							values[2]));
+			// only make exam and semester averages if not elementary grades
+			if (!isElementaryGrades(course)) {
+				// Make exam related stuffs
+				// Header
+				TextView examHeader = new TextView(context);
+				examHeader.setText("Exam " + String.valueOf(semesterIndex + 1));
+				examHeader.setGravity(Gravity.CENTER_HORIZONTAL);
+				examHeader.setTypeface(sansSerifLight);
+				examHeader.setTextSize(14);
+				semesterHeader.addView(examHeader);
+				// Grade
+				TextView examText = new TextView(context);
+				String examGrade = "";
+				if (semester.examGrade != null) {
+					examGrade = semester.examGrade.toString();
+					examText.setBackgroundColor(getGradeColor(semester.examGrade));
 				}
-			}
 
-			examText.setPadding(0, 5, 0, 5);
-			examText.setText(examGrade);
-			examText.setTypeface(sansSerifLight);
-			examText.setTextSize(24);
-			examText.setGravity(Gravity.CENTER);
-			semesterRow.addView(examText);
+				examText.setPadding(0, 5, 0, 5);
+				examText.setText(examGrade);
+				examText.setTypeface(sansSerifLight);
+				examText.setTextSize(24);
+				examText.setGravity(Gravity.CENTER);
+				semesterRow.addView(examText);
 
-			// Make semester related stuffs
-			// Header
-			TextView averageHeader = new TextView(context);
-			averageHeader.setText("Average");
-			averageHeader.setGravity(Gravity.CENTER_HORIZONTAL);
-			averageHeader.setTypeface(sansSerifLight);
-			averageHeader.setTextSize(14);
-			semesterHeader.addView(averageHeader);
-			// Grade
-			TextView averageText = new TextView(context);
-			String semesterGrade = "";
-			if (semester.average != null) {
-				semesterGrade = Numeric.doubleToPrettyString(semester.average);
-				int[] values = generator.getGradeColor(semester.average, color);
-				averageText.setBackgroundColor(Color.rgb(values[0], values[1],
-						values[2]));
+				// Make semester related stuffs
+				// Header
+				TextView averageHeader = new TextView(context);
+				averageHeader.setText("Average");
+				averageHeader.setGravity(Gravity.CENTER_HORIZONTAL);
+				averageHeader.setTypeface(sansSerifLight);
+				averageHeader.setTextSize(14);
+				semesterHeader.addView(averageHeader);
+				// Grade
+				TextView averageText = new TextView(context);
+				String semesterGrade = "";
+				if (semester.average != null) {
+					semesterGrade = semester.average.toString();
+					averageText
+							.setBackgroundColor(getGradeColor(semester.average));
+				}
+				averageText.setPadding(0, 5, 0, 5);
+				averageText.setText(semesterGrade);
+				averageText.setTypeface(sansSerifLight);
+				averageText.setTextSize(24);
+				averageText.setGravity(Gravity.CENTER);
+				semesterRow.addView(averageText);
 			}
-			averageText.setPadding(0, 5, 0, 5);
-			averageText.setText(semesterGrade);
-			averageText.setTypeface(sansSerifLight);
-			averageText.setTextSize(24);
-			averageText.setGravity(Gravity.CENTER);
-			semesterRow.addView(averageText);
 
 			gradeTable.addView(semesterHeader);
 			gradeTable.addView(semesterRow);
 		}
+	}
+
+	public int getGradeColor(GradeValue value) {
+		// default of white
+		int[] values = new int[] { 255, 255, 255 };
+		if (value.type == GradeValue.TYPE_DOUBLE) {
+			values = generator.getGradeColorNumber((int) value.value_d, color);
+		} else if (value.type == GradeValue.TYPE_INTEGER) {
+			values = generator.getGradeColorNumber(value.value, color);
+		} else if (value.type == GradeValue.TYPE_LETTER) {
+			values = generator.getGradeColorLetter(value.value, color);
+		}
+		return Color.rgb(values[0], values[1], values[2]);
 	}
 
 	public void makeTitle(View convertView) {
@@ -167,6 +173,35 @@ public class CourseCard extends RecyclableCard {
 	@Override
 	protected int getCardLayoutId() {
 		return R.layout.card_course;
+	}
+
+	// checks to see if a grade is for elementary school by seeing if there are
+	// any letter grades
+	public boolean isElementaryGrades(Course course) {
+		for (int semesterIndex = 0; semesterIndex < course.semesters.length; semesterIndex++) {
+			Semester semester = course.semesters[semesterIndex];
+			if (semester != null) {
+				for (int cycleIndex = 0; cycleIndex < semester.cycles.length; cycleIndex++) {
+					Cycle cycle = semester.cycles[cycleIndex];
+					if (cycle != null && cycle.average != null) {
+						if (cycle.average.type == GradeValue.TYPE_LETTER) {
+							return true;
+						}
+					}
+				}
+				if (semester.average != null) {
+					if (semester.average.type == GradeValue.TYPE_LETTER) {
+						return true;
+					}
+				}
+				if (semester.examGrade != null) {
+					if (semester.examGrade.type == GradeValue.TYPE_LETTER) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 }

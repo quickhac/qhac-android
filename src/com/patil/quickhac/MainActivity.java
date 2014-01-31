@@ -31,6 +31,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -60,6 +61,9 @@ import com.quickhac.common.GradeRetriever;
 import com.quickhac.common.data.Category;
 import com.quickhac.common.data.ClassGrades;
 import com.quickhac.common.data.Course;
+import com.quickhac.common.data.Cycle;
+import com.quickhac.common.data.GradeValue;
+import com.quickhac.common.data.Semester;
 import com.quickhac.common.data.StudentInfo;
 import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
@@ -497,21 +501,24 @@ public class MainActivity extends FragmentActivity implements
 						.getDefaultSharedPreferences(MainActivity.this);
 				boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
 				if (gpaPref) {
-					double[] gpa = getGPA(online);
-					String description = String.valueOf(gpa[0]) + " / "
-							+ String.valueOf(gpa[1]);
-					Card GPACard = new NoGradesCard("GPA", description,
-							"#787878", "#787878", false, true);
-					GPACard.setOnClickListener(new OnClickListener() {
+					// make sure there aren't any letter grades for the gpa
+					if (!isLettersInAverages(courses)) {
+						double[] gpa = getGPA(online);
+						String description = String.valueOf(gpa[0]) + " / "
+								+ String.valueOf(gpa[1]);
+						Card GPACard = new NoGradesCard("GPA", description,
+								"#787878", "#787878", false, true);
+						GPACard.setOnClickListener(new OnClickListener() {
 
-						@Override
-						public void onClick(View v) {
-							Intent intent = new Intent(MainActivity.this,
-									SettingsActivity.class);
-							startActivity(intent);
-						}
-					});
-					cardView.addCard(GPACard);
+							@Override
+							public void onClick(View v) {
+								Intent intent = new Intent(MainActivity.this,
+										SettingsActivity.class);
+								startActivity(intent);
+							}
+						});
+						cardView.addCard(GPACard);
+					}
 				}
 
 				for (int k = 0; k < courses.length; k++) {
@@ -607,6 +614,7 @@ public class MainActivity extends FragmentActivity implements
 				weightedGPA = GPACalc.weighted(courses, toWeighted,
 						gradeSpeedDistrict.weightedGPABoost());
 			}
+			Log.d("waty", String.valueOf(weightedGPA));
 			saver.saveUnweightedGPA(unweightedGPA, currentUsername, currentId);
 			saver.saveWeightedGPA(weightedGPA, currentUsername, currentId);
 			return new double[] { Numeric.round(unweightedGPA, 4),
@@ -1419,6 +1427,37 @@ public class MainActivity extends FragmentActivity implements
 		Editor edit = prefs.edit();
 		edit.putBoolean("firstDrawer", first);
 		edit.commit();
+	}
+
+	// Helper method to make sure there aren't any letter grades
+	public boolean isLettersInAverages(Course[] courses) {
+		for (int courseIndex = 0; courseIndex < courses.length; courseIndex++) {
+			Course course = courses[courseIndex];
+			for (int semesterIndex = 0; semesterIndex < course.semesters.length; semesterIndex++) {
+				Semester semester = course.semesters[semesterIndex];
+				if (semester != null) {
+					for (int cycleIndex = 0; cycleIndex < semester.cycles.length; cycleIndex++) {
+						Cycle cycle = semester.cycles[cycleIndex];
+						if (cycle != null && cycle.average != null) {
+							if (cycle.average.type == GradeValue.TYPE_LETTER) {
+								return true;
+							}
+						}
+					}
+					if (semester.average != null) {
+						if (semester.average.type == GradeValue.TYPE_LETTER) {
+							return true;
+						}
+					}
+					if (semester.examGrade != null) {
+						if (semester.examGrade.type == GradeValue.TYPE_LETTER) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 }

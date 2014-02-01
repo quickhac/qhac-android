@@ -1,6 +1,7 @@
 package com.patil.quickhac;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -8,8 +9,10 @@ import java.util.Set;
 import org.jsoup.Jsoup;
 import org.ocpsoft.prettytime.PrettyTime;
 
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -77,7 +80,6 @@ public class MainActivity extends FragmentActivity implements
 
 	public static Course[] courses;
 	static ArrayList<ArrayList<ClassGrades>> classGradesList;
-
 	ListView drawerList;
 	DrawerLayout drawerLayout;
 	ActionBarDrawerToggle drawerToggle;
@@ -116,12 +118,14 @@ public class MainActivity extends FragmentActivity implements
 	boolean alreadyLoadedGrades = false;
 
 	Menu menu;
+	Utils utils;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
+		utils = new Utils(this);
 		settingsManager = new SettingsManager(this);
 		colorGenerator = new ColorGenerator(this);
 		currentTitle = "Overview";
@@ -294,13 +298,37 @@ public class MainActivity extends FragmentActivity implements
 				// See if there are any saved courses
 				Course[] savedCourses = saver.getSavedCourses(credentials[0],
 						credentials[2]);
-				if (isNetworkAvailable() && savedCourses != null) {
-					// We have saved courses, show those until grades are loaded
-					handleOnlineSavedCourses(savedCourses);
-					// We have internet, load grades
-					executeScrapeTask(credentials[0], credentials[1],
-							credentials[2], credentials[3], "no", false);
-				} else if (isNetworkAvailable() && savedCourses == null) {
+				if (utils.isNetworkAvailable() && savedCourses != null) {
+					// Check to see if it's been less than 10 min since grades
+					// were loaded. If it has, don't bother updating grades. If
+					// it hasn't, get new grades.
+					long timeSinceLastUpdated = System.currentTimeMillis()
+							- saver.getLastUpdated(credentials[0],
+									credentials[2]);
+					// check if it's been less than 30 minutes since grades
+					// updated
+					if (timeSinceLastUpdated < 1800000) {
+						// Grades updated less than 30 min ago, don't bother
+						// getting new grades
+						String toDisplay = "Updated ";
+						PrettyTime p = new PrettyTime();
+						toDisplay += p.format(new Date(saver.getLastUpdated(
+								credentials[0], credentials[2])));
+						lastUpdatedText.setText(toDisplay);
+						handleOnlineSavedCourses(savedCourses);
+					} else {
+						String toDisplay = "Loading new grades...";
+						lastUpdatedText.setText(toDisplay);
+						lastUpdatedText.setTextColor(getResources().getColor(
+								R.color.pomegranate));
+						// We have saved courses, show those until grades are
+						// loaded
+						handleOnlineSavedCourses(savedCourses);
+						// We have internet, load grades
+						executeScrapeTask(credentials[0], credentials[1],
+								credentials[2], credentials[3], "no", false);
+					}
+				} else if (utils.isNetworkAvailable() && savedCourses == null) {
 					// We have internet, load grades
 					executeScrapeTask(credentials[0], credentials[1],
 							credentials[2], credentials[3], "no", true);
@@ -352,10 +380,6 @@ public class MainActivity extends FragmentActivity implements
 
 	public void handleOnlineSavedCourses(Course[] savedCourses) {
 		courses = savedCourses;
-		String toDisplay = "Loading new grades...";
-		lastUpdatedText.setText(toDisplay);
-		lastUpdatedText.setTextColor(getResources().getColor(
-				R.color.pomegranate));
 		for (int i = 0; i < courses.length; i++) {
 			classGradesList.add(null);
 		}
@@ -474,7 +498,7 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	public void loadCourseInfo(int course, String school) {
-		if (isNetworkAvailable()) {
+		if (utils.isNetworkAvailable()) {
 			new CycleScrapeTask(this).execute(new String[] { String
 					.valueOf(course) });
 		} else {
@@ -865,7 +889,9 @@ public class MainActivity extends FragmentActivity implements
 				setupActionBar();
 				setRefreshActionButtonState(false);
 			} else {
+				// first login
 				settingsManager.addStudent(username, password, id, school);
+				createAlarms();
 				restartActivity();
 			}
 
@@ -882,6 +908,29 @@ public class MainActivity extends FragmentActivity implements
 
 			setRefreshActionButtonState(true);
 
+		}
+
+		/*
+		 * Schedules a periodic alarm to periodically notify the user of new
+		 * grades. These alarms are wiped when the device reboots, which is the
+		 * reason for the BootReceiver class which resets alarms.
+		 */
+		public void createAlarms() {
+			Log.d("BackgroundGrades", "scheduling alarms for first login");
+			// Schedule alarms
+			AlarmManager manager = (AlarmManager) context
+					.getSystemService(Context.ALARM_SERVICE);
+
+			PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 0,
+					new Intent(context, AlarmReceiver.class), 0);
+
+			// use inexact repeating which is easier on battery (system can
+			// phase
+			// events and not wake at exact times)
+			manager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+					Constants.ALARM_TRIGGER_AT_TIME, Constants.ALARM_INTERVAL,
+					alarmIntent);
+			Log.d("BackgroundGrades", "created alarms from first login");
 		}
 
 		public String scrape(final String username, final String password,
@@ -1352,16 +1401,6 @@ public class MainActivity extends FragmentActivity implements
 		finish();
 		overridePendingTransition(0, 0);
 		startActivity(intent);
-	}
-
-	/*
-	 * Helper method to check if internet is available
-	 */
-	private boolean isNetworkAvailable() {
-		ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo activeNetworkInfo = connectivityManager
-				.getActiveNetworkInfo();
-		return activeNetworkInfo != null && activeNetworkInfo.isConnected();
 	}
 
 	@Override

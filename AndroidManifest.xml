@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-sdk
         android:minSdkVersion="14"
@@ -27,6 +29,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver android:name="com.patil.quickhac.BootReceiver" >
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        
+         <receiver android:name="com.patil.quickhac.AlarmReceiver" />
+
+        <service
+            android:name="com.patil.quickhac.ScrapeService"
+            android:enabled="true"
+            android:exported="false" />
+
         <activity
             android:name="com.patil.quickhac.SettingsActivity"
             android:label="@string/app_name" >

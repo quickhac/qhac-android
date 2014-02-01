@@ -88,7 +88,6 @@ public class MainActivity extends FragmentActivity implements
 	Handler drawerHandler = new Handler();
 
 	String currentTitle;
-	String cycleResponse;
 
 	Button signInButton;
 	TextView lastUpdatedText;
@@ -944,9 +943,8 @@ public class MainActivity extends FragmentActivity implements
 				@Override
 				public void onSuccess(String response) {
 					if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
-						setStatus("SUCCESS");
+						saver.saveLatestResponse(response, username, id);
 						courses = parser.parseAverages(response);
-						cycleResponse = response;
 						// Set up the classGradesList with unintialized
 						// class grades
 						for (int i = 0; i < courses.length; i++) {
@@ -1058,23 +1056,29 @@ public class MainActivity extends FragmentActivity implements
 					final int sem = semesterIndex;
 					final int cy = cycleIndex;
 					if (hash != null) {
-						retriever.getCycle(hash, Jsoup.parse(cycleResponse),
-								new XHR.ResponseHandler() {
+						if (saver.getLatestResponse(currentUsername, currentId) != null) {
+							retriever.getCycle(hash, Jsoup.parse(saver
+									.getLatestResponse(currentUsername,
+											currentId)),
+									new XHR.ResponseHandler() {
 
-									@Override
-									public void onSuccess(String response) {
-										ClassGrades grades = parser
-												.parseClassGrades(response,
-														hash, sem, cy);
-										gradesList.add(grades);
-									}
+										@Override
+										public void onSuccess(String response) {
+											ClassGrades grades = parser
+													.parseClassGrades(response,
+															hash, sem, cy);
+											gradesList.add(grades);
+										}
 
-									@Override
-									public void onFailure(Exception e) {
+										@Override
+										public void onFailure(Exception e) {
 
-									}
+										}
 
-								});
+									});
+						} else {
+							gradesList.add(null);
+						}
 					} else {
 						gradesList.add(null);
 					}

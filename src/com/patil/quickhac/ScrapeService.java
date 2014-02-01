@@ -95,6 +95,7 @@ public class ScrapeService extends IntentService {
 			@Override
 			public void onSuccess(String response) {
 				if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+					saver.saveLatestResponse(status, username, id);
 					setStatus("SUCCESS");
 					setCourses(parser.parseAverages(response));
 					Log.d("BackgroundGrades", "successful setting of courses");

@@ -97,6 +97,24 @@ public class CourseSaver {
 		return courses;
 	}
 
+	public void saveLatestResponse(String response, String username, String id) {
+		// Save the prefs under the username
+		String fileName = username + "%" + id;
+		SharedPreferences prefs = context.getSharedPreferences(fileName,
+				Context.MODE_PRIVATE);
+		Editor editor = prefs.edit();
+		editor.putString("savedResponse", response);
+		editor.commit();
+	}
+	
+	public String getLatestResponse(String username, String id) {
+		String fileName = username + "%" + id;
+		SharedPreferences prefs = context.getSharedPreferences(fileName,
+				Context.MODE_PRIVATE);
+		String savedResponse = prefs.getString("savedResponse", "None");
+		return savedResponse;
+	}
+
 	public long getLastUpdated(String username, String id) {
 		String fileName = username + "%" + id;
 		SharedPreferences prefs = context.getSharedPreferences(fileName,

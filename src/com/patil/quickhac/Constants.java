@@ -6,7 +6,7 @@ import android.os.SystemClock;
 public class Constants {
 	// Has list of many constants used consistently throughout the app.
 	// How often new grades are pulled (defaults to 1 hour)
-	public static final long ALARM_INTERVAL = 10000;
+	public static final long ALARM_INTERVAL = AlarmManager.INTERVAL_HOUR;
 	// Time delay until alarm first goes off
 	public static final long ALARM_TRIGGER_AT_TIME = SystemClock.elapsedRealtime() + 30000;
 	

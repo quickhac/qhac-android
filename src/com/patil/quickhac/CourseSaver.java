@@ -3,6 +3,7 @@ package com.patil.quickhac;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -105,13 +106,18 @@ public class CourseSaver {
 		Editor editor = prefs.edit();
 		editor.putString("savedResponse", response);
 		editor.commit();
+		Log.d("BackgroundGrades", "saved response ");
 	}
 	
 	public String getLatestResponse(String username, String id) {
 		String fileName = username + "%" + id;
 		SharedPreferences prefs = context.getSharedPreferences(fileName,
 				Context.MODE_PRIVATE);
-		String savedResponse = prefs.getString("savedResponse", "None");
+		String savedResponse = prefs.getString("savedResponse", null);
+		Log.d("BackgroundGrades", "got saved response ");
+		if(savedResponse == null) {
+			Log.d("BackgroundGrades", "saved response is null");
+		}
 		return savedResponse;
 	}
 

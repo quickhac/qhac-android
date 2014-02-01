@@ -1,12 +1,12 @@
 package com.patil.quickhac;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.ocpsoft.prettytime.PrettyTime;
 
 import android.app.AlarmManager;
@@ -21,8 +21,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.graphics.Color;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -116,17 +114,30 @@ public class MainActivity extends FragmentActivity implements
 	int currentStudentSelectedPosition;
 	boolean alreadyLoadedGrades = false;
 
+	boolean loggedIn;
+
 	Menu menu;
 	Utils utils;
+	
+	// boolean that says if we started from a refresh
+	boolean startedFromRefresh;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
+		Bundle extras = getIntent().getExtras();
+		if(extras != null) {
+			startedFromRefresh = extras.getBoolean("refresh");
+		} else {
+			startedFromRefresh = false;
+		}
+		loggedIn = false;
 		utils = new Utils(this);
 		settingsManager = new SettingsManager(this);
 		colorGenerator = new ColorGenerator(this);
+		saver = new CourseSaver(this);
 		currentTitle = "Overview";
 		signInButton = (Button) findViewById(R.id.button_signin);
 		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
@@ -134,7 +145,6 @@ public class MainActivity extends FragmentActivity implements
 		drawer = (LinearLayout) findViewById(R.id.menu);
 		initializationSpinnerCounter = 0;
 		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
-		saver = new CourseSaver(this);
 		makeDrawer();
 	}
 
@@ -147,7 +157,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 		switch (item.getItemId()) {
 		case (R.id.action_refresh):
-			restartActivity();
+			restartActivityForRefresh();
 			break;
 		case (R.id.action_signout):
 			showSignOutDialog();
@@ -168,6 +178,18 @@ public class MainActivity extends FragmentActivity implements
 
 		return super.onOptionsItemSelected(item);
 	}
+	
+	public void restartActivityForRefresh() {
+		Intent intent = getIntent();
+		// put the data that says if it's from a refresh
+		intent.putExtra("refresh", true);		
+		overridePendingTransition(0, 0);
+		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+		finish();
+		overridePendingTransition(0, 0);
+		startActivity(intent);
+	}
+	
 
 	public void showSignOutDialog() {
 		AlertDialog dialog = new AlertDialog.Builder(this)
@@ -299,15 +321,15 @@ public class MainActivity extends FragmentActivity implements
 						credentials[2]);
 				if (utils.isNetworkAvailable() && savedCourses != null) {
 					// Check to see if it's been less than 10 min since grades
-					// were loaded. If it has, don't bother updating grades. If
-					// it hasn't, get new grades.
+					// were loaded. If it has AND we haven't started from a refresh, don't bother updating grades. If
+					// either isn't true, get new grades.
 					long timeSinceLastUpdated = System.currentTimeMillis()
 							- saver.getLastUpdated(credentials[0],
 									credentials[2]);
 					// check if it's been less than 30 minutes since grades
 					// updated
-					if (timeSinceLastUpdated < 1800000) {
-						// Grades updated less than 30 min ago, don't bother
+					if (timeSinceLastUpdated < 1800000 && !startedFromRefresh) {
+						// Grades updated less than 30 min ago and we aren't trying to refresh, don't bother
 						// getting new grades
 						String toDisplay = "Updated ";
 						PrettyTime p = new PrettyTime();
@@ -315,6 +337,7 @@ public class MainActivity extends FragmentActivity implements
 								credentials[0], credentials[2])));
 						lastUpdatedText.setText(toDisplay);
 						handleOnlineSavedCourses(savedCourses);
+
 					} else {
 						String toDisplay = "Loading new grades...";
 						lastUpdatedText.setText(toDisplay);
@@ -378,6 +401,16 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	public void handleOnlineSavedCourses(Course[] savedCourses) {
+		String[] credentials = settingsManager.getLoginInfo(currentUsername
+				+ "%" + currentId);
+		GradeSpeedDistrict district = null;
+		if (credentials[3].equals("Austin")) {
+			district = new Austin();
+		} else if (credentials[3].equals("RoundRock")) {
+			district = new RoundRock();
+		}
+		retriever = new GradeRetriever(district);
+		parser = new GradeParser(district);
 		courses = savedCourses;
 		for (int i = 0; i < courses.length; i++) {
 			classGradesList.add(null);
@@ -943,6 +976,7 @@ public class MainActivity extends FragmentActivity implements
 				@Override
 				public void onSuccess(String response) {
 					if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+						loggedIn = true;
 						saver.saveLatestResponse(response, username, id);
 						courses = parser.parseAverages(response);
 						// Set up the classGradesList with unintialized
@@ -997,7 +1031,6 @@ public class MainActivity extends FragmentActivity implements
 			};
 
 			retriever.login(username, password, loginHandler);
-
 			return status;
 		}
 
@@ -1012,6 +1045,8 @@ public class MainActivity extends FragmentActivity implements
 		ProgressDialog dialog;
 		Context context;
 		int position;
+
+		String status;
 
 		public CycleScrapeTask(Context context) {
 			this.context = context;
@@ -1048,6 +1083,76 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		public String scrape(int c) {
+			// Log in if we haven't already
+			if (!loggedIn) {
+				final String[] credentials = settingsManager
+						.getLoginInfo(currentUsername + "%" + currentId);
+				final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
+
+					@Override
+					public void onSuccess(String response) {
+						if (status != "UNKNOWN_ERROR"
+								&& status != "INVALID_LOGIN") {
+							saver.saveLatestResponse(response, credentials[0],
+									credentials[2]);
+							courses = parser.parseAverages(response);
+							// Set up the classGradesList with unintialized
+							// class grades
+							for (int i = 0; i < courses.length; i++) {
+								classGradesList.add(null);
+							}
+						}
+					}
+
+					@Override
+					public void onFailure(Exception e) {
+						setStatus("UNKNOWN_ERROR");
+					}
+				};
+
+				final XHR.ResponseHandler disambiguateHandler = new XHR.ResponseHandler() {
+
+					@Override
+					public void onSuccess(String response) {
+						if (status != "UNKNOWN_ERROR"
+								&& status != "INVALID_LOGIN") {
+							setStatus("SUCCESS");
+							retriever.getAverages(getAveragesHandler);
+						}
+					}
+
+					@Override
+					public void onFailure(Exception e) {
+						setStatus("UNKNOWN_ERROR");
+					}
+				};
+
+				final GradeRetriever.LoginResponseHandler loginHandler = new GradeRetriever.LoginResponseHandler() {
+
+					@Override
+					public void onRequiresDisambiguation(String response,
+							StudentInfo[] students, ASPNETPageState state) {
+						setStatus("SUCCESS");
+						retriever.disambiguate(credentials[2], state,
+								disambiguateHandler);
+					}
+
+					@Override
+					public void onFailure(Exception e) {
+						setStatus("INVALID_LOGIN");
+					}
+
+					@Override
+					public void onDoesNotRequireDisambiguation(String response) {
+						setStatus("SUCCESS");
+						retriever.getAverages(getAveragesHandler);
+					}
+				};
+
+				retriever.login(credentials[0], credentials[1], loginHandler);
+				loggedIn = true;
+			}
+
 			Course course = courses[c];
 			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
 			for (int semesterIndex = 0; semesterIndex < course.semesters.length; semesterIndex++) {
@@ -1057,9 +1162,26 @@ public class MainActivity extends FragmentActivity implements
 					final int cy = cycleIndex;
 					if (hash != null) {
 						if (saver.getLatestResponse(currentUsername, currentId) != null) {
-							retriever.getCycle(hash, Jsoup.parse(saver
-									.getLatestResponse(currentUsername,
-											currentId)),
+							Document doc = Jsoup.parse(saver.getLatestResponse(
+									currentUsername, currentId));
+							if (doc == null) {
+								Log.d("BackgroundGrades", "doc null");
+							}
+							if (retriever == null) {
+								Log.d("BackgroundGrades", "retriever null");
+							}
+							if (saver.getLatestResponse(currentUsername,
+									currentId) == null) {
+								Log.d("BackgroundGrades", "saver null");
+							}
+							if (currentUsername == null) {
+								Log.d("BackgroundGrades",
+										"currentUsername null");
+							}
+							if (currentId == null) {
+								Log.d("BackgroundGrades", "currentId null");
+							}
+							retriever.getCycle(hash, doc,
 									new XHR.ResponseHandler() {
 
 										@Override
@@ -1088,6 +1210,10 @@ public class MainActivity extends FragmentActivity implements
 			classGradesList.add(gradesList);
 			classGradesList.set(c, gradesList);
 			return "SUCCESS";
+		}
+
+		public void setStatus(String status) {
+			this.status = status;
 		}
 
 	}

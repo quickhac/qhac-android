@@ -22,7 +22,7 @@ public class BootReceiver extends BroadcastReceiver {
 		// use inexact repeating which is easier on battery (system can phase
 		// events and not wake at exact times)
 		manager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-				Constants.ALARM_TRIGGER_AT_TIME, Constants.ALARM_INTERVAL,
+				Constants.GRADE_PULL_TRIGGER_AT_TIME, Constants.GRADE_PULL_INTERVAL,
 				alarmIntent);
 		Log.d("BackgroundGrades", "created alarms from boot");
 	}

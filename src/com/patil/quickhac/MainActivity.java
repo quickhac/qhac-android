@@ -118,7 +118,7 @@ public class MainActivity extends FragmentActivity implements
 
 	Menu menu;
 	Utils utils;
-	
+
 	// boolean that says if we started from a refresh
 	boolean startedFromRefresh;
 
@@ -128,8 +128,8 @@ public class MainActivity extends FragmentActivity implements
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
 		Bundle extras = getIntent().getExtras();
-		if(extras != null) {
-			startedFromRefresh = extras.getBoolean("refresh");
+		if (extras != null) {
+			startedFromRefresh = extras.getBoolean(Constants.REFRESH_INTENT);
 		} else {
 			startedFromRefresh = false;
 		}
@@ -178,18 +178,17 @@ public class MainActivity extends FragmentActivity implements
 
 		return super.onOptionsItemSelected(item);
 	}
-	
+
 	public void restartActivityForRefresh() {
 		Intent intent = getIntent();
 		// put the data that says if it's from a refresh
-		intent.putExtra("refresh", true);		
+		intent.putExtra(Constants.REFRESH_INTENT, true);
 		overridePendingTransition(0, 0);
 		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 		finish();
 		overridePendingTransition(0, 0);
 		startActivity(intent);
 	}
-	
 
 	public void showSignOutDialog() {
 		AlertDialog dialog = new AlertDialog.Builder(this)
@@ -321,15 +320,17 @@ public class MainActivity extends FragmentActivity implements
 						credentials[2]);
 				if (utils.isNetworkAvailable() && savedCourses != null) {
 					// Check to see if it's been less than 10 min since grades
-					// were loaded. If it has AND we haven't started from a refresh, don't bother updating grades. If
+					// were loaded. If it has AND we haven't started from a
+					// refresh, don't bother updating grades. If
 					// either isn't true, get new grades.
 					long timeSinceLastUpdated = System.currentTimeMillis()
 							- saver.getLastUpdated(credentials[0],
 									credentials[2]);
 					// check if it's been less than 30 minutes since grades
 					// updated
-					if (timeSinceLastUpdated < 1800000 && !startedFromRefresh) {
-						// Grades updated less than 30 min ago and we aren't trying to refresh, don't bother
+					if (timeSinceLastUpdated < Constants.GRADE_LENGTH && !startedFromRefresh) {
+						// Grades updated less than 30 min ago and we aren't
+						// trying to refresh, don't bother
 						// getting new grades
 						String toDisplay = "Updated ";
 						PrettyTime p = new PrettyTime();
@@ -337,7 +338,6 @@ public class MainActivity extends FragmentActivity implements
 								credentials[0], credentials[2])));
 						lastUpdatedText.setText(toDisplay);
 						handleOnlineSavedCourses(savedCourses);
-
 					} else {
 						String toDisplay = "Loading new grades...";
 						lastUpdatedText.setText(toDisplay);
@@ -382,6 +382,27 @@ public class MainActivity extends FragmentActivity implements
 		makeStudentSpinner();
 	}
 
+	@Override
+	protected void onResume() {
+		super.onResume();
+		long lastLogin = settingsManager.getLastLogin(currentUsername,
+				currentId);
+		if (System.currentTimeMillis() - lastLogin > Constants.LOGIN_TIMEOUT) {
+			Log.d("Resuming",
+					"it's been a while"
+							+ String.valueOf(System.currentTimeMillis()
+									- lastLogin));
+			// Since the login should have timed out, set loggedin to false so
+			// that it'll log in again to avoid timeout issues
+			loggedIn = false;
+		} else {
+			Log.d("Resuming",
+					"it's been not that long"
+							+ String.valueOf(System.currentTimeMillis()
+									- lastLogin));
+		}
+	}
+
 	public void makeStudentSpinner() {
 		String[] students = new String[studentList.length + 1];
 		for (int i = 0; i < studentList.length; i++) {
@@ -404,7 +425,7 @@ public class MainActivity extends FragmentActivity implements
 		String[] credentials = settingsManager.getLoginInfo(currentUsername
 				+ "%" + currentId);
 		GradeSpeedDistrict district = null;
-		if (credentials[3].equals("Austin")) {
+		if (credentials[3].equals(Constants.AUSTIN)) {
 			district = new Austin();
 		} else if (credentials[3].equals("RoundRock")) {
 			district = new RoundRock();
@@ -487,7 +508,7 @@ public class MainActivity extends FragmentActivity implements
 									String distr = "";
 									if (district.getSelectedItem().toString()
 											.equals("AISD")) {
-										distr = "Austin";
+										distr = Constants.AUSTIN;
 									} else if (district.getSelectedItem()
 											.toString().equals("RRISD")) {
 										distr = "RoundRock";
@@ -663,7 +684,7 @@ public class MainActivity extends FragmentActivity implements
 			double weightedGPA = 0;
 			double unweightedGPA = 0;
 			unweightedGPA = GPACalc.unweighted(courses);
-			if (currentDistrict.equals("Austin")) {
+			if (currentDistrict.equals(Constants.AUSTIN)) {
 				weightedGPA = GPACalc.weighted(courses, toWeighted,
 						gradeSpeedDistrict.weightedGPABoost());
 			} else if (currentDistrict.equals("RoundRock")) {
@@ -861,8 +882,8 @@ public class MainActivity extends FragmentActivity implements
 				firstLog = false;
 			}
 
-			String html = "UNKNOWN_ERROR";
-			if (school.equals("Austin")) {
+			String html = Constants.UNKNOWN_ERROR;
+			if (school.equals(Constants.AUSTIN)) {
 				gradeSpeedDistrict = new Austin();
 				html = scrape(username, password, id, gradeSpeedDistrict);
 			} else if (school.equals("RoundRock")) {
@@ -878,7 +899,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		public void handleResponse(String response) {
-			if (response.equals("UNKNOWN_ERROR")) {
+			if (response.equals(Constants.UNKNOWN_ERROR)) {
 				if (showDialog) {
 					dialog.dismiss();
 				}
@@ -889,7 +910,7 @@ public class MainActivity extends FragmentActivity implements
 						"Something went wrong. GradeSpeed servers are probably down. Try relogging or refreshing.",
 						Toast.LENGTH_SHORT).show();
 				signInButton.setVisibility(View.VISIBLE);
-			} else if (response.equals("INVALID_LOGIN")) {
+			} else if (response.equals(Constants.INVALID_LOGIN)) {
 				if (showDialog) {
 					dialog.dismiss();
 				}
@@ -960,8 +981,8 @@ public class MainActivity extends FragmentActivity implements
 			// phase
 			// events and not wake at exact times)
 			manager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-					Constants.ALARM_TRIGGER_AT_TIME, Constants.ALARM_INTERVAL,
-					alarmIntent);
+					Constants.GRADE_PULL_TRIGGER_AT_TIME,
+					Constants.GRADE_PULL_INTERVAL, alarmIntent);
 			Log.d("BackgroundGrades", "created alarms from first login");
 		}
 
@@ -969,13 +990,14 @@ public class MainActivity extends FragmentActivity implements
 				final String id, GradeSpeedDistrict district) {
 			retriever = new GradeRetriever(district);
 			parser = new GradeParser(district);
-			status = "INVALID_LOGIN";
+			status = Constants.INVALID_LOGIN;
 
 			final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
 
 				@Override
 				public void onSuccess(String response) {
-					if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+					if (status != Constants.UNKNOWN_ERROR
+							&& status != Constants.INVALID_LOGIN) {
 						loggedIn = true;
 						saver.saveLatestResponse(response, username, id);
 						courses = parser.parseAverages(response);
@@ -984,12 +1006,14 @@ public class MainActivity extends FragmentActivity implements
 						for (int i = 0; i < courses.length; i++) {
 							classGradesList.add(null);
 						}
+						settingsManager.saveLastLogin(currentUsername,
+								currentId, System.currentTimeMillis());
 					}
 				}
 
 				@Override
 				public void onFailure(Exception e) {
-					setStatus("UNKNOWN_ERROR");
+					setStatus(Constants.UNKNOWN_ERROR);
 				}
 			};
 
@@ -997,15 +1021,16 @@ public class MainActivity extends FragmentActivity implements
 
 				@Override
 				public void onSuccess(String response) {
-					if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
-						setStatus("SUCCESS");
+					if (status != Constants.UNKNOWN_ERROR
+							&& status != Constants.INVALID_LOGIN) {
+						setStatus(Constants.SUCCESSFUL_LOGIN);
 						retriever.getAverages(getAveragesHandler);
 					}
 				}
 
 				@Override
 				public void onFailure(Exception e) {
-					setStatus("UNKNOWN_ERROR");
+					setStatus(Constants.UNKNOWN_ERROR);
 				}
 			};
 
@@ -1014,18 +1039,18 @@ public class MainActivity extends FragmentActivity implements
 				@Override
 				public void onRequiresDisambiguation(String response,
 						StudentInfo[] students, ASPNETPageState state) {
-					setStatus("SUCCESS");
+					setStatus(Constants.SUCCESSFUL_LOGIN);
 					retriever.disambiguate(id, state, disambiguateHandler);
 				}
 
 				@Override
 				public void onFailure(Exception e) {
-					setStatus("INVALID_LOGIN");
+					setStatus(Constants.INVALID_LOGIN);
 				}
 
 				@Override
 				public void onDoesNotRequireDisambiguation(String response) {
-					setStatus("SUCCESS");
+					setStatus(Constants.SUCCESSFUL_LOGIN);
 					retriever.getAverages(getAveragesHandler);
 				}
 			};
@@ -1091,8 +1116,8 @@ public class MainActivity extends FragmentActivity implements
 
 					@Override
 					public void onSuccess(String response) {
-						if (status != "UNKNOWN_ERROR"
-								&& status != "INVALID_LOGIN") {
+						if (status != Constants.UNKNOWN_ERROR
+								&& status != Constants.INVALID_LOGIN) {
 							saver.saveLatestResponse(response, credentials[0],
 									credentials[2]);
 							courses = parser.parseAverages(response);
@@ -1101,12 +1126,14 @@ public class MainActivity extends FragmentActivity implements
 							for (int i = 0; i < courses.length; i++) {
 								classGradesList.add(null);
 							}
+							settingsManager.saveLastLogin(currentUsername,
+									currentId, System.currentTimeMillis());
 						}
 					}
 
 					@Override
 					public void onFailure(Exception e) {
-						setStatus("UNKNOWN_ERROR");
+						setStatus(Constants.UNKNOWN_ERROR);
 					}
 				};
 
@@ -1114,16 +1141,16 @@ public class MainActivity extends FragmentActivity implements
 
 					@Override
 					public void onSuccess(String response) {
-						if (status != "UNKNOWN_ERROR"
-								&& status != "INVALID_LOGIN") {
-							setStatus("SUCCESS");
+						if (status != Constants.UNKNOWN_ERROR
+								&& status != Constants.INVALID_LOGIN) {
+							setStatus(Constants.SUCCESSFUL_LOGIN);
 							retriever.getAverages(getAveragesHandler);
 						}
 					}
 
 					@Override
 					public void onFailure(Exception e) {
-						setStatus("UNKNOWN_ERROR");
+						setStatus(Constants.UNKNOWN_ERROR);
 					}
 				};
 
@@ -1132,19 +1159,19 @@ public class MainActivity extends FragmentActivity implements
 					@Override
 					public void onRequiresDisambiguation(String response,
 							StudentInfo[] students, ASPNETPageState state) {
-						setStatus("SUCCESS");
+						setStatus(Constants.SUCCESSFUL_LOGIN);
 						retriever.disambiguate(credentials[2], state,
 								disambiguateHandler);
 					}
 
 					@Override
 					public void onFailure(Exception e) {
-						setStatus("INVALID_LOGIN");
+						setStatus(Constants.INVALID_LOGIN);
 					}
 
 					@Override
 					public void onDoesNotRequireDisambiguation(String response) {
-						setStatus("SUCCESS");
+						setStatus(Constants.SUCCESSFUL_LOGIN);
 						retriever.getAverages(getAveragesHandler);
 					}
 				};
@@ -1209,7 +1236,7 @@ public class MainActivity extends FragmentActivity implements
 
 			classGradesList.add(gradesList);
 			classGradesList.set(c, gradesList);
-			return "SUCCESS";
+			return Constants.SUCCESSFUL_LOGIN;
 		}
 
 		public void setStatus(String status) {

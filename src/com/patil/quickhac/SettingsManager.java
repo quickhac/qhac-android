@@ -177,4 +177,20 @@ public class SettingsManager {
 		edit.putString("district", "");
 		edit.commit();
 	}
+	
+	public void saveLastLogin(String username, String id, long millis) {
+		String fileName = username + "%" + id;
+		SharedPreferences prefs = context.getSharedPreferences(fileName,
+				Context.MODE_PRIVATE);
+		Editor edit = prefs.edit();
+		edit.putLong("lastLogin", millis);
+		edit.commit();
+	}
+	
+	public long getLastLogin(String username, String id) {
+		String fileName = username + "%" + id;
+		SharedPreferences prefs = context.getSharedPreferences(fileName,
+				Context.MODE_PRIVATE);
+		return prefs.getLong("lastLogin", 0);
+	}
 }

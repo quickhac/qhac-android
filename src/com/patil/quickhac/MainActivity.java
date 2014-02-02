@@ -19,6 +19,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.AsyncTask;
@@ -135,7 +137,6 @@ public class MainActivity extends FragmentActivity implements
 		}
 		loggedIn = false;
 		utils = new Utils(this);
-		settingsManager = new SettingsManager(this);
 		colorGenerator = new ColorGenerator(this);
 		saver = new CourseSaver(this);
 		currentTitle = "Overview";
@@ -146,6 +147,10 @@ public class MainActivity extends FragmentActivity implements
 		initializationSpinnerCounter = 0;
 		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
 		makeDrawer();
+	}
+
+	public void handleUpdate() {
+
 	}
 
 	@Override
@@ -263,6 +268,39 @@ public class MainActivity extends FragmentActivity implements
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.main, menu);
 		this.menu = menu;
+		settingsManager = new SettingsManager(this);
+
+		Log.d("JustUpdate", "Handling update");
+		// Erase credentials if just updated to avoid weird data things
+		if (settingsManager.justUpdated()) {
+			Log.d("JustUpdate", "Just updated so wiping things");
+			studentList = settingsManager.getStudentList();
+			if (studentList != null) {
+				// Erase student info and saved grades
+				for (int i = 0; i < studentList.length; i++) {
+					String user = studentList[i].split("%")[0];
+					String id = studentList[i].split("%")[1];
+					settingsManager.eraseCredentials(user, id);
+					saver.eraseCourses(user, id);
+					saver.eraseWeightedGPA(user, id);
+					saver.eraseUnweightedGPA(user, id);
+				}
+				// Erase student list
+				settingsManager.eraseStudentList();
+			}
+			// Save the new current version
+			PackageInfo pInfo = null;
+			try {
+				pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+			} catch (NameNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if (pInfo != null) {
+				settingsManager.saveCurrentVersion(pInfo.versionCode);
+			}
+		}
+
 		if (!alreadyLoadedGrades) {
 			startDisplayingGrades();
 			alreadyLoadedGrades = true;
@@ -298,12 +336,9 @@ public class MainActivity extends FragmentActivity implements
 	public void startDisplayingGrades() {
 		String selectedStudent = settingsManager.getSelectedStudent();
 		String[] students = settingsManager.getStudentList();
-		if (students != null) {
+		if (selectedStudent != null && students != null) {
 			studentList = students;
-		} else {
-			studentList = new String[0];
-		}
-		if (selectedStudent != null) {
+			Log.d("JustUpdated", "students aren't null wtf");
 			// We have a student to load
 			String[] credentials = settingsManager
 					.getLoginInfo(selectedStudent);
@@ -328,7 +363,8 @@ public class MainActivity extends FragmentActivity implements
 									credentials[2]);
 					// check if it's been less than 30 minutes since grades
 					// updated
-					if (timeSinceLastUpdated < Constants.GRADE_LENGTH && !startedFromRefresh) {
+					if (timeSinceLastUpdated < Constants.GRADE_LENGTH
+							&& !startedFromRefresh) {
 						// Grades updated less than 30 min ago and we aren't
 						// trying to refresh, don't bother
 						// getting new grades
@@ -372,6 +408,7 @@ public class MainActivity extends FragmentActivity implements
 						selectedStudent.split("%")[1]);
 				restartActivity();
 			}
+			makeStudentSpinner();
 		} else {
 			currentUsername = "";
 			currentId = "";
@@ -379,27 +416,29 @@ public class MainActivity extends FragmentActivity implements
 			signInButton.setVisibility(View.VISIBLE);
 			startLogin();
 		}
-		makeStudentSpinner();
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		long lastLogin = settingsManager.getLastLogin(currentUsername,
-				currentId);
-		if (System.currentTimeMillis() - lastLogin > Constants.LOGIN_TIMEOUT) {
-			Log.d("Resuming",
-					"it's been a while"
-							+ String.valueOf(System.currentTimeMillis()
-									- lastLogin));
-			// Since the login should have timed out, set loggedin to false so
-			// that it'll log in again to avoid timeout issues
-			loggedIn = false;
-		} else {
-			Log.d("Resuming",
-					"it's been not that long"
-							+ String.valueOf(System.currentTimeMillis()
-									- lastLogin));
+		if (settingsManager != null) {
+			long lastLogin = settingsManager.getLastLogin(currentUsername,
+					currentId);
+			if (System.currentTimeMillis() - lastLogin > Constants.LOGIN_TIMEOUT) {
+				Log.d("Resuming",
+						"it's been a while"
+								+ String.valueOf(System.currentTimeMillis()
+										- lastLogin));
+				// Since the login should have timed out, set loggedin to false
+				// so
+				// that it'll log in again to avoid timeout issues
+				loggedIn = false;
+			} else {
+				Log.d("Resuming",
+						"it's been not that long"
+								+ String.valueOf(System.currentTimeMillis()
+										- lastLogin));
+			}
 		}
 	}
 

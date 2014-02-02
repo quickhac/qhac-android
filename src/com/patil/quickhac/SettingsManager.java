@@ -7,6 +7,8 @@ import java.util.Set;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.preference.PreferenceManager;
 
 public class SettingsManager {
@@ -76,9 +78,18 @@ public class SettingsManager {
 		if (studentListSet != null) {
 			studentList = studentListSet.toArray(new String[0]);
 		} else {
-			studentList = new String[0];
+			studentList = null;
 		}
 		return studentList;
+	}
+	
+	/*
+	 * Erases student list
+	 */
+	public void eraseStudentList() {
+		Editor edit = defaultPrefs.edit();
+		edit.remove("studentList");
+		edit.commit();
 	}
 
 	/*
@@ -166,7 +177,7 @@ public class SettingsManager {
 		}
 	}
 
-	private void eraseCredentials(String username, String id) {
+	public void eraseCredentials(String username, String id) {
 		String fileName = username + "%" + id;
 		SharedPreferences prefs = context.getSharedPreferences(fileName,
 				Context.MODE_PRIVATE);
@@ -177,7 +188,36 @@ public class SettingsManager {
 		edit.putString("district", "");
 		edit.commit();
 	}
-	
+
+	public boolean justUpdated() {
+		// Get the current version of the app
+		PackageInfo pInfo = null;
+		try {
+			pInfo = context.getPackageManager().getPackageInfo(
+					context.getPackageName(), 0);
+		} catch (NameNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (pInfo != null) {
+			int currentVersion = pInfo.versionCode;
+			int savedVersion = defaultPrefs.getInt("savedVersion", 0);
+			// If the version saved is different from the version we currently
+			// have
+			if (savedVersion != currentVersion) {
+				// we just updated
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public void saveCurrentVersion(int version) {
+		Editor edit = defaultPrefs.edit();
+		edit.putInt("savedVersion", version);
+		edit.commit();
+	}
+
 	public void saveLastLogin(String username, String id, long millis) {
 		String fileName = username + "%" + id;
 		SharedPreferences prefs = context.getSharedPreferences(fileName,
@@ -186,7 +226,7 @@ public class SettingsManager {
 		edit.putLong("lastLogin", millis);
 		edit.commit();
 	}
-	
+
 	public long getLastLogin(String username, String id) {
 		String fileName = username + "%" + id;
 		SharedPreferences prefs = context.getSharedPreferences(fileName,

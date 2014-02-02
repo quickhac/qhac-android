@@ -33,6 +33,16 @@ public class CourseSaver {
 		editor.commit();
 	}
 
+	public void eraseCourses(String username, String id) {
+		String fileName = username + "%" + id;
+		SharedPreferences prefs = context.getSharedPreferences(fileName,
+				Context.MODE_PRIVATE);
+		Editor editor = prefs.edit();
+		editor.remove("savedCourses");
+		editor.remove("lastUpdated");
+		editor.commit();
+	}
+
 	/*
 	 * Saves GPA value
 	 */
@@ -78,6 +88,24 @@ public class CourseSaver {
 		float gpa = prefs.getFloat("unweightedGPA", 0);
 		return (double) gpa;
 	}
+	
+	public void eraseWeightedGPA(String username, String id) {
+		String fileName = username + "%" + id;
+		SharedPreferences prefs = context.getSharedPreferences(fileName,
+				Context.MODE_PRIVATE);
+		Editor editor = prefs.edit();
+		editor.remove("weightedGPA");
+		editor.commit();
+	}
+	
+	public void eraseUnweightedGPA(String username, String id) {
+		String fileName = username + "%" + id;
+		SharedPreferences prefs = context.getSharedPreferences(fileName,
+				Context.MODE_PRIVATE);
+		Editor editor = prefs.edit();
+		editor.remove("unweightedGPA");
+		editor.commit();
+	}
 
 	/*
 	 * Returns the cached courses
@@ -108,14 +136,14 @@ public class CourseSaver {
 		editor.commit();
 		Log.d("BackgroundGrades", "saved response ");
 	}
-	
+
 	public String getLatestResponse(String username, String id) {
 		String fileName = username + "%" + id;
 		SharedPreferences prefs = context.getSharedPreferences(fileName,
 				Context.MODE_PRIVATE);
 		String savedResponse = prefs.getString("savedResponse", null);
 		Log.d("BackgroundGrades", "got saved response ");
-		if(savedResponse == null) {
+		if (savedResponse == null) {
 			Log.d("BackgroundGrades", "saved response is null");
 		}
 		return savedResponse;

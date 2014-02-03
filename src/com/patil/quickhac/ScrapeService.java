@@ -1,12 +1,21 @@
 package com.patil.quickhac;
 
+import java.util.ArrayList;
+
 import android.app.IntentService;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
 
 import com.quickhac.common.GradeParser;
 import com.quickhac.common.GradeRetriever;
 import com.quickhac.common.data.Course;
+import com.quickhac.common.data.Cycle;
+import com.quickhac.common.data.Semester;
 import com.quickhac.common.data.StudentInfo;
 import com.quickhac.common.districts.GradeSpeedDistrict;
 import com.quickhac.common.districts.impl.Austin;
@@ -66,21 +75,119 @@ public class ScrapeService extends IntentService {
 		String pass = credentials[1];
 		String id = credentials[2];
 		String school = credentials[3];
-		String status = "UNKNOWN_ERROR";
-		if (school.equals("Austin")) {
+		String status = Constants.UNKNOWN_ERROR;
+		if (school.equals(Constants.AUSTIN)) {
 			district = new Austin();
 			status = scrape(user, pass, id, district);
-		} else if (school.equals("RoundRock")) {
+		} else if (school.equals(Constants.ROUNDROCK)) {
 			district = new RoundRock();
 			status = scrape(user, pass, id, district);
 		}
-		if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+		if (status != Constants.UNKNOWN_ERROR
+				&& status != Constants.INVALID_LOGIN) {
 			if (courseList != null) {
-				// save the courselist
+				// Check if any grades have changed, if they have, send a
+				// notification
+				Course[] savedCourses = saver.getSavedCourses(user, id);
+				if (savedCourses != null) {
+					// Look for differences
+					ArrayList<GradeChange> changes = getGradeChanges(
+							savedCourses, courseList);
+					if (changes.size() > 0) {
+						makeGradeChangeNotification(changes, user, id);
+					}
+				}
+				// save the new courselist
 				saver.saveCourses(courseList, user, id);
 				Log.d("BackgroundGrades", "successfully updated grades");
 			}
 		}
+	}
+
+	public String generateMessageText(ArrayList<GradeChange> changes) {
+		String message = "";
+		for (int i = 0; i < changes.size(); i++) {
+			if (i != changes.size() - 1) {
+				message += changes.get(i).toString() + "\n";
+			} else {
+				message += changes.get(i).toString();
+			}
+		}
+		return message;
+	}
+
+	public void makeGradeChangeNotification(ArrayList<GradeChange> changes,
+			String username, String id) {
+		NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(
+				this).setSmallIcon(R.drawable.ic_launcher).setContentTitle(
+				"Grades changed in " + changes.size() + " courses");
+		mBuilder.setContentText("User " + username + " - " + id);
+
+		NotificationCompat.InboxStyle inboxStyle = new NotificationCompat.InboxStyle();
+		// Sets a title for the Inbox style big view
+		inboxStyle.setBigContentTitle("Grades changed:");
+		// Moves events into the big view
+		for (int i = 0; i < changes.size(); i++) {
+			inboxStyle.addLine(changes.get(i).toString());
+		}
+		// Moves the big view style object into the notification object.
+		mBuilder.setStyle(inboxStyle);
+
+		// Creates an explicit intent for an Activity in your app
+		Intent resultIntent = new Intent(this, MainActivity.class);
+
+		// The stack builder object will contain an artificial back stack for
+		// the
+		// started Activity.
+		// This ensures that navigating backward from the Activity leads out of
+		// your application to the Home screen.
+		TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+		// Adds the back stack for the Intent (but not the Intent itself)
+		stackBuilder.addParentStack(MainActivity.class);
+		// Adds the Intent that starts the Activity to the top of the stack
+		stackBuilder.addNextIntent(resultIntent);
+		PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0,
+				PendingIntent.FLAG_UPDATE_CURRENT);
+		mBuilder.setContentIntent(resultPendingIntent);
+		NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+		// mId allows you to update the notification later on.
+		mNotificationManager.notify((int) Math.random() * 100000,
+				mBuilder.build());
+	}
+
+	public ArrayList<GradeChange> getGradeChanges(Course[] oldCourses,
+			Course[] newCourses) {
+		ArrayList<GradeChange> gradeChanges = new ArrayList<GradeChange>();
+		for (int courseIndex = 0; courseIndex < oldCourses.length; courseIndex++) {
+			Course course = oldCourses[courseIndex];
+			for (int semIndex = 0; semIndex < course.semesters.length; semIndex++) {
+				Semester semester = course.semesters[semIndex];
+				for (int cycleIndex = 0; cycleIndex < semester.cycles.length; cycleIndex++) {
+					Cycle savedCycle = semester.cycles[cycleIndex];
+					Cycle newCycle = newCourses[courseIndex].semesters[semIndex].cycles[cycleIndex];
+					if (savedCycle.average != null && newCycle.average != null) {
+						if (!savedCycle.average.toString().equals(
+								newCycle.average.toString())) {
+							gradeChanges.add(new GradeChange(course.title,
+									savedCycle.average.toString(),
+									newCycle.average.toString(), false));
+						}
+					} else if (savedCycle.average == null
+							&& newCycle.average != null) {
+						gradeChanges.add(new GradeChange(course.title,
+								savedCycle.average.toString(), newCycle.average
+										.toString(), true));
+					} else if (savedCycle.average != null
+							&& newCycle.average == null) {
+						// How is this even possible
+					} else if (savedCycle.average == null
+							&& newCycle.average == null) {
+						// Staying nonexistent is not a change
+					}
+				}
+			}
+		}
+		return gradeChanges;
 	}
 
 	public String scrape(final String username, final String password,
@@ -88,15 +195,16 @@ public class ScrapeService extends IntentService {
 		retriever = new GradeRetriever(district);
 		parser = new GradeParser(district);
 		courseList = null;
-		status = "INVALID_LOGIN";
+		status = Constants.INVALID_LOGIN;
 		Log.d("BackgroundGrades", "doing grade pull for " + username + " " + id);
 		final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
 
 			@Override
 			public void onSuccess(String response) {
-				if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
+				if (status != Constants.UNKNOWN_ERROR
+						&& status != Constants.INVALID_LOGIN) {
 					saver.saveLatestResponse(response, username, id);
-					setStatus("SUCCESS");
+					setStatus(Constants.SUCCESSFUL_LOGIN);
 					setCourses(parser.parseAverages(response));
 					Log.d("BackgroundGrades", "successful setting of courses");
 				}
@@ -104,7 +212,7 @@ public class ScrapeService extends IntentService {
 
 			@Override
 			public void onFailure(Exception e) {
-				setStatus("UNKNOWN_ERROR");
+				setStatus(Constants.UNKNOWN_ERROR);
 			}
 		};
 
@@ -112,15 +220,16 @@ public class ScrapeService extends IntentService {
 
 			@Override
 			public void onSuccess(String response) {
-				if (status != "UNKNOWN_ERROR" && status != "INVALID_LOGIN") {
-					setStatus("SUCCESS");
+				if (status != Constants.UNKNOWN_ERROR
+						&& status != Constants.INVALID_LOGIN) {
+					setStatus(Constants.SUCCESSFUL_LOGIN);
 					retriever.getAverages(getAveragesHandler);
 				}
 			}
 
 			@Override
 			public void onFailure(Exception e) {
-				setStatus("UNKNOWN_ERROR");
+				setStatus(Constants.UNKNOWN_ERROR);
 			}
 		};
 
@@ -129,18 +238,18 @@ public class ScrapeService extends IntentService {
 			@Override
 			public void onRequiresDisambiguation(String response,
 					StudentInfo[] students, ASPNETPageState state) {
-				setStatus("SUCCESS");
+				setStatus(Constants.SUCCESSFUL_LOGIN);
 				retriever.disambiguate(id, state, disambiguateHandler);
 			}
 
 			@Override
 			public void onFailure(Exception e) {
-				setStatus("INVALID_LOGIN");
+				setStatus(Constants.INVALID_LOGIN);
 			}
 
 			@Override
 			public void onDoesNotRequireDisambiguation(String response) {
-				setStatus("SUCCESS");
+				setStatus(Constants.SUCCESSFUL_LOGIN);
 				retriever.getAverages(getAveragesHandler);
 			}
 		};

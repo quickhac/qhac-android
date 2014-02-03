@@ -149,9 +149,6 @@ public class MainActivity extends FragmentActivity implements
 		makeDrawer();
 	}
 
-	public void handleUpdate() {
-
-	}
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
@@ -630,7 +627,7 @@ public class MainActivity extends FragmentActivity implements
 							public void onClick(View v) {
 								Intent intent = new Intent(MainActivity.this,
 										SettingsActivity.class);
-								startActivity(intent);
+								startActivityForResult(intent, 1);
 							}
 						});
 						cardView.addCard(GPACard);

@@ -7,7 +7,7 @@ import android.os.SystemClock;
 public class Constants {
 
 	// How often new grades are pulled (defaults to 1 hour)
-	public static final long GRADE_PULL_INTERVAL = AlarmManager.INTERVAL_HOUR;
+	public static final long GRADE_PULL_INTERVAL = 60000;
 
 	// Time delay until alarm first goes off
 	public static final long GRADE_PULL_TRIGGER_AT_TIME = SystemClock

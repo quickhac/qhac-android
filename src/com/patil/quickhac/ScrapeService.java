@@ -3,10 +3,13 @@ package com.patil.quickhac;
 import java.util.ArrayList;
 
 import android.app.IntentService;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
@@ -90,10 +93,12 @@ public class ScrapeService extends IntentService {
 				// notification
 				Course[] savedCourses = saver.getSavedCourses(user, id);
 				if (savedCourses != null) {
+					Log.d("BackgroundGrades", "savedcourses not null");
 					// Look for differences
 					ArrayList<GradeChange> changes = getGradeChanges(
 							savedCourses, courseList);
 					if (changes.size() > 0) {
+						Log.d("BackgroundGrades", "changes");
 						makeGradeChangeNotification(changes, user, id);
 					}
 				}
@@ -118,21 +123,16 @@ public class ScrapeService extends IntentService {
 
 	public void makeGradeChangeNotification(ArrayList<GradeChange> changes,
 			String username, String id) {
+		Log.d("BackgroundGrades", "making notifications");
 		NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(
-				this).setSmallIcon(R.drawable.ic_launcher).setContentTitle(
+				this).setSmallIcon(R.drawable.icon).setContentTitle(
 				"Grades changed in " + changes.size() + " courses");
 		mBuilder.setContentText("User " + username + " - " + id);
-
-		NotificationCompat.InboxStyle inboxStyle = new NotificationCompat.InboxStyle();
-		// Sets a title for the Inbox style big view
-		inboxStyle.setBigContentTitle("Grades changed:");
-		// Moves events into the big view
-		for (int i = 0; i < changes.size(); i++) {
-			inboxStyle.addLine(changes.get(i).toString());
-		}
-		// Moves the big view style object into the notification object.
-		mBuilder.setStyle(inboxStyle);
-
+		Uri alarmSound = RingtoneManager
+				.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+		mBuilder.setSound(alarmSound);
+		mBuilder.setStyle(new NotificationCompat.BigTextStyle()
+				.bigText(generateMessageText(changes)));
 		// Creates an explicit intent for an Activity in your app
 		Intent resultIntent = new Intent(this, MainActivity.class);
 
@@ -150,9 +150,10 @@ public class ScrapeService extends IntentService {
 				PendingIntent.FLAG_UPDATE_CURRENT);
 		mBuilder.setContentIntent(resultPendingIntent);
 		NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+		Notification not = mBuilder.build();
+		not.defaults = Notification.DEFAULT_ALL;
 		// mId allows you to update the notification later on.
-		mNotificationManager.notify((int) Math.random() * 100000,
-				mBuilder.build());
+		mNotificationManager.notify((int) Math.random() * 100000, not);
 	}
 
 	public ArrayList<GradeChange> getGradeChanges(Course[] oldCourses,
@@ -174,12 +175,11 @@ public class ScrapeService extends IntentService {
 						}
 					} else if (savedCycle.average == null
 							&& newCycle.average != null) {
-						gradeChanges.add(new GradeChange(course.title,
-								savedCycle.average.toString(), newCycle.average
-										.toString(), true));
+						gradeChanges.add(new GradeChange(course.title, "",
+								newCycle.average.toString(), true));
 					} else if (savedCycle.average != null
 							&& newCycle.average == null) {
-						// How is this even possible
+						// How is this even possible grades somehow got deleted
 					} else if (savedCycle.average == null
 							&& newCycle.average == null) {
 						// Staying nonexistent is not a change

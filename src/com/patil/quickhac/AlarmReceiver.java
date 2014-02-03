@@ -14,4 +14,4 @@ public class AlarmReceiver extends BroadcastReceiver {
 		context.startService(new Intent(context, ScrapeService.class));
 	}
 
-}  
+}

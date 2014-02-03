@@ -20,7 +20,7 @@ public class GradeChange {
 			// change points
 			return "Your grade in " + title + " changed from a " + oldGrade + " to a " + newGrade;
 		} else {
-			return "You have new grades in " + title;
+			return "You have a new " + newGrade + " grade in " + title;
 		}
 	}
 }

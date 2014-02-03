@@ -149,7 +149,6 @@ public class MainActivity extends FragmentActivity implements
 		makeDrawer();
 	}
 
-
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Pass the event to ActionBarDrawerToggle, if it returns
@@ -959,7 +958,11 @@ public class MainActivity extends FragmentActivity implements
 						Toast.LENGTH_SHORT).show();
 				// Only show signinbutton if there's no other student to show
 				// grades for
-				if (!(studentList.length > 0)) {
+				if (studentList != null) {
+					if (!(studentList.length > 0)) {
+						signInButton.setVisibility(View.VISIBLE);
+					}
+				} else {
 					signInButton.setVisibility(View.VISIBLE);
 				}
 				startLogin();

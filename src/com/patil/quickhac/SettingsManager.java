@@ -50,7 +50,63 @@ public class SettingsManager {
 		credentials[3] = prefs.getString("district", null);
 		return credentials;
 	}
-
+	
+	/*
+	 * Returns if the user wants to receieve notifications
+	 */
+	public boolean isShowNotificationPreferenceEnabled() {
+		return defaultPrefs.getBoolean("pref_showNotifications", true);
+	}
+	
+	/*
+	 * Returns if it's the first time the user has seen the overview screen
+	 */
+	public boolean isFirstTimeOverview() {
+		return defaultPrefs.getBoolean("firstOverview", true);
+	}
+	
+	/*
+	 * Returns if it's the first time the user has seen the navigation drawer
+	 */
+	public boolean isFirstTimeDrawer() {
+		return defaultPrefs.getBoolean("firstDrawer", true);
+	}
+	
+	/*
+	 * Returns if it's the first time the user has seen the cycle page
+	 */
+	public boolean isFirstTimeCycle() {
+		return defaultPrefs.getBoolean("firstCycle", true);
+	}
+	
+	/*
+	 * Sets the first time overview
+	 */
+	public void setFirstTimeOverview(boolean first) {
+		Editor edit = defaultPrefs.edit();
+		edit.putBoolean("firstOverview", first);
+		edit.commit();
+	}
+	
+	/*
+	 * Sets the first time drawer
+	 */
+	public void setFirstTimeDrawer(boolean first) {
+		Editor edit = defaultPrefs.edit();
+		edit.putBoolean("firstDrawer", first);
+		edit.commit();
+	}
+	
+	/*
+	 * Sets the first time cycle view
+	 */
+	public void setFirstTimeCycle(boolean first) {
+		Editor edit = defaultPrefs.edit();
+		edit.putBoolean("firstCycle", first);
+		edit.commit();
+	}
+	
+	
 	// Saves the selected student
 	public void saveSelectedStudent(String username, String id) {
 		String name;

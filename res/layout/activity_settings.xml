@@ -13,10 +13,20 @@
             android:dialogTitle="@string/pref_chooseWeighted"
             android:key="pref_weightedClasses"
             android:title="@string/pref_chooseWeighted" />
-        
+
         <MultiSelectListPreference
             android:dialogTitle="@string/pref_chooseExcluded"
             android:key="pref_excludedClasses"
             android:title="@string/pref_chooseExcluded" />
     </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_category_notifications" >
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="pref_showNotifications"
+            android:summary="@string/pref_showNotifications_summ"
+            android:title="@string/pref_showNotifications" />
+    </PreferenceCategory>
+
 </PreferenceScreen>

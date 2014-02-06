@@ -232,7 +232,7 @@ public class MainActivity extends FragmentActivity implements
 		super.onActivityResult(requestCode, resultCode, data);
 		// Restart activity if from settings to apply settings
 		if (resultCode == RESULT_OK) {
-			restartActivity();
+			restartActivityForRefresh();
 		}
 	}
 
@@ -243,7 +243,7 @@ public class MainActivity extends FragmentActivity implements
 		// view
 		boolean drawerOpen = drawerLayout.isDrawerOpen(drawer);
 		if (drawerOpen) {
-			if (isFirstDrawer()) {
+			if (settingsManager.isFirstTimeDrawer()) {
 				if (studentList != null) {
 					if (studentList.length > 0) {
 						ActionViewTarget target = new ActionViewTarget(this,
@@ -252,7 +252,7 @@ public class MainActivity extends FragmentActivity implements
 								target, this, R.string.showcase_student,
 								R.string.showcase_student_description);
 						sv.setShowcaseIndicatorScale(1.75f);
-						setFirstDrawer(false);
+						settingsManager.setFirstTimeDrawer(false);
 					}
 				}
 			}
@@ -301,7 +301,7 @@ public class MainActivity extends FragmentActivity implements
 			startDisplayingGrades();
 			alreadyLoadedGrades = true;
 		}
-		if (isFirstOverview()) {
+		if (settingsManager.isFirstTimeOverview()) {
 			if (studentList != null) {
 				if (studentList.length > 0) {
 					ActionViewTarget target = new ActionViewTarget(this,
@@ -309,7 +309,7 @@ public class MainActivity extends FragmentActivity implements
 					ShowcaseView sv = ShowcaseView.insertShowcaseView(target,
 							this, R.string.showcase_navigation,
 							R.string.showcase_navigation_description);
-					setFirstOverview(false);
+					settingsManager.setFirstTimeOverview(false);
 				}
 			}
 		}
@@ -1397,37 +1397,21 @@ public class MainActivity extends FragmentActivity implements
 						Toast.LENGTH_SHORT).show();
 			}
 
-			if (isFirstCycle()) {
+			SettingsManager manager = new SettingsManager(getView().getContext());
+			if (manager.isFirstTimeCycle()) {
 				ShowcaseView sv = ShowcaseView.insertShowcaseViewWithType(
 						ShowcaseView.ITEM_ACTION_ITEM, R.id.action_nextCycle,
 						getActivity(), R.string.showcase_cycle,
 						R.string.showcase_cycle_description,
 						new ShowcaseView.ConfigOptions());
-				setFirstCycle(false);
+				manager.setFirstTimeCycle(false);
+				
 			}
 		}
 
-		/*
-		 * Helper method to say if it's the first time the cycle screen is
-		 * loaded.
-		 */
-		public boolean isFirstCycle() {
-			SharedPreferences prefs = PreferenceManager
-					.getDefaultSharedPreferences(getView().getContext());
-			boolean firstLaunch = prefs.getBoolean("firstCycle", true);
-			return firstLaunch;
-		}
+		
 
-		/*
-		 * Helper method to set the value of first cycle screen load.
-		 */
-		public void setFirstCycle(boolean first) {
-			SharedPreferences prefs = PreferenceManager
-					.getDefaultSharedPreferences(getView().getContext());
-			Editor edit = prefs.edit();
-			edit.putBoolean("firstCycle", first);
-			edit.commit();
-		}
+		
 
 		public class CollectionPagerAdapter extends FragmentStatePagerAdapter {
 			public CollectionPagerAdapter(FragmentManager fm) {
@@ -1620,50 +1604,6 @@ public class MainActivity extends FragmentActivity implements
 	public void onNothingSelected(AdapterView<?> arg0) {
 
 	}
-
-	/*
-	 * Helper method to say if it's the first time the overview screen is
-	 * loaded.
-	 */
-	public boolean isFirstOverview() {
-		SharedPreferences prefs = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		boolean firstLaunch = prefs.getBoolean("firstOverview", true);
-		return firstLaunch;
-	}
-
-	/*
-	 * Helper method to set the value of first overview screen load.
-	 */
-	public void setFirstOverview(boolean first) {
-		SharedPreferences prefs = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		Editor edit = prefs.edit();
-		edit.putBoolean("firstOverview", first);
-		edit.commit();
-	}
-
-	/*
-	 * Helper method to say if it's the first time the drawer is open.
-	 */
-	public boolean isFirstDrawer() {
-		SharedPreferences prefs = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		boolean firstLaunch = prefs.getBoolean("firstDrawer", true);
-		return firstLaunch;
-	}
-
-	/*
-	 * Helper method to set the value of first drawer open.
-	 */
-	public void setFirstDrawer(boolean first) {
-		SharedPreferences prefs = PreferenceManager
-				.getDefaultSharedPreferences(this);
-		Editor edit = prefs.edit();
-		edit.putBoolean("firstDrawer", first);
-		edit.commit();
-	}
-
 	// Helper method to make sure there aren't any letter grades
 	public boolean isLettersInAverages(Course[] courses) {
 		for (int courseIndex = 0; courseIndex < courses.length; courseIndex++) {

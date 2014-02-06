@@ -99,7 +99,10 @@ public class ScrapeService extends IntentService {
 							savedCourses, courseList);
 					if (changes.size() > 0) {
 						Log.d("BackgroundGrades", "changes");
-						makeGradeChangeNotification(changes, user, id);
+						// If the user has enabled grade change notifications
+						if (manager.isShowNotificationPreferenceEnabled()) {
+							makeGradeChangeNotification(changes, user, id);
+						}
 					}
 				}
 				// save the new courselist

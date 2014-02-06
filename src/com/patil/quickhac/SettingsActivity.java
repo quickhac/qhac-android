@@ -1,15 +1,15 @@
 package com.patil.quickhac;
 
-import com.patil.quickhac.R;
-import com.quickhac.common.data.Course;
-
 import android.os.Bundle;
 import android.preference.MultiSelectListPreference;
 import android.preference.PreferenceActivity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 
+import com.quickhac.common.data.Course;
+
 public class SettingsActivity extends PreferenceActivity {
+	@SuppressWarnings("deprecation")
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -18,7 +18,7 @@ public class SettingsActivity extends PreferenceActivity {
 		addPreferencesFromResource(R.layout.activity_settings);
 
 		MultiSelectListPreference weightedPreference = (MultiSelectListPreference) findPreference("pref_weightedClasses");
-		
+
 		MultiSelectListPreference excludedPreference = (MultiSelectListPreference) findPreference("pref_excludedClasses");
 
 		Course[] courses = MainActivity.courses;
@@ -31,7 +31,6 @@ public class SettingsActivity extends PreferenceActivity {
 		weightedPreference.setEntries(classes);
 		excludedPreference.setEntryValues(classes);
 		excludedPreference.setEntries(classes);
-		
 	}
 
 	@Override
@@ -43,14 +42,14 @@ public class SettingsActivity extends PreferenceActivity {
 		}
 		return super.onOptionsItemSelected(item);
 	}
-	
+
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-	    if (keyCode == KeyEvent.KEYCODE_BACK) {
-	    	setResult(RESULT_OK, null);
+		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			setResult(RESULT_OK, null);
 			finish();
 			return true;
-	    }
-	    return super.onKeyDown(keyCode, event);
+		}
+		return super.onKeyDown(keyCode, event);
 	}
 }

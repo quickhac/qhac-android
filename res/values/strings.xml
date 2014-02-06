@@ -43,8 +43,12 @@
     <string name="showcase_student_description">You can add students and switch between them.</string>
     <string name="showcase_cycle">Switch Between Cycles</string>
     <string name="showcase_cycle_description">Use the buttons or swipe left and right to switch between cycles.</string>
+    <string name="pref_category_notifications">Notifications</string>
+    <string name="pref_showNotifications">Show notifications</string>
+    <string name="pref_showNotifications_summ">Notify me when my grade changes in a class</string>
     <string name="left_sign">&lt;</string>
     <string name="right_sign">&gt;</string>
+    <string name="grade">GRADE</string>
     <string name="white">#FFFFFF</string>
     <string name="turquoise">#1ABC9C</string>
     <string name="green_sea">#16A085</string>
@@ -66,7 +70,5 @@
     <string name="silver">#BDC3C7</string>
     <string name="concrete">#95A5A6</string>
     <string name="asbestos">#7F8C8D</string>
-    <string name="grade">GRADE</string>
-    
 
 </resources>

@@ -269,36 +269,31 @@ public class MainActivity extends FragmentActivity implements
 		settingsManager = new SettingsManager(this);
 
 		Log.d("JustUpdate", "Handling update");
-		// Erase credentials if just updated to avoid weird data things
-		if (settingsManager.justUpdated()) {
-			Log.d("JustUpdate", "Just updated so wiping things");
-			studentList = settingsManager.getStudentList();
-			if (studentList != null) {
-				// Erase student info and saved grades
-				for (int i = 0; i < studentList.length; i++) {
-					String user = studentList[i].split("%")[0];
-					String id = studentList[i].split("%")[1];
-					settingsManager.eraseCredentials(user, id);
-					saver.eraseCourses(user, id);
-					saver.eraseWeightedGPA(user, id);
-					saver.eraseUnweightedGPA(user, id);
-				}
-				// Erase student list
-				settingsManager.eraseStudentList();
-			}
-			// Save the new current version
-			PackageInfo pInfo = null;
-			try {
-				pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-			} catch (NameNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			if (pInfo != null) {
-				settingsManager.saveCurrentVersion(pInfo.versionCode);
-			}
+		/*
+		 * // Erase credentials if just updated to avoid weird data things if
+		 * (settingsManager.justUpdated()) { Log.d("JustUpdate",
+		 * "Just updated so wiping things"); studentList =
+		 * settingsManager.getStudentList(); if (studentList != null) { // Erase
+		 * student info and saved grades for (int i = 0; i < studentList.length;
+		 * i++) { String user = studentList[i].split("%")[0]; String id =
+		 * studentList[i].split("%")[1]; settingsManager.eraseCredentials(user,
+		 * id); saver.eraseCourses(user, id); saver.eraseWeightedGPA(user, id);
+		 * saver.eraseUnweightedGPA(user, id); } // Erase student list
+		 * settingsManager.eraseStudentList(); }
+		 * 
+		 * }
+		 */
+		// Save the new current version
+		PackageInfo pInfo = null;
+		try {
+			pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+		} catch (NameNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-
+		if (pInfo != null) {
+			settingsManager.saveCurrentVersion(pInfo.versionCode);
+		}
 		if (!alreadyLoadedGrades) {
 			startDisplayingGrades();
 			alreadyLoadedGrades = true;
@@ -1004,8 +999,6 @@ public class MainActivity extends FragmentActivity implements
 
 		}
 
-		
-
 		public String scrape(final String username, final String password,
 				final String id, GradeSpeedDistrict district) {
 			retriever = new GradeRetriever(district);
@@ -1084,11 +1077,11 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 	}
-	
+
 	/*
-	 * Schedules a periodic alarm to periodically notify the user of new
-	 * grades. These alarms are wiped when the device reboots, which is the
-	 * reason for the BootReceiver class which resets alarms.
+	 * Schedules a periodic alarm to periodically notify the user of new grades.
+	 * These alarms are wiped when the device reboots, which is the reason for
+	 * the BootReceiver class which resets alarms.
 	 */
 	public void createAlarms() {
 		Log.d("BackgroundGrades", "scheduling alarms for first login");
@@ -1100,18 +1093,16 @@ public class MainActivity extends FragmentActivity implements
 
 		// Cancel any existing alarms
 		manager.cancel(alarmIntent);
-		
-		
+
 		// Get the polling interval
 		int intervalMinutes = settingsManager.getAlarmPollInterval();
 		int interval = intervalMinutes * 60000;
-		
+
 		// use inexact repeating which is easier on battery (system can
 		// phase
 		// events and not wake at exact times)
 		manager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-				Constants.GRADE_PULL_TRIGGER_AT_TIME,
-				interval, alarmIntent);
+				Constants.GRADE_PULL_TRIGGER_AT_TIME, interval, alarmIntent);
 		Log.d("BackgroundGrades", "created alarms from first login");
 	}
 
@@ -1408,7 +1399,8 @@ public class MainActivity extends FragmentActivity implements
 						Toast.LENGTH_SHORT).show();
 			}
 
-			SettingsManager manager = new SettingsManager(getView().getContext());
+			SettingsManager manager = new SettingsManager(getView()
+					.getContext());
 			if (manager.isFirstTimeCycle()) {
 				ShowcaseView sv = ShowcaseView.insertShowcaseViewWithType(
 						ShowcaseView.ITEM_ACTION_ITEM, R.id.action_nextCycle,
@@ -1416,13 +1408,9 @@ public class MainActivity extends FragmentActivity implements
 						R.string.showcase_cycle_description,
 						new ShowcaseView.ConfigOptions());
 				manager.setFirstTimeCycle(false);
-				
+
 			}
 		}
-
-		
-
-		
 
 		public class CollectionPagerAdapter extends FragmentStatePagerAdapter {
 			public CollectionPagerAdapter(FragmentManager fm) {
@@ -1615,6 +1603,7 @@ public class MainActivity extends FragmentActivity implements
 	public void onNothingSelected(AdapterView<?> arg0) {
 
 	}
+
 	// Helper method to make sure there aren't any letter grades
 	public boolean isLettersInAverages(Course[] courses) {
 		for (int courseIndex = 0; courseIndex < courses.length; courseIndex++) {

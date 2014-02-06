@@ -20,7 +20,8 @@
             android:title="@string/pref_chooseExcluded" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/pref_category_notifications" >
+    <PreferenceCategory android:title="@string/pref_category_notifications"
+        android:key="category_notifications" >
 
         <CheckBoxPreference
             android:defaultValue="true"

@@ -3,6 +3,7 @@ package com.patil.quickhac;
 import android.os.Bundle;
 import android.preference.MultiSelectListPreference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceCategory;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 
@@ -31,6 +32,13 @@ public class SettingsActivity extends PreferenceActivity {
 		weightedPreference.setEntries(classes);
 		excludedPreference.setEntryValues(classes);
 		excludedPreference.setEntries(classes);
+
+		PreferenceCategory notificationCategory = (PreferenceCategory) findPreference("category_notifications");
+		// Add the slider dialog preference for polling interval
+		SeekBarPreference sb = new SeekBarPreference(this, null);
+		sb.setTitle("Choose polling interval");
+		sb.setKey("pref_gradePollingInterval");
+		notificationCategory.addPreference(sb);
 	}
 
 	@Override

@@ -232,6 +232,8 @@ public class MainActivity extends FragmentActivity implements
 		super.onActivityResult(requestCode, resultCode, data);
 		// Restart activity if from settings to apply settings
 		if (resultCode == RESULT_OK) {
+			// Make new alarms with new values
+			createAlarms();
 			restartActivityForRefresh();
 		}
 	}
@@ -1002,28 +1004,7 @@ public class MainActivity extends FragmentActivity implements
 
 		}
 
-		/*
-		 * Schedules a periodic alarm to periodically notify the user of new
-		 * grades. These alarms are wiped when the device reboots, which is the
-		 * reason for the BootReceiver class which resets alarms.
-		 */
-		public void createAlarms() {
-			Log.d("BackgroundGrades", "scheduling alarms for first login");
-			// Schedule alarms
-			AlarmManager manager = (AlarmManager) context
-					.getSystemService(Context.ALARM_SERVICE);
-
-			PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 0,
-					new Intent(context, AlarmReceiver.class), 0);
-
-			// use inexact repeating which is easier on battery (system can
-			// phase
-			// events and not wake at exact times)
-			manager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-					Constants.GRADE_PULL_TRIGGER_AT_TIME,
-					Constants.GRADE_PULL_INTERVAL, alarmIntent);
-			Log.d("BackgroundGrades", "created alarms from first login");
-		}
+		
 
 		public String scrape(final String username, final String password,
 				final String id, GradeSpeedDistrict district) {
@@ -1102,6 +1083,36 @@ public class MainActivity extends FragmentActivity implements
 			this.status = status;
 		}
 
+	}
+	
+	/*
+	 * Schedules a periodic alarm to periodically notify the user of new
+	 * grades. These alarms are wiped when the device reboots, which is the
+	 * reason for the BootReceiver class which resets alarms.
+	 */
+	public void createAlarms() {
+		Log.d("BackgroundGrades", "scheduling alarms for first login");
+		// Schedule alarms
+		AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+		PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0,
+				new Intent(this, AlarmReceiver.class), 0);
+
+		// Cancel any existing alarms
+		manager.cancel(alarmIntent);
+		
+		
+		// Get the polling interval
+		int intervalMinutes = settingsManager.getAlarmPollInterval();
+		int interval = intervalMinutes * 60000;
+		
+		// use inexact repeating which is easier on battery (system can
+		// phase
+		// events and not wake at exact times)
+		manager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+				Constants.GRADE_PULL_TRIGGER_AT_TIME,
+				interval, alarmIntent);
+		Log.d("BackgroundGrades", "created alarms from first login");
 	}
 
 	public class CycleScrapeTask extends AsyncTask<String, Void, String> {

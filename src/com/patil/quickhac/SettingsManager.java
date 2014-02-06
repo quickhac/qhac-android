@@ -51,6 +51,10 @@ public class SettingsManager {
 		return credentials;
 	}
 	
+	public int getAlarmPollInterval() {
+		return defaultPrefs.getInt("pref_gradePollingInterval", 30);
+	}
+	
 	/*
 	 * Returns if the user wants to receieve notifications
 	 */

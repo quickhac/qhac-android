@@ -56,6 +56,13 @@ public class SettingsManager {
 	}
 	
 	/*
+	 * Returns if the user wants to have grade highlighting
+	 */
+	public boolean isGradeColorHighlightEnabled() {
+		return defaultPrefs.getBoolean("pref_showGradeColor", true);
+	}
+	
+	/*
 	 * Returns if the user wants to receieve notifications
 	 */
 	public boolean isShowNotificationPreferenceEnabled() {

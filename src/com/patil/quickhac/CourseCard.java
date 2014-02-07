@@ -23,6 +23,7 @@ public class CourseCard extends RecyclableCard {
 	TextView titleView;
 	ImageView stripe;
 	ColorGenerator generator;
+	SettingsManager settingsManager;
 
 	public CourseCard(String title, String description, String color,
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
@@ -37,6 +38,7 @@ public class CourseCard extends RecyclableCard {
 	protected void applyTo(View convertView) {
 		Course course = (Course) getData();
 		Context context = convertView.getContext();
+		settingsManager = new SettingsManager(context);
 		generator = new ColorGenerator(context);
 		makeTitle(convertView);
 		makeStripe(convertView);
@@ -80,7 +82,10 @@ public class CourseCard extends RecyclableCard {
 				String cycleGrade = "";
 				if (cycle.average != null) {
 					cycleGrade = cycle.average.toString();
-					cycleText.setBackgroundColor(getGradeColor(cycle.average));
+					if (settingsManager.isGradeColorHighlightEnabled()) {
+						cycleText
+								.setBackgroundColor(getGradeColor(cycle.average));
+					}
 				}
 				cycleText.setText(cycleGrade);
 				cycleText.setPadding(0, 5, 0, 5);
@@ -104,7 +109,9 @@ public class CourseCard extends RecyclableCard {
 				String examGrade = "";
 				if (semester.examGrade != null) {
 					examGrade = semester.examGrade.toString();
-					examText.setBackgroundColor(getGradeColor(semester.examGrade));
+					if (settingsManager.isGradeColorHighlightEnabled()) {
+						examText.setBackgroundColor(getGradeColor(semester.examGrade));
+					}
 				}
 
 				examText.setPadding(0, 5, 0, 5);
@@ -127,8 +134,10 @@ public class CourseCard extends RecyclableCard {
 				String semesterGrade = "";
 				if (semester.average != null) {
 					semesterGrade = semester.average.toString();
-					averageText
-							.setBackgroundColor(getGradeColor(semester.average));
+					if (settingsManager.isGradeColorHighlightEnabled()) {
+						averageText
+								.setBackgroundColor(getGradeColor(semester.average));
+					}
 				}
 				averageText.setPadding(0, 5, 0, 5);
 				averageText.setText(semesterGrade);

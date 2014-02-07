@@ -23,6 +23,7 @@ public class CycleCard extends RecyclableCard {
 	TextView titleView;
 	ImageView stripe;
 	ColorGenerator generator;
+	SettingsManager settingsManager;
 
 	public CycleCard(String title, String description, String color,
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
@@ -38,7 +39,8 @@ public class CycleCard extends RecyclableCard {
 		GradeValue[] grades = (GradeValue[]) getData();
 		Context context = convertView.getContext();
 		generator = new ColorGenerator(context);
-	//	makeTitle(convertView);
+		settingsManager = new SettingsManager(context);
+		// makeTitle(convertView);
 		makeStripe(convertView);
 		makeGradeTable(convertView, grades, context);
 		makeClickable(convertView);
@@ -51,18 +53,19 @@ public class CycleCard extends RecyclableCard {
 		}
 	}
 
-	public void makeGradeTable(View convertView, GradeValue[] grades, Context context) {
+	public void makeGradeTable(View convertView, GradeValue[] grades,
+			Context context) {
 		Typeface sansSerifLight = Typeface.create("sans-serif-light",
 				Typeface.NORMAL);
 		gradeTable = (TableLayout) convertView.findViewById(R.id.gradeTable);
 		TableRow headerRow = new TableRow(context);
 		headerRow.setPadding(0, 0, 0, 5);
 		TableRow gradeRow = new TableRow(context);
-		for(int i = 0; i < grades.length; i++) {
+		for (int i = 0; i < grades.length; i++) {
 			TextView headerText = new TextView(context);
-			if(i == 0) {
+			if (i == 0) {
 				headerText.setText("Average");
-			} else if(i == 1) {
+			} else if (i == 1) {
 				headerText.setText("Semester Average");
 			}
 			headerText.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -71,7 +74,9 @@ public class CycleCard extends RecyclableCard {
 			headerRow.addView(headerText);
 			TextView gradeText = new TextView(context);
 			gradeText.setText(grades[i].toString());
-			//gradeText.setBackgroundColor(getGradeColor(grades[i]));
+			if (settingsManager.isGradeColorHighlightEnabled()) {
+				gradeText.setBackgroundColor(getGradeColor(grades[i]));
+			}
 			gradeText.setPadding(0, 5, 0, 5);
 			gradeText.setTypeface(sansSerifLight);
 			gradeText.setTextSize(32);
@@ -81,7 +86,7 @@ public class CycleCard extends RecyclableCard {
 		gradeTable.addView(headerRow);
 		gradeTable.addView(gradeRow);
 	}
-	
+
 	public int getGradeColor(GradeValue value) {
 		// default of white
 		int[] values = new int[] { 255, 255, 255 };
@@ -95,11 +100,11 @@ public class CycleCard extends RecyclableCard {
 		return Color.rgb(values[0], values[1], values[2]);
 	}
 
-/*	public void makeTitle(View convertView) {
-		titleView = (TextView) convertView.findViewById(R.id.title);
-		titleView.setText(titlePlay);
-		titleView.setTextColor(Color.parseColor(titleColor));
-	} */
+	/*
+	 * public void makeTitle(View convertView) { titleView = (TextView)
+	 * convertView.findViewById(R.id.title); titleView.setText(titlePlay);
+	 * titleView.setTextColor(Color.parseColor(titleColor)); }
+	 */
 
 	public void makeStripe(View convertView) {
 		stripe = (ImageView) convertView.findViewById(R.id.stripe);

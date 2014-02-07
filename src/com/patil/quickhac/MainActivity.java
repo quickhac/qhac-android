@@ -1453,40 +1453,41 @@ public class MainActivity extends FragmentActivity implements
 				if (gradesList != null && gradesList.get(cycleIndex) != null) {
 					ClassGrades grades = gradesList.get(cycleIndex);
 					Category[] categories = grades.categories;
-					makeCategoryCards(courseIndex, course.semesters[semester], cycle,
-							categories);
+					makeCategoryCards(courseIndex, course.semesters[semester],
+							cycle, categories);
 				} else {
 					// create an arraylist of categories of size 0
 					Category[] categories = new Category[0];
-					makeCategoryCards(courseIndex, course.semesters[semester], cycle,
-							categories);
+					makeCategoryCards(courseIndex, course.semesters[semester],
+							cycle, categories);
 
 				}
 			}
 
-			public void makeCategoryCards(int courseIndex, Semester semester, int cycleIndex,
-					Category[] categories) {
+			public void makeCategoryCards(int courseIndex, Semester semester,
+					int cycleIndex, Category[] categories) {
 				cardUI = (CardUI) getView().findViewById(R.id.cardsview);
 				cardUI.setSwipeable(false);
-			//	// Make cycle info card
-			//	if (semester.cycles[cycleIndex].average != null) {
-			//		// Only add semester average if it exists
-			//		if (semester.average != null) {
-			//			CycleCard card = new CycleCard("Cycle "
-			//					+ (courseIndex + 1), "", "#787878", "#787878",
-			//					false, false);
-			//			card.setData(new GradeValue[] {
-			//					semester.cycles[cycleIndex].average,
-			//					semester.average });
-			//			cardUI.addCard(card);
-			//		} else {
-			//			CycleCard card = new CycleCard("Cycle "
-			//					+ (courseIndex + 1), "", "#787878", "#787878",
-			//					false, false);
-			//			card.setData(new GradeValue[] { semester.cycles[cycleIndex].average });
-			//			cardUI.addCard(card);
-			//		}
-			//	}
+				// // Make cycle info card
+				// if (semester.cycles[cycleIndex].average != null) {
+				// // Only add semester average if it exists
+				// if (semester.average != null) {
+				// CycleCard card = new CycleCard("Cycle "
+				// + (courseIndex + 1), "", "#787878", "#787878",
+				// false, false);
+				// card.setData(new GradeValue[] {
+				// semester.cycles[cycleIndex].average,
+				// semester.average });
+				// cardUI.addCard(card);
+				// } else {
+				// CycleCard card = new CycleCard("Cycle "
+				// + (courseIndex + 1), "", "#787878", "#787878",
+				// false, false);
+				// card.setData(new GradeValue[] {
+				// semester.cycles[cycleIndex].average });
+				// cardUI.addCard(card);
+				// }
+				// }
 				if (categories != null) {
 					if (categories.length > 0) {
 						for (int i = 0; i < categories.length; i++) {

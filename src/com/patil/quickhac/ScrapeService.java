@@ -128,12 +128,14 @@ public class ScrapeService extends IntentService {
 			String username, String id) {
 		Log.d("BackgroundGrades", "making notifications");
 		NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(
-				this).setSmallIcon(R.drawable.icon).setContentTitle(
+				this).setSmallIcon(R.drawable.ic_notification).setContentTitle(
 				"Grades changed in " + changes.size() + " courses");
 		mBuilder.setContentText("User " + username + " - " + id);
 		Uri alarmSound = RingtoneManager
 				.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+		mBuilder.setPriority(NotificationCompat.PRIORITY_HIGH);
 		mBuilder.setSound(alarmSound);
+		mBuilder.setAutoCancel(true);
 		mBuilder.setStyle(new NotificationCompat.BigTextStyle()
 				.bigText(generateMessageText(changes)));
 		// Creates an explicit intent for an Activity in your app

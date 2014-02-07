@@ -9,16 +9,13 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.ocpsoft.prettytime.PrettyTime;
 
-import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
-import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
@@ -233,7 +230,7 @@ public class MainActivity extends FragmentActivity implements
 		// Restart activity if from settings to apply settings
 		if (resultCode == RESULT_OK) {
 			// Make new alarms with new values
-			createAlarms();
+			utils.makeAlarms();
 			restartActivityForRefresh();
 		}
 	}
@@ -980,8 +977,7 @@ public class MainActivity extends FragmentActivity implements
 			} else {
 				// first login
 				settingsManager.addStudent(username, password, id, school);
-				createAlarms();
-				restartActivity();
+				utils.makeAlarms();
 			}
 
 		}
@@ -1076,34 +1072,6 @@ public class MainActivity extends FragmentActivity implements
 			this.status = status;
 		}
 
-	}
-
-	/*
-	 * Schedules a periodic alarm to periodically notify the user of new grades.
-	 * These alarms are wiped when the device reboots, which is the reason for
-	 * the BootReceiver class which resets alarms.
-	 */
-	public void createAlarms() {
-		Log.d("BackgroundGrades", "scheduling alarms for first login");
-		// Schedule alarms
-		AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-		PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0,
-				new Intent(this, AlarmReceiver.class), 0);
-
-		// Cancel any existing alarms
-		manager.cancel(alarmIntent);
-
-		// Get the polling interval
-		int intervalMinutes = settingsManager.getAlarmPollInterval();
-		int interval = intervalMinutes * 60000;
-
-		// use inexact repeating which is easier on battery (system can
-		// phase
-		// events and not wake at exact times)
-		manager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-				Constants.GRADE_PULL_TRIGGER_AT_TIME, interval, alarmIntent);
-		Log.d("BackgroundGrades", "created alarms from first login");
 	}
 
 	public class CycleScrapeTask extends AsyncTask<String, Void, String> {
@@ -1485,19 +1453,40 @@ public class MainActivity extends FragmentActivity implements
 				if (gradesList != null && gradesList.get(cycleIndex) != null) {
 					ClassGrades grades = gradesList.get(cycleIndex);
 					Category[] categories = grades.categories;
-					makeCategoryCards(categories);
+					makeCategoryCards(courseIndex, course.semesters[semester], cycle,
+							categories);
 				} else {
 					// create an arraylist of categories of size 0
 					Category[] categories = new Category[0];
-					makeCategoryCards(categories);
+					makeCategoryCards(courseIndex, course.semesters[semester], cycle,
+							categories);
 
 				}
 			}
 
-			public void makeCategoryCards(Category[] categories) {
+			public void makeCategoryCards(int courseIndex, Semester semester, int cycleIndex,
+					Category[] categories) {
 				cardUI = (CardUI) getView().findViewById(R.id.cardsview);
 				cardUI.setSwipeable(false);
-
+			//	// Make cycle info card
+			//	if (semester.cycles[cycleIndex].average != null) {
+			//		// Only add semester average if it exists
+			//		if (semester.average != null) {
+			//			CycleCard card = new CycleCard("Cycle "
+			//					+ (courseIndex + 1), "", "#787878", "#787878",
+			//					false, false);
+			//			card.setData(new GradeValue[] {
+			//					semester.cycles[cycleIndex].average,
+			//					semester.average });
+			//			cardUI.addCard(card);
+			//		} else {
+			//			CycleCard card = new CycleCard("Cycle "
+			//					+ (courseIndex + 1), "", "#787878", "#787878",
+			//					false, false);
+			//			card.setData(new GradeValue[] { semester.cycles[cycleIndex].average });
+			//			cardUI.addCard(card);
+			//		}
+			//	}
 				if (categories != null) {
 					if (categories.length > 0) {
 						for (int i = 0; i < categories.length; i++) {

@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
-    
-    <PreferenceCategory android:title="@string/pref_category_grades">
+
+    <Preference
+        android:key="pref_quote_pref"
+        android:selectable="false"
+        android:summary="" />
+
+    <PreferenceCategory android:title="@string/pref_category_grades" >
+
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="pref_showGradeColor"
@@ -28,8 +34,9 @@
             android:title="@string/pref_chooseExcluded" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/pref_category_notifications"
-        android:key="category_notifications" >
+    <PreferenceCategory
+        android:key="category_notifications"
+        android:title="@string/pref_category_notifications" >
 
         <CheckBoxPreference
             android:defaultValue="true"

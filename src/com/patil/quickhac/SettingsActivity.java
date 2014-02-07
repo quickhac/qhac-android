@@ -1,7 +1,10 @@
 package com.patil.quickhac;
 
+import java.util.Random;
+
 import android.os.Bundle;
 import android.preference.MultiSelectListPreference;
+import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
 import android.view.KeyEvent;
@@ -34,11 +37,19 @@ public class SettingsActivity extends PreferenceActivity {
 		excludedPreference.setEntries(classes);
 
 		PreferenceCategory notificationCategory = (PreferenceCategory) findPreference("category_notifications");
+		
 		// Add the slider dialog preference for polling interval
 		SeekBarPreference sb = new SeekBarPreference(this, null);
 		sb.setTitle("Choose polling interval");
 		sb.setKey("pref_gradePollingInterval");
 		notificationCategory.addPreference(sb);
+		
+		// Set the inspirational quote
+		Preference quotePref = findPreference("pref_quote_pref");
+		String[] quoteArray = getResources().getStringArray(R.array.quotes_array);
+		Random random = new Random();
+		int randIndex = random.nextInt(quoteArray.length);
+		quotePref.setSummary(quoteArray[randIndex]);
 	}
 
 	@Override

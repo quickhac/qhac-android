@@ -6,32 +6,33 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.util.Log;
 
 public class Utils {
 	Context context;
 	SettingsManager settingsManager;
+
 	public Utils(Context context) {
 		this.context = context;
 		settingsManager = new SettingsManager(context);
 	}
+
 	/*
 	 * Helper method to check if internet is available
 	 */
 	public boolean isNetworkAvailable() {
-		ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+		ConnectivityManager connectivityManager = (ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo activeNetworkInfo = connectivityManager
 				.getActiveNetworkInfo();
 		return activeNetworkInfo != null && activeNetworkInfo.isConnected();
 	}
-	
+
 	/*
-	 * * Schedules a periodic alarm to periodically notify the user of new grades.
-	 * These alarms are wiped when the device reboots, which is the reason for
-	 * the BootReceiver class which resets alarms.
+	 * * Schedules a periodic alarm to periodically notify the user of new
+	 * grades. These alarms are wiped when the device reboots, which is the
+	 * reason for the BootReceiver class which resets alarms.
 	 */
 	public void makeAlarms() {
-		Log.d("BackgroundGrades", "Boot receiver started, scheduling alarms");
 		// Schedule alarms
 		AlarmManager manager = (AlarmManager) context
 				.getSystemService(Context.ALARM_SERVICE);
@@ -44,7 +45,7 @@ public class Utils {
 
 		// Get the polling interval
 		int intervalMinutes = settingsManager.getAlarmPollInterval();
-		int interval = intervalMinutes * 60000;
+		int interval = (intervalMinutes * 60000) + 1000;
 
 		// use inexact repeating which is easier on battery (system can
 		// phase

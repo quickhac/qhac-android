@@ -278,7 +278,7 @@ public class MainActivity extends FragmentActivity implements
 		if(pInfo != null) {
 			currentVersion = pInfo.versionCode;
 		}
-		if (currentVersion  - settingsManager.getSavedVersion() > 1) {
+		if (currentVersion  - settingsManager.getSavedVersion() > 2) {
 			Log.d("JustUpdate", "Just updated so wiping things");
 			studentList = settingsManager.getStudentList();
 			if (studentList != null) {
@@ -986,6 +986,10 @@ public class MainActivity extends FragmentActivity implements
 				// first login
 				settingsManager.addStudent(username, password, id, school);
 				utils.makeAlarms();
+				if(showDialog) {
+					dialog.dismiss();
+				}
+				restartActivity();
 			}
 
 		}

@@ -266,30 +266,38 @@ public class MainActivity extends FragmentActivity implements
 		settingsManager = new SettingsManager(this);
 
 		Log.d("JustUpdate", "Handling update");
-		/*
-		 * // Erase credentials if just updated to avoid weird data things if
-		 * (settingsManager.justUpdated()) { Log.d("JustUpdate",
-		 * "Just updated so wiping things"); studentList =
-		 * settingsManager.getStudentList(); if (studentList != null) { // Erase
-		 * student info and saved grades for (int i = 0; i < studentList.length;
-		 * i++) { String user = studentList[i].split("%")[0]; String id =
-		 * studentList[i].split("%")[1]; settingsManager.eraseCredentials(user,
-		 * id); saver.eraseCourses(user, id); saver.eraseWeightedGPA(user, id);
-		 * saver.eraseUnweightedGPA(user, id); } // Erase student list
-		 * settingsManager.eraseStudentList(); }
-		 * 
-		 * }
-		 */
-		// Save the new current version
+
+		// Erase credentials if the current version is much older than last saved version (to avoid weird data things)
 		PackageInfo pInfo = null;
 		try {
 			pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
 		} catch (NameNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		int currentVersion = 0;
+		if(pInfo != null) {
+			currentVersion = pInfo.versionCode;
+		}
+		if (currentVersion  - settingsManager.getSavedVersion() > 1) {
+			Log.d("JustUpdate", "Just updated so wiping things");
+			studentList = settingsManager.getStudentList();
+			if (studentList != null) {
+				// Erase student info and saved grades
+				for (int i = 0; i < studentList.length; i++) {
+					String user = studentList[i].split("%")[0];
+					String id = studentList[i].split("%")[1];
+					settingsManager.eraseCredentials(user, id);
+					saver.eraseCourses(user, id);
+					saver.eraseWeightedGPA(user, id);
+					saver.eraseUnweightedGPA(user, id);
+				} // Erase student list
+				settingsManager.eraseStudentList();
+			}
+
+		}
+
 		if (pInfo != null) {
-			settingsManager.saveCurrentVersion(pInfo.versionCode);
+			settingsManager.saveCurrentVersion(currentVersion);
 		}
 		if (!alreadyLoadedGrades) {
 			startDisplayingGrades();

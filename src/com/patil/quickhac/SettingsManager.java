@@ -255,6 +255,10 @@ public class SettingsManager {
 		edit.putString("district", "");
 		edit.commit();
 	}
+	
+	public int getSavedVersion() {
+		return defaultPrefs.getInt("savedVersion", 0);
+	}
 
 	public boolean justUpdated() {
 		// Get the current version of the app

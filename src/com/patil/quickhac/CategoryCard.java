@@ -23,6 +23,7 @@ public class CategoryCard extends RecyclableCard {
 	TextView titleView;
 	ImageView stripe;
 	ColorGenerator generator;
+	View convertView;
 
 	public CategoryCard(String title, String description, String color,
 			String titleColor, Boolean hasOverflow, Boolean isClickable) {
@@ -34,20 +35,25 @@ public class CategoryCard extends RecyclableCard {
 		Category category = (Category) getData();
 		Context context = convertView.getContext();
 		generator = new ColorGenerator(context);
-		makeTitle(convertView);
-		makeStripe(convertView);
-		makeGradeTable(convertView, category, context);
-		makeClickable(convertView);
-
-		if (hasOverflow == true)
+		this.convertView = convertView;
+		makeTitle();
+		makeStripe();
+		makeGradeTable(category, context);
+		makeClickable();
+		makeOverflow(hasOverflow);
+	}
+	
+	public void makeOverflow(boolean hasOverflow) {
+		if(hasOverflow) {
 			((ImageView) convertView.findViewById(R.id.overflow))
-					.setVisibility(View.VISIBLE);
-		else
+			.setVisibility(View.VISIBLE);
+		} else {
 			((ImageView) convertView.findViewById(R.id.overflow))
-					.setVisibility(View.GONE);
+			.setVisibility(View.GONE);
+		}
 	}
 
-	public void makeGradeTable(View convertView, Category category,
+	public void makeGradeTable(Category category,
 			Context context) {
 		gradeTable = (TableLayout) convertView.findViewById(R.id.gradeTable);
 
@@ -111,18 +117,18 @@ public class CategoryCard extends RecyclableCard {
 		return "-";
 	}
 
-	public void makeClickable(View convertView) {
+	public void makeClickable() {
 		if (isClickable)
 			((LinearLayout) convertView.findViewById(R.id.contentLayout))
 					.setBackgroundResource(R.drawable.selectable_background_cardbank);
 	}
 
-	public void makeStripe(View convertView) {
+	public void makeStripe() {
 		stripe = (ImageView) convertView.findViewById(R.id.stripe);
 		stripe.setBackgroundColor(Color.parseColor(color));
 	}
 
-	public void makeTitle(View convertView) {
+	public void makeTitle() {
 		titleView = (TextView) convertView.findViewById(R.id.title);
 		titleView.setText(titlePlay);
 		titleView.setTextColor(Color.parseColor(titleColor));

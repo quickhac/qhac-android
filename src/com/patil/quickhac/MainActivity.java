@@ -61,8 +61,6 @@ import com.quickhac.common.GradeRetriever;
 import com.quickhac.common.data.Category;
 import com.quickhac.common.data.ClassGrades;
 import com.quickhac.common.data.Course;
-import com.quickhac.common.data.Cycle;
-import com.quickhac.common.data.GradeValue;
 import com.quickhac.common.data.Semester;
 import com.quickhac.common.data.StudentInfo;
 import com.quickhac.common.districts.GradeSpeedDistrict;
@@ -75,14 +73,21 @@ import com.quickhac.common.util.Numeric;
 public class MainActivity extends FragmentActivity implements
 		OnItemSelectedListener {
 
+	// Courses references throughout the class
 	public static Course[] courses;
+	// ClassGrades which contain assignments
 	static ArrayList<ArrayList<ClassGrades>> classGradesList;
+
+	// List view inside navigation drawer
 	ListView drawerList;
+	// Layout for navigation drawer
 	DrawerLayout drawerLayout;
-	ActionBarDrawerToggle drawerToggle;
-	int lastPosition;
-	// Handler to make sure drawer closes smoothly
+	// Makes sure drawer closes smoothly
 	Handler drawerHandler = new Handler();
+	// Drawer toggle button in upper left corner
+	ActionBarDrawerToggle drawerToggle;
+
+	int lastPosition;
 
 	String currentTitle;
 
@@ -90,14 +95,16 @@ public class MainActivity extends FragmentActivity implements
 	TextView lastUpdatedText;
 
 	CardUI cardView;
-	ColorGenerator colorGenerator;
 
 	GradeParser parser;
 	GradeRetriever retriever;
 	GradeSpeedDistrict gradeSpeedDistrict;
 
+	// Helper utility objects
 	SettingsManager settingsManager;
 	CourseSaver saver;
+	ColorGenerator colorGenerator;
+	Utils utils;
 
 	LinearLayout drawer;
 	Spinner studentSpinner;
@@ -115,10 +122,10 @@ public class MainActivity extends FragmentActivity implements
 
 	boolean loggedIn;
 
+	// ActionBar menu
 	Menu menu;
-	Utils utils;
 
-	// boolean that says if we started from a refresh
+	// If started from refresh
 	boolean startedFromRefresh;
 
 	@Override
@@ -126,33 +133,49 @@ public class MainActivity extends FragmentActivity implements
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle("Overview");
+		checkIfStartFromRefresh();
+		createUtilities();
+		initializeVariables();
+		assignViewIds();
+		makeDrawer();
+	}
+
+	private void initializeVariables() {
+		loggedIn = false;
+		currentTitle = "Overview";
+		initializationSpinnerCounter = 0;
+		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
+	}
+
+	private void checkIfStartFromRefresh() {
 		Bundle extras = getIntent().getExtras();
 		if (extras != null) {
 			startedFromRefresh = extras.getBoolean(Constants.REFRESH_INTENT);
 		} else {
 			startedFromRefresh = false;
 		}
-		loggedIn = false;
+	}
+
+	private void createUtilities() {
 		utils = new Utils(this);
 		colorGenerator = new ColorGenerator(this);
 		saver = new CourseSaver(this);
-		currentTitle = "Overview";
+	}
+
+	private void assignViewIds() {
 		signInButton = (Button) findViewById(R.id.button_signin);
 		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
 		studentSpinner = (Spinner) findViewById(R.id.spinner_student);
 		drawer = (LinearLayout) findViewById(R.id.menu);
-		initializationSpinnerCounter = 0;
-		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
-		makeDrawer();
 	}
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		// Pass the event to ActionBarDrawerToggle, if it returns
-		// true, then it has handled the app icon touch event
+		// The action bar drawer toggle has been tapped
 		if (drawerToggle.onOptionsItemSelected(item)) {
 			return true;
 		}
+
 		switch (item.getItemId()) {
 		case (R.id.action_refresh):
 			restartActivityForRefresh();
@@ -177,9 +200,13 @@ public class MainActivity extends FragmentActivity implements
 		return super.onOptionsItemSelected(item);
 	}
 
+	/*
+	 * Restarts the activity, supplying a flag that says to refresh instead of
+	 * loading saved grades when the activity restarts.
+	 */
 	public void restartActivityForRefresh() {
 		Intent intent = getIntent();
-		// put the data that says if it's from a refresh
+		// Put refresh flag
 		intent.putExtra(Constants.REFRESH_INTENT, true);
 		overridePendingTransition(0, 0);
 		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
@@ -188,36 +215,38 @@ public class MainActivity extends FragmentActivity implements
 		startActivity(intent);
 	}
 
+	/*
+	 * Displays the dialog to sign out. If user selects yes, the student is
+	 * removed.
+	 */
 	public void showSignOutDialog() {
-		AlertDialog dialog = new AlertDialog.Builder(this)
-				.setTitle("Sign out")
-				.setMessage("Are you sure you want to sign out?")
-				.setPositiveButton("Yes",
-						new DialogInterface.OnClickListener() {
-
-							@Override
-							public void onClick(DialogInterface dialog,
-									int which) {
-								settingsManager.removeStudent(currentUsername,
-										currentId);
-								dialog.dismiss();
-								restartActivity();
-							}
-						})
-				.setNegativeButton("No", new DialogInterface.OnClickListener() {
-
+		AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+		dialog.setTitle(R.string.dialog_signout_title);
+		dialog.setMessage(R.string.dialog_signout_message);
+		dialog.setPositiveButton(R.string.dialog_yes,
+				new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						settingsManager.removeStudent(currentUsername,
+								currentId);
+						dialog.dismiss();
+						restartActivity();
+					}
+				});
+		dialog.setNegativeButton(R.string.dialog_no,
+				new DialogInterface.OnClickListener() {
 					@Override
 					public void onClick(DialogInterface dialog, int which) {
 						dialog.dismiss();
 					}
-				}).create();
-		dialog.show();
+				});
+		dialog.create().show();
 	}
 
 	@Override
 	public void onBackPressed() {
-		// Go to overview fragment
 		if (lastPosition != 0) {
+			// Go to Overview fragment
 			selectItem(0);
 		} else {
 			finish();
@@ -227,10 +256,11 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
-		// Restart activity if from settings to apply settings
+		// Check if activity was opened from settings
 		if (resultCode == RESULT_OK) {
-			// Make new alarms with new values
+			// Make alarms with new polling interval settings
 			utils.makeAlarms();
+			// Refresh grades in case grade settings changed
 			restartActivityForRefresh();
 		}
 	}
@@ -238,10 +268,11 @@ public class MainActivity extends FragmentActivity implements
 	/* Called whenever we call invalidateOptionsMenu() */
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
-		// If the nav drawer is open, hide action items related to the content
-		// view
 		boolean drawerOpen = drawerLayout.isDrawerOpen(drawer);
 		if (drawerOpen) {
+			// TODO: Hide actionbar items
+
+			// First time tutorial
 			if (settingsManager.isFirstTimeDrawer()) {
 				if (studentList != null) {
 					if (studentList.length > 0) {
@@ -263,11 +294,13 @@ public class MainActivity extends FragmentActivity implements
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.main, menu);
 		this.menu = menu;
+		// SettingsManager initialized here instead of makeUtilities() because
+		// it's needed to check for wiping credentials/checking first time
+		// overview below
 		settingsManager = new SettingsManager(this);
 
-		Log.d("JustUpdate", "Handling update");
-
-		// Erase credentials if the current version is much older than last saved version (to avoid weird data things)
+		// Erase credentials if the current version is much older than last
+		// saved version to avoid data storage failure when jumping updates
 		PackageInfo pInfo = null;
 		try {
 			pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -275,10 +308,10 @@ public class MainActivity extends FragmentActivity implements
 			e.printStackTrace();
 		}
 		int currentVersion = 0;
-		if(pInfo != null) {
+		if (pInfo != null) {
 			currentVersion = pInfo.versionCode;
 		}
-		if (currentVersion  - settingsManager.getSavedVersion() > 2) {
+		if (currentVersion - settingsManager.getSavedVersion() > 2) {
 			Log.d("JustUpdate", "Just updated so wiping things");
 			studentList = settingsManager.getStudentList();
 			if (studentList != null) {
@@ -290,10 +323,10 @@ public class MainActivity extends FragmentActivity implements
 					saver.eraseCourses(user, id);
 					saver.eraseWeightedGPA(user, id);
 					saver.eraseUnweightedGPA(user, id);
-				} // Erase student list
+				}
+				// Erase student list
 				settingsManager.eraseStudentList();
 			}
-
 		}
 
 		if (pInfo != null) {
@@ -334,16 +367,15 @@ public class MainActivity extends FragmentActivity implements
 	public void startDisplayingGrades() {
 		String selectedStudent = settingsManager.getSelectedStudent();
 		String[] students = settingsManager.getStudentList();
+		// Check for if there's a student to load
 		if (selectedStudent != null && students != null) {
 			studentList = students;
-			Log.d("JustUpdated", "students aren't null wtf");
-			// We have a student to load
 			String[] credentials = settingsManager
 					.getLoginInfo(selectedStudent);
 
+			// Check for valid login info
 			if (credentials[0] != null && credentials[1] != null
 					&& credentials[2] != null && credentials[3] != null) {
-				// Valid login info
 				currentUsername = credentials[0];
 				currentId = credentials[2];
 				currentDistrict = credentials[3];
@@ -352,20 +384,16 @@ public class MainActivity extends FragmentActivity implements
 				Course[] savedCourses = saver.getSavedCourses(credentials[0],
 						credentials[2]);
 				if (utils.isNetworkAvailable() && savedCourses != null) {
-					// Check to see if it's been less than 10 min since grades
-					// were loaded. If it has AND we haven't started from a
-					// refresh, don't bother updating grades. If
-					// either isn't true, get new grades.
 					long timeSinceLastUpdated = System.currentTimeMillis()
 							- saver.getLastUpdated(credentials[0],
 									credentials[2]);
-					// check if it's been less than 30 minutes since grades
-					// updated
+					// Check to see if it's been less than 30 min since grades
+					// were loaded. If it has AND we haven't started from a
+					// refresh, don't bother updating grades. If
+					// either isn't true, get new grades.
 					if (timeSinceLastUpdated < Constants.GRADE_LENGTH
 							&& !startedFromRefresh) {
-						// Grades updated less than 30 min ago and we aren't
-						// trying to refresh, don't bother
-						// getting new grades
+						// Don't bother getting new grades
 						String toDisplay = "Updated ";
 						PrettyTime p = new PrettyTime();
 						toDisplay += p.format(new Date(saver.getLastUpdated(
@@ -393,7 +421,7 @@ public class MainActivity extends FragmentActivity implements
 						// We have saved courses
 						handleOfflineCourses(savedCourses);
 					} else {
-						// No saved courses
+						// No saved courses and no way to load them
 						Toast.makeText(
 								this,
 								"You must be connected to the internet to load grades for the first time.",
@@ -401,13 +429,15 @@ public class MainActivity extends FragmentActivity implements
 					}
 				}
 			} else {
-				// Invalid login info, just delete the student
+				// Invalid login info, delete the student
 				settingsManager.removeStudent(selectedStudent.split("%")[0],
 						selectedStudent.split("%")[1]);
 				restartActivity();
 			}
+			// Create the spinner in the nav drawer that has the list of students
 			makeStudentSpinner();
 		} else {
+			// Prompt for login
 			currentUsername = "";
 			currentId = "";
 			currentDistrict = "";
@@ -423,19 +453,9 @@ public class MainActivity extends FragmentActivity implements
 			long lastLogin = settingsManager.getLastLogin(currentUsername,
 					currentId);
 			if (System.currentTimeMillis() - lastLogin > Constants.LOGIN_TIMEOUT) {
-				Log.d("Resuming",
-						"it's been a while"
-								+ String.valueOf(System.currentTimeMillis()
-										- lastLogin));
-				// Since the login should have timed out, set loggedin to false
-				// so
-				// that it'll log in again to avoid timeout issues
+				// Login has probably timed out, so set loggedIn to false so
+				// that we'll log in again
 				loggedIn = false;
-			} else {
-				Log.d("Resuming",
-						"it's been not that long"
-								+ String.valueOf(System.currentTimeMillis()
-										- lastLogin));
 			}
 		}
 	}
@@ -616,7 +636,7 @@ public class MainActivity extends FragmentActivity implements
 				boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
 				if (gpaPref) {
 					// make sure there aren't any letter grades for the gpa
-					if (!isLettersInAverages(courses)) {
+					if (!utils.isLetterGradesInCourses(courses)) {
 						double[] gpa = getGPA(online);
 						String description = String.valueOf(gpa[0]) + " / "
 								+ String.valueOf(gpa[1]);
@@ -657,7 +677,7 @@ public class MainActivity extends FragmentActivity implements
 									pos = e;
 								}
 							}
-							selectItem(pos + 1);
+							selectItem(pos + Constants.HEADER_SECTIONS);
 						}
 
 					});
@@ -728,7 +748,6 @@ public class MainActivity extends FragmentActivity implements
 				weightedGPA = GPACalc.weighted(courses, toWeighted,
 						gradeSpeedDistrict.weightedGPABoost());
 			}
-			Log.d("waty", String.valueOf(weightedGPA));
 			saver.saveUnweightedGPA(unweightedGPA, currentUsername, currentId);
 			saver.saveWeightedGPA(weightedGPA, currentUsername, currentId);
 			return new double[] { Numeric.round(unweightedGPA, 4),
@@ -747,10 +766,10 @@ public class MainActivity extends FragmentActivity implements
 		// Create navigation drawer of courses
 
 		// Make array of all of the headings for the drawer
-		String[] titles = new String[courses.length + 1];
+		String[] titles = new String[courses.length + Constants.HEADER_SECTIONS];
 		titles[0] = "Overview";
 		for (int i = 0; i < courses.length; i++) {
-			titles[i + 1] = courses[i].title;
+			titles[i + Constants.HEADER_SECTIONS] = courses[i].title;
 		}
 		// Set adapter
 		drawerList.setAdapter(new ArrayAdapter<String>(this,
@@ -821,14 +840,16 @@ public class MainActivity extends FragmentActivity implements
 		} else {
 			// Highlight the selected item, update the title, and close the
 			// drawer
-			drawerList.setItemChecked(position - 1, true);
-			setTitle(courses[position - 1].title);
+			drawerList.setItemChecked(position - Constants.HEADER_SECTIONS,
+					true);
+			setTitle(courses[position - Constants.HEADER_SECTIONS].title);
 			// Check if we already have info, otherwise load the course info
-			if (classGradesList.get(position - 1) == null) {
+			if (classGradesList.get(position - Constants.HEADER_SECTIONS) == null) {
 				drawerLayout.closeDrawer(drawer);
-				loadCourseInfo(position - 1, currentDistrict);
+				loadCourseInfo(position - Constants.HEADER_SECTIONS,
+						currentDistrict);
 			} else {
-				createFragment(position - 1);
+				createFragment(position - Constants.HEADER_SECTIONS);
 			}
 		}
 	}
@@ -893,8 +914,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		/*
-		 * Scrapes ParentConnection remotely and returns a String of the webpage
-		 * HTML.
+		 * Scrapes ParentConnection remotely.
 		 * 
 		 * @param[0] The username to log in with.
 		 * 
@@ -913,22 +933,16 @@ public class MainActivity extends FragmentActivity implements
 			id = information[2];
 			school = information[3];
 			String firstLogin = information[4];
-			if (firstLogin.equals("yes")) {
-				firstLog = true;
-			} else {
-				firstLog = false;
-			}
+			firstLog = (firstLogin.equals("yes")) ? true : false;
 
-			String html = Constants.UNKNOWN_ERROR;
+			String status = Constants.UNKNOWN_ERROR;
 			if (school.equals(Constants.AUSTIN)) {
 				gradeSpeedDistrict = new Austin();
-				html = scrape(username, password, id, gradeSpeedDistrict);
 			} else if (school.equals("RoundRock")) {
 				gradeSpeedDistrict = new RoundRock();
-				html = scrape(username, password, id, gradeSpeedDistrict);
 			}
-
-			return html;
+			status = scrape(username, password, id, gradeSpeedDistrict);
+			return status;
 		}
 
 		protected void onPostExecute(String response) {
@@ -986,7 +1000,7 @@ public class MainActivity extends FragmentActivity implements
 				// first login
 				settingsManager.addStudent(username, password, id, school);
 				utils.makeAlarms();
-				if(showDialog) {
+				if (showDialog) {
 					dialog.dismiss();
 				}
 				restartActivity();
@@ -1212,23 +1226,6 @@ public class MainActivity extends FragmentActivity implements
 						if (saver.getLatestResponse(currentUsername, currentId) != null) {
 							Document doc = Jsoup.parse(saver.getLatestResponse(
 									currentUsername, currentId));
-							if (doc == null) {
-								Log.d("BackgroundGrades", "doc null");
-							}
-							if (retriever == null) {
-								Log.d("BackgroundGrades", "retriever null");
-							}
-							if (saver.getLatestResponse(currentUsername,
-									currentId) == null) {
-								Log.d("BackgroundGrades", "saver null");
-							}
-							if (currentUsername == null) {
-								Log.d("BackgroundGrades",
-										"currentUsername null");
-							}
-							if (currentId == null) {
-								Log.d("BackgroundGrades", "currentId null");
-							}
 							retriever.getCycle(hash, doc,
 									new XHR.ResponseHandler() {
 
@@ -1604,37 +1601,6 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public void onNothingSelected(AdapterView<?> arg0) {
 
-	}
-
-	// Helper method to make sure there aren't any letter grades
-	public boolean isLettersInAverages(Course[] courses) {
-		for (int courseIndex = 0; courseIndex < courses.length; courseIndex++) {
-			Course course = courses[courseIndex];
-			for (int semesterIndex = 0; semesterIndex < course.semesters.length; semesterIndex++) {
-				Semester semester = course.semesters[semesterIndex];
-				if (semester != null) {
-					for (int cycleIndex = 0; cycleIndex < semester.cycles.length; cycleIndex++) {
-						Cycle cycle = semester.cycles[cycleIndex];
-						if (cycle != null && cycle.average != null) {
-							if (cycle.average.type == GradeValue.TYPE_LETTER) {
-								return true;
-							}
-						}
-					}
-					if (semester.average != null) {
-						if (semester.average.type == GradeValue.TYPE_LETTER) {
-							return true;
-						}
-					}
-					if (semester.examGrade != null) {
-						if (semester.examGrade.type == GradeValue.TYPE_LETTER) {
-							return true;
-						}
-					}
-				}
-			}
-		}
-		return false;
 	}
 
 }

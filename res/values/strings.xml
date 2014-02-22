@@ -49,6 +49,10 @@
     <string name="pref_category_grades">Grades</string>
     <string name="pref_showGradeColor">Color grades by their value</string>
     <string name="pref_showGradeColor_summ">The darker the color, the worse the grade</string>
+    <string name="dialog_signout_title">Sign out</string>
+    <string name="dialog_signout_message">Are you sure you want to sign out?</string>
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_no">No</string>
     <string name="left_sign">&lt;</string>
     <string name="right_sign">&gt;</string>
     <string name="grade">GRADE</string>

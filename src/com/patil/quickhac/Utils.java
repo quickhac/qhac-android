@@ -1,5 +1,10 @@
 package com.patil.quickhac;
 
+import com.quickhac.common.data.Course;
+import com.quickhac.common.data.Cycle;
+import com.quickhac.common.data.GradeValue;
+import com.quickhac.common.data.Semester;
+
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -52,5 +57,36 @@ public class Utils {
 		// events and not wake at exact times)
 		manager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
 				Constants.GRADE_PULL_TRIGGER_AT_TIME, interval, alarmIntent);
+	}
+
+	// Helper method to make sure there aren't any letter grades
+	public boolean isLetterGradesInCourses(Course[] courses) {
+		for (int courseIndex = 0; courseIndex < courses.length; courseIndex++) {
+			Course course = courses[courseIndex];
+			for (int semesterIndex = 0; semesterIndex < course.semesters.length; semesterIndex++) {
+				Semester semester = course.semesters[semesterIndex];
+				if (semester != null) {
+					for (int cycleIndex = 0; cycleIndex < semester.cycles.length; cycleIndex++) {
+						Cycle cycle = semester.cycles[cycleIndex];
+						if (cycle != null && cycle.average != null) {
+							if (cycle.average.type == GradeValue.TYPE_LETTER) {
+								return true;
+							}
+						}
+					}
+					if (semester.average != null) {
+						if (semester.average.type == GradeValue.TYPE_LETTER) {
+							return true;
+						}
+					}
+					if (semester.examGrade != null) {
+						if (semester.examGrade.type == GradeValue.TYPE_LETTER) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
 	}
 }

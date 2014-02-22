@@ -5,6 +5,9 @@ import android.os.SystemClock;
 
 // Has list of many constants used consistently throughout the app.
 public class Constants {
+	
+	// Number of "header" sections that aren't courses (ex. "Overview", "Latest Grades", etc)
+	public static final int HEADER_SECTIONS = 1;
 
 	// How often new grades are pulled (defaults to 1 hour)
 	public static final long GRADE_PULL_INTERVAL = AlarmManager.INTERVAL_HALF_HOUR;

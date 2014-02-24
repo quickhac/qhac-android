@@ -78,6 +78,8 @@ public class MainActivity extends FragmentActivity implements
 	// ClassGrades which contain assignments
 	static ArrayList<ArrayList<ClassGrades>> classGradesList;
 
+	// ActionBar menu
+	Menu menu;
 	// List view inside navigation drawer
 	ListView drawerList;
 	// Layout for navigation drawer
@@ -86,16 +88,24 @@ public class MainActivity extends FragmentActivity implements
 	Handler drawerHandler = new Handler();
 	// Drawer toggle button in upper left corner
 	ActionBarDrawerToggle drawerToggle;
+	// The last position the navigation drawer was set to
+	int drawerPosition;
+	// The last title the navigation drawer was set to
+	String drawerTitle;
 
-	int lastPosition;
-
-	String currentTitle;
-
+	// For signing in. Only shows up when no user is logged in
 	Button signInButton;
+	// Shows "Updated ___ seconds ago", etc
 	TextView lastUpdatedText;
+	// The drawer object
+	LinearLayout drawer;
+	// Allows for selecting between different accounts
+	Spinner studentSpinner;
 
-	CardUI cardView;
+	// ListView containing all course cards
+	CardUI courseCardListView;
 
+	// Qhac-common networking stuff
 	GradeParser parser;
 	GradeRetriever retriever;
 	GradeSpeedDistrict gradeSpeedDistrict;
@@ -106,24 +116,27 @@ public class MainActivity extends FragmentActivity implements
 	ColorGenerator colorGenerator;
 	Utils utils;
 
-	LinearLayout drawer;
-	Spinner studentSpinner;
-
+	// Current credentials. Set when user logs in or app loads
 	String currentUsername;
 	String currentId;
 	String currentDistrict;
+
+	// List of student accounts
 	String[] studentList;
+
 	int addStudentIndex;
-	// Counter so that we don't fire off onItemSelected when spinner is
-	// initialized
-	int initializationSpinnerCounter;
+
+	// Avoids firing off onItemSelected() when app launches, avoiding infinite
+	// loops
+	int initializationStudentSpinnerCounter;
+	// The position of the currently selected student
 	int currentStudentSelectedPosition;
+
+	// Makes sure grades aren't loaded repeatedly
 	boolean alreadyLoadedGrades = false;
 
+	// If user is currently logged in
 	boolean loggedIn;
-
-	// ActionBar menu
-	Menu menu;
 
 	// If started from refresh
 	boolean startedFromRefresh;
@@ -132,7 +145,7 @@ public class MainActivity extends FragmentActivity implements
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		getActionBar().setTitle("Overview");
+		getActionBar().setTitle(R.string.action_overview);
 		checkIfStartFromRefresh();
 		createUtilities();
 		initializeVariables();
@@ -142,8 +155,8 @@ public class MainActivity extends FragmentActivity implements
 
 	private void initializeVariables() {
 		loggedIn = false;
-		currentTitle = "Overview";
-		initializationSpinnerCounter = 0;
+		drawerTitle = "Overview";
+		initializationStudentSpinnerCounter = 0;
 		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
 	}
 
@@ -245,7 +258,7 @@ public class MainActivity extends FragmentActivity implements
 
 	@Override
 	public void onBackPressed() {
-		if (lastPosition != 0) {
+		if (drawerPosition != 0) {
 			// Go to Overview fragment
 			selectItem(0);
 		} else {
@@ -434,7 +447,8 @@ public class MainActivity extends FragmentActivity implements
 						selectedStudent.split("%")[1]);
 				restartActivity();
 			}
-			// Create the spinner in the nav drawer that has the list of students
+			// Create the spinner in the nav drawer that has the list of
+			// students
 			makeStudentSpinner();
 		} else {
 			// Prompt for login
@@ -474,7 +488,7 @@ public class MainActivity extends FragmentActivity implements
 				R.layout.spinner_item, students);
 		studentSpinner.setAdapter(adp);
 		studentSpinner.setOnItemSelectedListener(this);
-		initializationSpinnerCounter = 0;
+		initializationStudentSpinnerCounter = 0;
 		studentSpinner.setSelection(currentStudentSelectedPosition);
 	}
 
@@ -586,7 +600,7 @@ public class MainActivity extends FragmentActivity implements
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
 									int whichButton) {
-								initializationSpinnerCounter = 0;
+								initializationStudentSpinnerCounter = 0;
 								studentSpinner
 										.setSelection(currentStudentSelectedPosition);
 							}
@@ -622,14 +636,14 @@ public class MainActivity extends FragmentActivity implements
 	 */
 	public void makeCourseCards(final boolean online) {
 
-		cardView = (CardUI) findViewById(R.id.cardsview);
+		courseCardListView = (CardUI) findViewById(R.id.cardsview);
 
 		Runnable thread = new Runnable() {
 
 			@Override
 			public void run() {
-				cardView.clearCards();
-				cardView.setSwipeable(false);
+				courseCardListView.clearCards();
+				courseCardListView.setSwipeable(false);
 				// add GPA card if user has enabled
 				SharedPreferences sharedPref = PreferenceManager
 						.getDefaultSharedPreferences(MainActivity.this);
@@ -651,7 +665,7 @@ public class MainActivity extends FragmentActivity implements
 								startActivityForResult(intent, 1);
 							}
 						});
-						cardView.addCard(GPACard);
+						courseCardListView.addCard(GPACard);
 					}
 				}
 
@@ -681,9 +695,9 @@ public class MainActivity extends FragmentActivity implements
 						}
 
 					});
-					cardView.addCard(courseCard);
+					courseCardListView.addCard(courseCard);
 				}
-				cardView.setPersistentDrawingCache(3);
+				courseCardListView.setPersistentDrawingCache(3);
 
 			}
 		};
@@ -791,7 +805,7 @@ public class MainActivity extends FragmentActivity implements
 
 			/** Called when a drawer has settled in a completely closed state. */
 			public void onDrawerClosed(View view) {
-				getActionBar().setTitle(currentTitle);
+				setTitle(drawerTitle);
 				invalidateOptionsMenu(); // creates call to
 											// onPrepareOptionsMenu()
 
@@ -821,7 +835,7 @@ public class MainActivity extends FragmentActivity implements
 
 	/** Swaps fragments in the main content view */
 	public void selectItem(int position) {
-		lastPosition = position;
+		drawerPosition = position;
 		drawerList.setItemChecked(position, true);
 		if (position == 0) {
 			Fragment fragment = new OverviewFragment();
@@ -835,7 +849,7 @@ public class MainActivity extends FragmentActivity implements
 			// Highlight the selected item, update the title, and close the
 			// drawer
 			drawerList.setItemChecked(position, true);
-			setTitle("Overview");
+			setTitle(R.string.action_overview);
 			drawerLayout.closeDrawer(drawer);
 		} else {
 			// Highlight the selected item, update the title, and close the
@@ -878,7 +892,7 @@ public class MainActivity extends FragmentActivity implements
 
 	@Override
 	public void setTitle(CharSequence title) {
-		currentTitle = (String) title;
+		drawerTitle = (String) title;
 		getActionBar().setTitle(title);
 	}
 
@@ -1477,26 +1491,6 @@ public class MainActivity extends FragmentActivity implements
 					int cycleIndex, Category[] categories) {
 				cardUI = (CardUI) getView().findViewById(R.id.cardsview);
 				cardUI.setSwipeable(false);
-				// // Make cycle info card
-				// if (semester.cycles[cycleIndex].average != null) {
-				// // Only add semester average if it exists
-				// if (semester.average != null) {
-				// CycleCard card = new CycleCard("Cycle "
-				// + (courseIndex + 1), "", "#787878", "#787878",
-				// false, false);
-				// card.setData(new GradeValue[] {
-				// semester.cycles[cycleIndex].average,
-				// semester.average });
-				// cardUI.addCard(card);
-				// } else {
-				// CycleCard card = new CycleCard("Cycle "
-				// + (courseIndex + 1), "", "#787878", "#787878",
-				// false, false);
-				// card.setData(new GradeValue[] {
-				// semester.cycles[cycleIndex].average });
-				// cardUI.addCard(card);
-				// }
-				// }
 				if (categories != null) {
 					if (categories.length > 0) {
 						for (int i = 0; i < categories.length; i++) {
@@ -1584,7 +1578,7 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public void onItemSelected(AdapterView<?> parentView,
 			View selectedItemView, int position, long id) {
-		if (initializationSpinnerCounter > 0) {
+		if (initializationStudentSpinnerCounter > 0) {
 			if (position == addStudentIndex) {
 				drawerLayout.closeDrawer(drawer);
 				startLogin();
@@ -1595,7 +1589,7 @@ public class MainActivity extends FragmentActivity implements
 				restartActivity();
 			}
 		}
-		initializationSpinnerCounter++;
+		initializationStudentSpinnerCounter++;
 	}
 
 	@Override

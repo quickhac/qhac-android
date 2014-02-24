@@ -45,6 +45,7 @@
     <string name="showcase_cycle_description">Use the buttons or swipe left and right to switch between cycles.</string>
     <string name="pref_category_notifications">Notifications</string>
     <string name="pref_showNotifications">Show notifications</string>
+    <string name="action_overview">Overview</string>
     <string name="pref_showNotifications_summ">Notify me when my grade changes in a class</string>
     <string name="pref_category_grades">Grades</string>
     <string name="pref_showGradeColor">Color grades by their value</string>

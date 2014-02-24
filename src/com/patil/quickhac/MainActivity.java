@@ -115,6 +115,7 @@ public class MainActivity extends FragmentActivity implements
 	CourseSaver saver;
 	ColorGenerator colorGenerator;
 	Utils utils;
+	SharedPreferences defaultPrefs;
 
 	// Current credentials. Set when user logs in or app loads
 	String currentUsername;
@@ -146,40 +147,38 @@ public class MainActivity extends FragmentActivity implements
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		getActionBar().setTitle(R.string.action_overview);
-		checkIfStartFromRefresh();
 		createUtilities();
 		initializeVariables();
 		assignViewIds();
 		makeDrawer();
 	}
 
-	private void initializeVariables() {
-		loggedIn = false;
-		drawerTitle = "Overview";
-		initializationStudentSpinnerCounter = 0;
-		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
+	@Override
+	public void setTitle(CharSequence title) {
+		drawerTitle = (String) title;
+		getActionBar().setTitle(title);
 	}
 
-	private void checkIfStartFromRefresh() {
-		Bundle extras = getIntent().getExtras();
-		if (extras != null) {
-			startedFromRefresh = extras.getBoolean(Constants.REFRESH_INTENT);
-		} else {
-			startedFromRefresh = false;
+	@Override
+	public void onItemSelected(AdapterView<?> parentView,
+			View selectedItemView, int position, long id) {
+		if (initializationStudentSpinnerCounter > 0) {
+			if (position == addStudentIndex) {
+				drawerLayout.closeDrawer(drawer);
+				startLogin();
+			} else {
+				settingsManager.saveSelectedStudent(
+						studentList[position].split("%")[0],
+						studentList[position].split("%")[1]);
+				restartActivity();
+			}
 		}
+		initializationStudentSpinnerCounter++;
 	}
 
-	private void createUtilities() {
-		utils = new Utils(this);
-		colorGenerator = new ColorGenerator(this);
-		saver = new CourseSaver(this);
-	}
+	@Override
+	public void onNothingSelected(AdapterView<?> arg0) {
 
-	private void assignViewIds() {
-		signInButton = (Button) findViewById(R.id.button_signin);
-		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
-		studentSpinner = (Spinner) findViewById(R.id.spinner_student);
-		drawer = (LinearLayout) findViewById(R.id.menu);
 	}
 
 	@Override
@@ -211,21 +210,6 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		return super.onOptionsItemSelected(item);
-	}
-
-	/*
-	 * Restarts the activity, supplying a flag that says to refresh instead of
-	 * loading saved grades when the activity restarts.
-	 */
-	public void restartActivityForRefresh() {
-		Intent intent = getIntent();
-		// Put refresh flag
-		intent.putExtra(Constants.REFRESH_INTENT, true);
-		overridePendingTransition(0, 0);
-		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-		finish();
-		overridePendingTransition(0, 0);
-		startActivity(intent);
 	}
 
 	/*
@@ -262,6 +246,7 @@ public class MainActivity extends FragmentActivity implements
 			// Go to Overview fragment
 			selectItem(0);
 		} else {
+			// Close app
 			finish();
 		}
 	}
@@ -325,7 +310,7 @@ public class MainActivity extends FragmentActivity implements
 			currentVersion = pInfo.versionCode;
 		}
 		if (currentVersion - settingsManager.getSavedVersion() > 2) {
-			Log.d("JustUpdate", "Just updated so wiping things");
+			Log.d("Update", "Wiping data");
 			studentList = settingsManager.getStudentList();
 			if (studentList != null) {
 				// Erase student info and saved grades
@@ -407,17 +392,11 @@ public class MainActivity extends FragmentActivity implements
 					if (timeSinceLastUpdated < Constants.GRADE_LENGTH
 							&& !startedFromRefresh) {
 						// Don't bother getting new grades
-						String toDisplay = "Updated ";
-						PrettyTime p = new PrettyTime();
-						toDisplay += p.format(new Date(saver.getLastUpdated(
-								credentials[0], credentials[2])));
-						lastUpdatedText.setText(toDisplay);
+						displayLastUpdateTime(saver.getLastUpdated(
+								credentials[0], credentials[2]));
 						handleOnlineSavedCourses(savedCourses);
 					} else {
-						String toDisplay = "Loading new grades...";
-						lastUpdatedText.setText(toDisplay);
-						lastUpdatedText.setTextColor(getResources().getColor(
-								R.color.pomegranate));
+						displayUpdatingTime();
 						// We have saved courses, show those until grades are
 						// loaded
 						handleOnlineSavedCourses(savedCourses);
@@ -474,31 +453,37 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	public void makeStudentSpinner() {
-		String[] students = new String[studentList.length + 1];
-		for (int i = 0; i < studentList.length; i++) {
-			if (studentList[i].equals(currentUsername + "%" + currentId)) {
-				currentStudentSelectedPosition = i;
-			}
-			students[i] = studentList[i].replace("%", " - ");
-		}
-		students[students.length - 1] = "Add student...";
-		addStudentIndex = students.length - 1;
-		ArrayAdapter<String> adp = new ArrayAdapter<String>(this,
-				R.layout.spinner_item, students);
-		studentSpinner.setAdapter(adp);
-		studentSpinner.setOnItemSelectedListener(this);
+	private void initializeVariables() {
+		defaultPrefs = PreferenceManager
+				.getDefaultSharedPreferences(MainActivity.this);
+		loggedIn = false;
+		drawerTitle = "Overview";
 		initializationStudentSpinnerCounter = 0;
-		studentSpinner.setSelection(currentStudentSelectedPosition);
+		classGradesList = new ArrayList<ArrayList<ClassGrades>>();
+		startedFromRefresh = utils.checkIfStartFromRefresh(getIntent()
+				.getExtras());
 	}
 
-	public void handleOnlineSavedCourses(Course[] savedCourses) {
+	private void createUtilities() {
+		utils = new Utils(this);
+		colorGenerator = new ColorGenerator(this);
+		saver = new CourseSaver(this);
+	}
+
+	private void assignViewIds() {
+		signInButton = (Button) findViewById(R.id.button_signin);
+		lastUpdatedText = (TextView) findViewById(R.id.lastUpdate_text);
+		studentSpinner = (Spinner) findViewById(R.id.spinner_student);
+		drawer = (LinearLayout) findViewById(R.id.menu);
+	}
+
+	private void handleOnlineSavedCourses(Course[] savedCourses) {
 		String[] credentials = settingsManager.getLoginInfo(currentUsername
 				+ "%" + currentId);
 		GradeSpeedDistrict district = null;
 		if (credentials[3].equals(Constants.AUSTIN)) {
 			district = new Austin();
-		} else if (credentials[3].equals("RoundRock")) {
+		} else if (credentials[3].equals(Constants.ROUNDROCK)) {
 			district = new RoundRock();
 		}
 		retriever = new GradeRetriever(district);
@@ -511,14 +496,11 @@ public class MainActivity extends FragmentActivity implements
 		makeCourseCards(false);
 	}
 
-	public void handleOfflineCourses(Course[] savedCourses) {
+	private void handleOfflineCourses(Course[] savedCourses) {
 		courses = savedCourses;
 		long lastUpdateMillis = saver
 				.getLastUpdated(currentUsername, currentId);
-		String toDisplay = "Updated ";
-		PrettyTime p = new PrettyTime();
-		toDisplay += p.format(new Date(lastUpdateMillis));
-		lastUpdatedText.setText(toDisplay);
+		displayLastUpdateTime(lastUpdateMillis);
 		Toast.makeText(this,
 				"No internet connection detected. Displaying saved grades.",
 				Toast.LENGTH_SHORT).show();
@@ -531,22 +513,28 @@ public class MainActivity extends FragmentActivity implements
 		makeCourseCards(false);
 	}
 
-	/*
-	 * Detects if Sign In button has been pressed.
-	 */
-	public void onSignInClick(View v) {
-		startLogin();
+	private void displayLastUpdateTime(long lastUpdateMillis) {
+		String toDisplay = "Updated ";
+		PrettyTime p = new PrettyTime();
+		toDisplay += p.format(new Date(lastUpdateMillis));
+		lastUpdatedText.setText(toDisplay);
+		lastUpdatedText.setTextColor(Color.BLACK);
+	}
+
+	private void displayUpdatingTime() {
+		String toDisplay = "Loading new grades...";
+		lastUpdatedText.setText(toDisplay);
+		lastUpdatedText.setTextColor(getResources().getColor(
+				R.color.pomegranate));
 	}
 
 	/*
 	 * Starts login by showing a login dialog. Saves credentials and loads
 	 * grades when user logs in.
 	 */
-	public void startLogin() {
+	private void startLogin() {
 		LayoutInflater factory = LayoutInflater.from(this);
 		final View textEntryView = factory.inflate(R.layout.dialog_login, null);
-		// text_entry is an Layout XML file containing two text field to display
-		// in alert dialog
 		final EditText userName = (EditText) textEntryView
 				.findViewById(R.id.user);
 		final EditText password = (EditText) textEntryView
@@ -565,10 +553,10 @@ public class MainActivity extends FragmentActivity implements
 
 		final AlertDialog.Builder alert = new AlertDialog.Builder(this);
 
-		alert.setTitle("Sign in")
+		alert.setTitle(R.string.dialog_login)
 				.setCancelable(false)
 				.setView(textEntryView)
-				.setPositiveButton("Login",
+				.setPositiveButton(R.string.dialog_login,
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
 									int whichButton) {
@@ -582,7 +570,7 @@ public class MainActivity extends FragmentActivity implements
 										distr = Constants.AUSTIN;
 									} else if (district.getSelectedItem()
 											.toString().equals("RRISD")) {
-										distr = "RoundRock";
+										distr = Constants.ROUNDROCK;
 									}
 									executeScrapeTask(userName.getText()
 											.toString(), password.getText()
@@ -596,7 +584,7 @@ public class MainActivity extends FragmentActivity implements
 								}
 							}
 						})
-				.setNegativeButton("Cancel",
+				.setNegativeButton(R.string.dialog_cancel,
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
 									int whichButton) {
@@ -604,24 +592,34 @@ public class MainActivity extends FragmentActivity implements
 								studentSpinner
 										.setSelection(currentStudentSelectedPosition);
 							}
-						}).setMessage("Use your GradeSpeed credentials.");
+						}).setMessage(R.string.dialog_login_message);
 		alert.show();
 	}
 
 	/*
-	 * user = username pass = password id = student id distr = the school
-	 * district firstLogOn = if we're logging this user in for the first time
-	 * asyncRefresh = if we need to show a dialog or if we can just refresh the
-	 * ui asynchronously
+	 * Starts the login and scrape task.
+	 * 
+	 * @param user - the username
+	 * 
+	 * @param pass - the password
+	 * 
+	 * @param id - the student id
+	 * 
+	 * @param distr - the school district
+	 * 
+	 * @param firstLogOn - if it's the first time the user is logging in
+	 * 
+	 * @param asyncRefresh - if we need to show a dialog or if we can refresh
+	 * the UI asynchronously
 	 */
-	public void executeScrapeTask(String user, String pass, String id,
+	private void executeScrapeTask(String user, String pass, String id,
 			String distr, String firstLogOn, boolean asyncRefresh) {
 		new ScrapeTask(this, asyncRefresh).execute(new String[] { user, pass,
 				id, distr, firstLogOn });
 
 	}
 
-	public void loadCourseInfo(int course, String school) {
+	private void loadCourseInfo(int course, String school) {
 		if (utils.isNetworkAvailable()) {
 			new CycleScrapeTask(this).execute(new String[] { String
 					.valueOf(course) });
@@ -634,86 +632,81 @@ public class MainActivity extends FragmentActivity implements
 	/*
 	 * Makes descriptions and loads in cards to display.
 	 */
-	public void makeCourseCards(final boolean online) {
-
+	private void makeCourseCards(final boolean online) {
 		courseCardListView = (CardUI) findViewById(R.id.cardsview);
 
-		Runnable thread = new Runnable() {
+		courseCardListView.clearCards();
+		courseCardListView.setSwipeable(false);
+		courseCardListView.setPersistentDrawingCache(3);
 
-			@Override
-			public void run() {
-				courseCardListView.clearCards();
-				courseCardListView.setSwipeable(false);
-				// add GPA card if user has enabled
-				SharedPreferences sharedPref = PreferenceManager
-						.getDefaultSharedPreferences(MainActivity.this);
-				boolean gpaPref = sharedPref.getBoolean("pref_showGPA", true);
-				if (gpaPref) {
-					// make sure there aren't any letter grades for the gpa
-					if (!utils.isLetterGradesInCourses(courses)) {
-						double[] gpa = getGPA(online);
-						String description = String.valueOf(gpa[0]) + " / "
-								+ String.valueOf(gpa[1]);
-						Card GPACard = new NoGradesCard("GPA", description,
-								"#787878", "#787878", false, true);
-						GPACard.setOnClickListener(new OnClickListener() {
+		// Add GPA card if user has enabled
+		boolean gpaPref = defaultPrefs.getBoolean("pref_showGPA", true);
+		if (gpaPref) {
+			makeGPACard(online);
+		}
 
-							@Override
-							public void onClick(View v) {
-								Intent intent = new Intent(MainActivity.this,
-										SettingsActivity.class);
-								startActivityForResult(intent, 1);
-							}
-						});
-						courseCardListView.addCard(GPACard);
-					}
+		for (int k = 0; k < courses.length; k++) {
+			Course course = courses[k];
+			String color = colorGenerator.getCardColor(k);
+			final Card courseCard = new CourseCard(course.title, "", color,
+					"#787878", false, true);
+			courseCard.setData(course);
+
+			// Set onClick
+			courseCard.setOnClickListener(new OnClickListener() {
+				@Override
+				public void onClick(View v) {
+					int pos = getCoursePositionFromTitle(courses,
+							((CourseCard) courseCard).getCardTitle());
+					// Find appropriate position
+					selectItem(pos + Constants.HEADER_SECTIONS);
 				}
+			});
+			courseCardListView.addCard(courseCard);
+		}
+	}
 
-				for (int k = 0; k < courses.length; k++) {
-
-					Course course = courses[k];
-
-					String color = colorGenerator.getCardColor(k);
-					final Card courseCard = new CourseCard(course.title, "",
-							color, "#787878", false, true);
-					courseCard.setData(course);
-					// Set onClick
-					courseCard.setOnClickListener(new OnClickListener() {
-
-						@Override
-						public void onClick(View v) {
-							// Find appropriate position
-							int pos = 0;
-							for (int e = 0; e < courses.length; e++) {
-								if (courses[e].title
-										.equals(((CourseCard) courseCard)
-												.getCardTitle())) {
-									pos = e;
-								}
-							}
-							selectItem(pos + Constants.HEADER_SECTIONS);
-						}
-
-					});
-					courseCardListView.addCard(courseCard);
-				}
-				courseCardListView.setPersistentDrawingCache(3);
-
+	/*
+	 * Gets the position of the course from the given title and list of courses.
+	 */
+	private int getCoursePositionFromTitle(Course[] courses, String title) {
+		int pos = 0;
+		for (int e = 0; e < courses.length; e++) {
+			if (courses[e].title.equals(title)) {
+				pos = e;
 			}
-		};
-		thread.run();
+		}
+		return pos;
+	}
 
+	private void makeGPACard(boolean online) {
+		// make sure there aren't any letter grades for the gpa
+		if (!utils.isLetterGradesInCourses(courses)) {
+			double[] gpa = getGPA(online);
+			String description = String.valueOf(gpa[0]) + " / "
+					+ String.valueOf(gpa[1]);
+			Card GPACard = new NoGradesCard("GPA", description, "#787878",
+					"#787878", false, true);
+			GPACard.setOnClickListener(new OnClickListener() {
+
+				@Override
+				public void onClick(View v) {
+					Intent intent = new Intent(MainActivity.this,
+							SettingsActivity.class);
+					startActivityForResult(intent, 1);
+				}
+			});
+			courseCardListView.addCard(GPACard);
+		}
 	}
 
 	/*
 	 * Returns array of weighted and unweighted GPA for displaying in GPA card.
 	 */
-	public double[] getGPA(boolean online) {
-		SharedPreferences sharedPref = PreferenceManager
-				.getDefaultSharedPreferences(this);
+	private double[] getGPA(boolean online) {
 		if (online) {
 			List<String> weightedClasses = new ArrayList<String>();
-			Set<String> savedWeighted = sharedPref.getStringSet(
+			Set<String> savedWeighted = defaultPrefs.getStringSet(
 					"pref_weightedClasses", null);
 			if (savedWeighted != null) {
 				String[] weighted = savedWeighted
@@ -726,7 +719,7 @@ public class MainActivity extends FragmentActivity implements
 			}
 
 			List<String> excludedClasses = new ArrayList<String>();
-			Set<String> savedExcluded = sharedPref.getStringSet(
+			Set<String> savedExcluded = defaultPrefs.getStringSet(
 					"pref_excludedClasses", null);
 			if (savedExcluded != null) {
 				String[] excluded = savedExcluded
@@ -776,7 +769,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	public void setupActionBar() {
+	private void setupActionBar() {
 		// Create navigation drawer of courses
 
 		// Make array of all of the headings for the drawer
@@ -796,7 +789,7 @@ public class MainActivity extends FragmentActivity implements
 	/*
 	 * Sets up some elements of slide out navigation drawer.
 	 */
-	public void makeDrawer() {
+	private void makeDrawer() {
 		drawerList = (ListView) findViewById(R.id.left_drawer);
 		drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
 		drawerToggle = new ActionBarDrawerToggle(this, drawerLayout,
@@ -806,16 +799,13 @@ public class MainActivity extends FragmentActivity implements
 			/** Called when a drawer has settled in a completely closed state. */
 			public void onDrawerClosed(View view) {
 				setTitle(drawerTitle);
-				invalidateOptionsMenu(); // creates call to
-											// onPrepareOptionsMenu()
-
+				invalidateOptionsMenu();
 			}
 
 			/** Called when a drawer has settled in a completely open state. */
 			public void onDrawerOpened(View drawerView) {
 				getActionBar().setTitle("QuickHAC");
-				invalidateOptionsMenu(); // creates call to
-											// onPrepareOptionsMenu()
+				invalidateOptionsMenu();
 			}
 		};
 
@@ -824,17 +814,29 @@ public class MainActivity extends FragmentActivity implements
 		drawerList.setOnItemClickListener(new DrawerItemClickListener());
 	}
 
-	private class DrawerItemClickListener implements
-			ListView.OnItemClickListener {
-		@Override
-		public void onItemClick(AdapterView parent, View view, int position,
-				long id) {
-			selectItem(position);
+	/*
+	 * Creates the spinner that contains the list of students.
+	 */
+	private void makeStudentSpinner() {
+		String[] students = new String[studentList.length + 1];
+		for (int i = 0; i < studentList.length; i++) {
+			if (studentList[i].equals(currentUsername + "%" + currentId)) {
+				currentStudentSelectedPosition = i;
+			}
+			students[i] = studentList[i].replace("%", " - ");
 		}
+		students[students.length - 1] = "Add student...";
+		addStudentIndex = students.length - 1;
+		ArrayAdapter<String> adp = new ArrayAdapter<String>(this,
+				R.layout.spinner_item, students);
+		studentSpinner.setAdapter(adp);
+		studentSpinner.setOnItemSelectedListener(this);
+		initializationStudentSpinnerCounter = 0;
+		studentSpinner.setSelection(currentStudentSelectedPosition);
 	}
 
 	/** Swaps fragments in the main content view */
-	public void selectItem(int position) {
+	private void selectItem(int position) {
 		drawerPosition = position;
 		drawerList.setItemChecked(position, true);
 		if (position == 0) {
@@ -846,16 +848,9 @@ public class MainActivity extends FragmentActivity implements
 					.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
 					.replace(R.id.content_frame, fragment).commit();
 
-			// Highlight the selected item, update the title, and close the
-			// drawer
-			drawerList.setItemChecked(position, true);
 			setTitle(R.string.action_overview);
 			drawerLayout.closeDrawer(drawer);
 		} else {
-			// Highlight the selected item, update the title, and close the
-			// drawer
-			drawerList.setItemChecked(position - Constants.HEADER_SECTIONS,
-					true);
 			setTitle(courses[position - Constants.HEADER_SECTIONS].title);
 			// Check if we already have info, otherwise load the course info
 			if (classGradesList.get(position - Constants.HEADER_SECTIONS) == null) {
@@ -868,7 +863,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	public void createFragment(int position) {
+	private void createFragment(int position) {
 		final int pos = position;
 
 		drawerHandler.postDelayed(new Runnable() {
@@ -890,13 +885,7 @@ public class MainActivity extends FragmentActivity implements
 
 	}
 
-	@Override
-	public void setTitle(CharSequence title) {
-		drawerTitle = (String) title;
-		getActionBar().setTitle(title);
-	}
-
-	public void setRefreshActionButtonState(final boolean refreshing) {
+	private void setRefreshActionButtonState(final boolean refreshing) {
 		if (menu != null) {
 			final MenuItem refreshItem = menu.findItem(R.id.action_refresh);
 			if (refreshItem != null) {
@@ -910,371 +899,47 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	public class ScrapeTask extends AsyncTask<String, Void, String> {
-
-		ProgressDialog dialog;
-		Context context;
-		String status;
-		String username;
-		String password;
-		String id;
-		String school;
-		boolean firstLog;
-		boolean showDialog;
-
-		public ScrapeTask(Context context, boolean showDialog) {
-			this.context = context;
-			this.showDialog = showDialog;
-		}
-
-		/*
-		 * Scrapes ParentConnection remotely.
-		 * 
-		 * @param[0] The username to log in with.
-		 * 
-		 * @param[1] The password to log in with.
-		 * 
-		 * @param[2] The student id.
-		 * 
-		 * @param[3] The id of the school logging in with. "Austin" or
-		 * "RoundRock".
-		 * 
-		 * @return A String of the webpage HTML.
-		 */
-		protected String doInBackground(String... information) {
-			username = information[0];
-			password = information[1];
-			id = information[2];
-			school = information[3];
-			String firstLogin = information[4];
-			firstLog = (firstLogin.equals("yes")) ? true : false;
-
-			String status = Constants.UNKNOWN_ERROR;
-			if (school.equals(Constants.AUSTIN)) {
-				gradeSpeedDistrict = new Austin();
-			} else if (school.equals("RoundRock")) {
-				gradeSpeedDistrict = new RoundRock();
-			}
-			status = scrape(username, password, id, gradeSpeedDistrict);
-			return status;
-		}
-
-		protected void onPostExecute(String response) {
-			handleResponse(response);
-		}
-
-		public void handleResponse(String response) {
-			if (response.equals(Constants.UNKNOWN_ERROR)) {
-				if (showDialog) {
-					dialog.dismiss();
-				}
-				setRefreshActionButtonState(false);
-				// Error unknown
-				Toast.makeText(
-						context,
-						"Something went wrong. GradeSpeed servers are probably down. Try relogging or refreshing.",
-						Toast.LENGTH_SHORT).show();
-				signInButton.setVisibility(View.VISIBLE);
-			} else if (response.equals(Constants.INVALID_LOGIN)) {
-				if (showDialog) {
-					dialog.dismiss();
-				}
-
-				setRefreshActionButtonState(false);
-				// Wrong credentials sent
-				Toast.makeText(
-						context,
-						"Invalid username, password, student ID, or school district.",
-						Toast.LENGTH_SHORT).show();
-				// Only show signinbutton if there's no other student to show
-				// grades for
-				if (studentList != null) {
-					if (!(studentList.length > 0)) {
-						signInButton.setVisibility(View.VISIBLE);
-					}
-				} else {
-					signInButton.setVisibility(View.VISIBLE);
-				}
-				startLogin();
-			} else if (!firstLog) {
-				PrettyTime p = new PrettyTime();
-				lastUpdatedText.setText("Updated "
-						+ p.format(new Date(System.currentTimeMillis() - 10)));
-				lastUpdatedText.setTextColor(Color.BLACK);
-				saver.saveCourses(courses, currentUsername, currentId);
-
-				makeCourseCards(true);
-				if (showDialog) {
-					dialog.dismiss();
-				}
-
-				setupActionBar();
-				setRefreshActionButtonState(false);
-			} else {
-				// first login
-				settingsManager.addStudent(username, password, id, school);
-				utils.makeAlarms();
-				if (showDialog) {
-					dialog.dismiss();
-				}
-				restartActivity();
-			}
-
-		}
-
-		protected void onPreExecute() {
-			super.onPreExecute();
-			if (showDialog) {
-				dialog = new ProgressDialog(context);
-				dialog.setCancelable(false);
-				dialog.setMessage("Loading Grades...");
-				dialog.show();
-			}
-
-			setRefreshActionButtonState(true);
-
-		}
-
-		public String scrape(final String username, final String password,
-				final String id, GradeSpeedDistrict district) {
-			retriever = new GradeRetriever(district);
-			parser = new GradeParser(district);
-			status = Constants.INVALID_LOGIN;
-
-			final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
-
-				@Override
-				public void onSuccess(String response) {
-					if (status != Constants.UNKNOWN_ERROR
-							&& status != Constants.INVALID_LOGIN) {
-						loggedIn = true;
-						saver.saveLatestResponse(response, username, id);
-						courses = parser.parseAverages(response);
-						// Set up the classGradesList with unintialized
-						// class grades
-						for (int i = 0; i < courses.length; i++) {
-							classGradesList.add(null);
-						}
-						settingsManager.saveLastLogin(currentUsername,
-								currentId, System.currentTimeMillis());
-					}
-				}
-
-				@Override
-				public void onFailure(Exception e) {
-					setStatus(Constants.UNKNOWN_ERROR);
-				}
-			};
-
-			final XHR.ResponseHandler disambiguateHandler = new XHR.ResponseHandler() {
-
-				@Override
-				public void onSuccess(String response) {
-					if (status != Constants.UNKNOWN_ERROR
-							&& status != Constants.INVALID_LOGIN) {
-						setStatus(Constants.SUCCESSFUL_LOGIN);
-						retriever.getAverages(getAveragesHandler);
-					}
-				}
-
-				@Override
-				public void onFailure(Exception e) {
-					setStatus(Constants.UNKNOWN_ERROR);
-				}
-			};
-
-			final GradeRetriever.LoginResponseHandler loginHandler = new GradeRetriever.LoginResponseHandler() {
-
-				@Override
-				public void onRequiresDisambiguation(String response,
-						StudentInfo[] students, ASPNETPageState state) {
-					setStatus(Constants.SUCCESSFUL_LOGIN);
-					retriever.disambiguate(id, state, disambiguateHandler);
-				}
-
-				@Override
-				public void onFailure(Exception e) {
-					setStatus(Constants.INVALID_LOGIN);
-				}
-
-				@Override
-				public void onDoesNotRequireDisambiguation(String response) {
-					setStatus(Constants.SUCCESSFUL_LOGIN);
-					retriever.getAverages(getAveragesHandler);
-				}
-			};
-
-			retriever.login(username, password, loginHandler);
-			return status;
-		}
-
-		public void setStatus(String status) {
-			this.status = status;
-		}
-
+	/*
+	 * Restarts the activity.
+	 */
+	private void restartActivity() {
+		Intent intent = getIntent();
+		overridePendingTransition(0, 0);
+		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+		finish();
+		overridePendingTransition(0, 0);
+		startActivity(intent);
 	}
 
-	public class CycleScrapeTask extends AsyncTask<String, Void, String> {
+	/*
+	 * Restarts the activity, supplying a flag that says to refresh instead of
+	 * loading saved grades when the activity restarts.
+	 */
+	private void restartActivityForRefresh() {
+		Intent intent = getIntent();
+		// Put refresh flag
+		intent.putExtra(Constants.REFRESH_INTENT, true);
+		overridePendingTransition(0, 0);
+		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+		finish();
+		overridePendingTransition(0, 0);
+		startActivity(intent);
+	}
 
-		ProgressDialog dialog;
-		Context context;
-		int position;
+	/*
+	 * Detects if Sign In button has been pressed.
+	 */
+	public void onSignInClick(View v) {
+		startLogin();
+	}
 
-		String status;
-
-		public CycleScrapeTask(Context context) {
-			this.context = context;
+	private class DrawerItemClickListener implements
+			ListView.OnItemClickListener {
+		@Override
+		public void onItemClick(AdapterView parent, View view, int position,
+				long id) {
+			selectItem(position);
 		}
-
-		/*
-		 * Scrapes ParentConnection remotely and returns a String of the webpage
-		 * HTML.
-		 * 
-		 * @param[0] The course to scrape
-		 * 
-		 * @param[1] The school
-		 * 
-		 * @return A String of the webpage HTML.
-		 */
-		protected String doInBackground(String... information) {
-			int course = Integer.valueOf(information[0]);
-			position = course;
-			scrape(course);
-			return "LOADED SUCCESSFULLY";
-		}
-
-		protected void onPostExecute(String response) {
-			dialog.dismiss();
-			MainActivity.this.createFragment(position);
-		}
-
-		protected void onPreExecute() {
-			super.onPreExecute();
-			dialog = new ProgressDialog(context);
-			dialog.setCancelable(false);
-			dialog.setMessage("Loading Assignments...");
-			dialog.show();
-		}
-
-		public String scrape(int c) {
-			// Log in if we haven't already
-			if (!loggedIn) {
-				final String[] credentials = settingsManager
-						.getLoginInfo(currentUsername + "%" + currentId);
-				final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
-
-					@Override
-					public void onSuccess(String response) {
-						if (status != Constants.UNKNOWN_ERROR
-								&& status != Constants.INVALID_LOGIN) {
-							saver.saveLatestResponse(response, credentials[0],
-									credentials[2]);
-							courses = parser.parseAverages(response);
-							// Set up the classGradesList with unintialized
-							// class grades
-							for (int i = 0; i < courses.length; i++) {
-								classGradesList.add(null);
-							}
-							settingsManager.saveLastLogin(currentUsername,
-									currentId, System.currentTimeMillis());
-						}
-					}
-
-					@Override
-					public void onFailure(Exception e) {
-						setStatus(Constants.UNKNOWN_ERROR);
-					}
-				};
-
-				final XHR.ResponseHandler disambiguateHandler = new XHR.ResponseHandler() {
-
-					@Override
-					public void onSuccess(String response) {
-						if (status != Constants.UNKNOWN_ERROR
-								&& status != Constants.INVALID_LOGIN) {
-							setStatus(Constants.SUCCESSFUL_LOGIN);
-							retriever.getAverages(getAveragesHandler);
-						}
-					}
-
-					@Override
-					public void onFailure(Exception e) {
-						setStatus(Constants.UNKNOWN_ERROR);
-					}
-				};
-
-				final GradeRetriever.LoginResponseHandler loginHandler = new GradeRetriever.LoginResponseHandler() {
-
-					@Override
-					public void onRequiresDisambiguation(String response,
-							StudentInfo[] students, ASPNETPageState state) {
-						setStatus(Constants.SUCCESSFUL_LOGIN);
-						retriever.disambiguate(credentials[2], state,
-								disambiguateHandler);
-					}
-
-					@Override
-					public void onFailure(Exception e) {
-						setStatus(Constants.INVALID_LOGIN);
-					}
-
-					@Override
-					public void onDoesNotRequireDisambiguation(String response) {
-						setStatus(Constants.SUCCESSFUL_LOGIN);
-						retriever.getAverages(getAveragesHandler);
-					}
-				};
-
-				retriever.login(credentials[0], credentials[1], loginHandler);
-				loggedIn = true;
-			}
-
-			Course course = courses[c];
-			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
-			for (int semesterIndex = 0; semesterIndex < course.semesters.length; semesterIndex++) {
-				for (int cycleIndex = 0; cycleIndex < course.semesters[semesterIndex].cycles.length; cycleIndex++) {
-					final String hash = course.semesters[semesterIndex].cycles[cycleIndex].urlHash;
-					final int sem = semesterIndex;
-					final int cy = cycleIndex;
-					if (hash != null) {
-						if (saver.getLatestResponse(currentUsername, currentId) != null) {
-							Document doc = Jsoup.parse(saver.getLatestResponse(
-									currentUsername, currentId));
-							retriever.getCycle(hash, doc,
-									new XHR.ResponseHandler() {
-
-										@Override
-										public void onSuccess(String response) {
-											ClassGrades grades = parser
-													.parseClassGrades(response,
-															hash, sem, cy);
-											gradesList.add(grades);
-										}
-
-										@Override
-										public void onFailure(Exception e) {
-
-										}
-
-									});
-						} else {
-							gradesList.add(null);
-						}
-					} else {
-						gradesList.add(null);
-					}
-				}
-			}
-
-			classGradesList.add(gradesList);
-			classGradesList.set(c, gradesList);
-			return Constants.SUCCESSFUL_LOGIN;
-		}
-
-		public void setStatus(String status) {
-			this.status = status;
-		}
-
 	}
 
 	/*
@@ -1563,37 +1228,367 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	/*
-	 * Helper method that restarts the activity.
-	 */
-	public void restartActivity() {
-		Intent intent = getIntent();
-		overridePendingTransition(0, 0);
-		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-		finish();
-		overridePendingTransition(0, 0);
-		startActivity(intent);
-	}
+	public class ScrapeTask extends AsyncTask<String, Void, String> {
 
-	@Override
-	public void onItemSelected(AdapterView<?> parentView,
-			View selectedItemView, int position, long id) {
-		if (initializationStudentSpinnerCounter > 0) {
-			if (position == addStudentIndex) {
-				drawerLayout.closeDrawer(drawer);
+		ProgressDialog dialog;
+		Context context;
+		String status;
+		String username;
+		String password;
+		String id;
+		String school;
+		boolean firstLog;
+		boolean showDialog;
+
+		public ScrapeTask(Context context, boolean showDialog) {
+			this.context = context;
+			this.showDialog = showDialog;
+		}
+
+		/*
+		 * Scrapes ParentConnection remotely.
+		 * 
+		 * @param[0] The username to log in with.
+		 * 
+		 * @param[1] The password to log in with.
+		 * 
+		 * @param[2] The student id.
+		 * 
+		 * @param[3] The id of the school logging in with. "Austin" or
+		 * "RoundRock".
+		 * 
+		 * @return A String of the webpage HTML.
+		 */
+		protected String doInBackground(String... information) {
+			username = information[0];
+			password = information[1];
+			id = information[2];
+			school = information[3];
+			String firstLogin = information[4];
+			firstLog = (firstLogin.equals("yes")) ? true : false;
+
+			String status = Constants.UNKNOWN_ERROR;
+			if (school.equals(Constants.AUSTIN)) {
+				gradeSpeedDistrict = new Austin();
+			} else if (school.equals("RoundRock")) {
+				gradeSpeedDistrict = new RoundRock();
+			}
+			status = scrape(username, password, id, gradeSpeedDistrict);
+			return status;
+		}
+
+		protected void onPostExecute(String response) {
+			handleResponse(response);
+		}
+
+		public void handleResponse(String response) {
+			if (response.equals(Constants.UNKNOWN_ERROR)) {
+				if (showDialog) {
+					dialog.dismiss();
+				}
+				setRefreshActionButtonState(false);
+				// Error unknown
+				Toast.makeText(
+						context,
+						"Something went wrong. GradeSpeed servers are probably down. Try relogging or refreshing.",
+						Toast.LENGTH_SHORT).show();
+				signInButton.setVisibility(View.VISIBLE);
+			} else if (response.equals(Constants.INVALID_LOGIN)) {
+				if (showDialog) {
+					dialog.dismiss();
+				}
+
+				setRefreshActionButtonState(false);
+				// Wrong credentials sent
+				Toast.makeText(
+						context,
+						"Invalid username, password, student ID, or school district.",
+						Toast.LENGTH_SHORT).show();
+				// Only show signinbutton if there's no other student to show
+				// grades for
+				if (studentList != null) {
+					if (!(studentList.length > 0)) {
+						signInButton.setVisibility(View.VISIBLE);
+					}
+				} else {
+					signInButton.setVisibility(View.VISIBLE);
+				}
 				startLogin();
+			} else if (!firstLog) {
+				displayLastUpdateTime(System.currentTimeMillis() - 10);
+				saver.saveCourses(courses, currentUsername, currentId);
+
+				makeCourseCards(true);
+				if (showDialog) {
+					dialog.dismiss();
+				}
+
+				setupActionBar();
+				setRefreshActionButtonState(false);
 			} else {
-				settingsManager.saveSelectedStudent(
-						studentList[position].split("%")[0],
-						studentList[position].split("%")[1]);
+				// first login
+				settingsManager.addStudent(username, password, id, school);
+				utils.makeAlarms();
+				if (showDialog) {
+					dialog.dismiss();
+				}
 				restartActivity();
 			}
+
 		}
-		initializationStudentSpinnerCounter++;
+
+		protected void onPreExecute() {
+			super.onPreExecute();
+			if (showDialog) {
+				dialog = new ProgressDialog(context);
+				dialog.setCancelable(false);
+				dialog.setMessage("Loading Grades...");
+				dialog.show();
+			}
+
+			setRefreshActionButtonState(true);
+
+		}
+
+		public String scrape(final String username, final String password,
+				final String id, GradeSpeedDistrict district) {
+			retriever = new GradeRetriever(district);
+			parser = new GradeParser(district);
+			status = Constants.INVALID_LOGIN;
+
+			final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
+
+				@Override
+				public void onSuccess(String response) {
+					if (status != Constants.UNKNOWN_ERROR
+							&& status != Constants.INVALID_LOGIN) {
+						loggedIn = true;
+						saver.saveLatestResponse(response, username, id);
+						courses = parser.parseAverages(response);
+						// Set up the classGradesList with unintialized
+						// class grades
+						for (int i = 0; i < courses.length; i++) {
+							classGradesList.add(null);
+						}
+						settingsManager.saveLastLogin(currentUsername,
+								currentId, System.currentTimeMillis());
+					}
+				}
+
+				@Override
+				public void onFailure(Exception e) {
+					setStatus(Constants.UNKNOWN_ERROR);
+				}
+			};
+
+			final XHR.ResponseHandler disambiguateHandler = new XHR.ResponseHandler() {
+
+				@Override
+				public void onSuccess(String response) {
+					if (status != Constants.UNKNOWN_ERROR
+							&& status != Constants.INVALID_LOGIN) {
+						setStatus(Constants.SUCCESSFUL_LOGIN);
+						retriever.getAverages(getAveragesHandler);
+					}
+				}
+
+				@Override
+				public void onFailure(Exception e) {
+					setStatus(Constants.UNKNOWN_ERROR);
+				}
+			};
+
+			final GradeRetriever.LoginResponseHandler loginHandler = new GradeRetriever.LoginResponseHandler() {
+
+				@Override
+				public void onRequiresDisambiguation(String response,
+						StudentInfo[] students, ASPNETPageState state) {
+					setStatus(Constants.SUCCESSFUL_LOGIN);
+					retriever.disambiguate(id, state, disambiguateHandler);
+				}
+
+				@Override
+				public void onFailure(Exception e) {
+					setStatus(Constants.INVALID_LOGIN);
+				}
+
+				@Override
+				public void onDoesNotRequireDisambiguation(String response) {
+					setStatus(Constants.SUCCESSFUL_LOGIN);
+					retriever.getAverages(getAveragesHandler);
+				}
+			};
+
+			retriever.login(username, password, loginHandler);
+			return status;
+		}
+
+		public void setStatus(String status) {
+			this.status = status;
+		}
+
 	}
 
-	@Override
-	public void onNothingSelected(AdapterView<?> arg0) {
+	public class CycleScrapeTask extends AsyncTask<String, Void, String> {
+
+		ProgressDialog dialog;
+		Context context;
+		int position;
+
+		String status;
+
+		public CycleScrapeTask(Context context) {
+			this.context = context;
+		}
+
+		/*
+		 * Scrapes ParentConnection remotely and returns a String of the webpage
+		 * HTML.
+		 * 
+		 * @param[0] The course to scrape
+		 * 
+		 * @param[1] The school
+		 * 
+		 * @return A String of the webpage HTML.
+		 */
+		protected String doInBackground(String... information) {
+			int course = Integer.valueOf(information[0]);
+			position = course;
+			scrape(course);
+			return "LOADED SUCCESSFULLY";
+		}
+
+		protected void onPostExecute(String response) {
+			dialog.dismiss();
+			MainActivity.this.createFragment(position);
+		}
+
+		protected void onPreExecute() {
+			super.onPreExecute();
+			dialog = new ProgressDialog(context);
+			dialog.setCancelable(false);
+			dialog.setMessage("Loading Assignments...");
+			dialog.show();
+		}
+
+		public String scrape(int c) {
+			// Log in if we haven't already
+			if (!loggedIn) {
+				final String[] credentials = settingsManager
+						.getLoginInfo(currentUsername + "%" + currentId);
+				final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
+
+					@Override
+					public void onSuccess(String response) {
+						if (status != Constants.UNKNOWN_ERROR
+								&& status != Constants.INVALID_LOGIN) {
+							saver.saveLatestResponse(response, credentials[0],
+									credentials[2]);
+							courses = parser.parseAverages(response);
+							// Set up the classGradesList with unintialized
+							// class grades
+							for (int i = 0; i < courses.length; i++) {
+								classGradesList.add(null);
+							}
+							settingsManager.saveLastLogin(currentUsername,
+									currentId, System.currentTimeMillis());
+						}
+					}
+
+					@Override
+					public void onFailure(Exception e) {
+						setStatus(Constants.UNKNOWN_ERROR);
+					}
+				};
+
+				final XHR.ResponseHandler disambiguateHandler = new XHR.ResponseHandler() {
+
+					@Override
+					public void onSuccess(String response) {
+						if (status != Constants.UNKNOWN_ERROR
+								&& status != Constants.INVALID_LOGIN) {
+							setStatus(Constants.SUCCESSFUL_LOGIN);
+							retriever.getAverages(getAveragesHandler);
+						}
+					}
+
+					@Override
+					public void onFailure(Exception e) {
+						setStatus(Constants.UNKNOWN_ERROR);
+					}
+				};
+
+				final GradeRetriever.LoginResponseHandler loginHandler = new GradeRetriever.LoginResponseHandler() {
+
+					@Override
+					public void onRequiresDisambiguation(String response,
+							StudentInfo[] students, ASPNETPageState state) {
+						setStatus(Constants.SUCCESSFUL_LOGIN);
+						retriever.disambiguate(credentials[2], state,
+								disambiguateHandler);
+					}
+
+					@Override
+					public void onFailure(Exception e) {
+						setStatus(Constants.INVALID_LOGIN);
+					}
+
+					@Override
+					public void onDoesNotRequireDisambiguation(String response) {
+						setStatus(Constants.SUCCESSFUL_LOGIN);
+						retriever.getAverages(getAveragesHandler);
+					}
+				};
+
+				retriever.login(credentials[0], credentials[1], loginHandler);
+				loggedIn = true;
+			}
+
+			Course course = courses[c];
+			final ArrayList<ClassGrades> gradesList = new ArrayList<ClassGrades>();
+			for (int semesterIndex = 0; semesterIndex < course.semesters.length; semesterIndex++) {
+				for (int cycleIndex = 0; cycleIndex < course.semesters[semesterIndex].cycles.length; cycleIndex++) {
+					final String hash = course.semesters[semesterIndex].cycles[cycleIndex].urlHash;
+					final int sem = semesterIndex;
+					final int cy = cycleIndex;
+					if (hash != null) {
+						if (saver.getLatestResponse(currentUsername, currentId) != null) {
+							Document doc = Jsoup.parse(saver.getLatestResponse(
+									currentUsername, currentId));
+							retriever.getCycle(hash, doc,
+									new XHR.ResponseHandler() {
+
+										@Override
+										public void onSuccess(String response) {
+											ClassGrades grades = parser
+													.parseClassGrades(response,
+															hash, sem, cy);
+											gradesList.add(grades);
+										}
+
+										@Override
+										public void onFailure(Exception e) {
+
+										}
+
+									});
+						} else {
+							gradesList.add(null);
+						}
+					} else {
+						gradesList.add(null);
+					}
+				}
+			}
+
+			classGradesList.add(gradesList);
+			classGradesList.set(c, gradesList);
+			return Constants.SUCCESSFUL_LOGIN;
+		}
+
+		public void setStatus(String status) {
+			this.status = status;
+		}
 
 	}
 

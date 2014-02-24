@@ -54,6 +54,9 @@
     <string name="dialog_signout_message">Are you sure you want to sign out?</string>
     <string name="dialog_yes">Yes</string>
     <string name="dialog_no">No</string>
+    <string name="dialog_login">Login</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_login_message">Use your GradeSpeed credentials.</string>
     <string name="left_sign">&lt;</string>
     <string name="right_sign">&gt;</string>
     <string name="grade">GRADE</string>

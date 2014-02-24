@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Bundle;
 
 public class Utils {
 	Context context;
@@ -88,5 +89,17 @@ public class Utils {
 			}
 		}
 		return false;
+	}
+	
+
+	/*
+	 * Checks if the activity contains a flag that says to refresh
+	 */
+	public boolean checkIfStartFromRefresh(Bundle extras) {
+		if (extras != null) {
+			return extras.getBoolean(Constants.REFRESH_INTENT);
+		} else {
+			return false;
+		}
 	}
 }

@@ -309,23 +309,23 @@ public class MainActivity extends FragmentActivity implements
 		if (pInfo != null) {
 			currentVersion = pInfo.versionCode;
 		}
-		if (currentVersion - settingsManager.getSavedVersion() > 2) {
-			Log.d("Update", "Wiping data");
-			studentList = settingsManager.getStudentList();
-			if (studentList != null) {
-				// Erase student info and saved grades
-				for (int i = 0; i < studentList.length; i++) {
-					String user = studentList[i].split("%")[0];
-					String id = studentList[i].split("%")[1];
-					settingsManager.eraseCredentials(user, id);
-					saver.eraseCourses(user, id);
-					saver.eraseWeightedGPA(user, id);
-					saver.eraseUnweightedGPA(user, id);
-				}
-				// Erase student list
-				settingsManager.eraseStudentList();
+		// if (currentVersion - settingsManager.getSavedVersion() > 2) {
+		Log.d("Update", "Wiping data");
+		studentList = settingsManager.getStudentList();
+		if (studentList != null) {
+			// Erase student info and saved grades
+			for (int i = 0; i < studentList.length; i++) {
+				String user = studentList[i].split("%")[0];
+				String id = studentList[i].split("%")[1];
+				settingsManager.eraseCredentials(user, id);
+				saver.eraseCourses(user, id);
+				saver.eraseWeightedGPA(user, id);
+				saver.eraseUnweightedGPA(user, id);
 			}
+			// Erase student list
+			settingsManager.eraseStudentList();
 		}
+		// }
 
 		if (pInfo != null) {
 			settingsManager.saveCurrentVersion(currentVersion);

@@ -751,7 +751,7 @@ public class MainActivity extends FragmentActivity implements
 			if (currentDistrict.equals(Constants.AUSTIN)) {
 				weightedGPA = GPACalc.weighted(courses, toWeighted,
 						gradeSpeedDistrict.weightedGPABoost());
-			} else if (currentDistrict.equals("RoundRock")) {
+			} else if (currentDistrict.equals(Constants.ROUNDROCK)) {
 				weightedGPA = GPACalc.weighted(courses, toWeighted,
 						gradeSpeedDistrict.weightedGPABoost());
 			}
@@ -1270,7 +1270,7 @@ public class MainActivity extends FragmentActivity implements
 			String status = Constants.UNKNOWN_ERROR;
 			if (school.equals(Constants.AUSTIN)) {
 				gradeSpeedDistrict = new Austin();
-			} else if (school.equals("RoundRock")) {
+			} else if (school.equals(Constants.ROUNDROCK)) {
 				gradeSpeedDistrict = new RoundRock();
 			}
 			status = scrape(username, password, id, gradeSpeedDistrict);
@@ -1455,7 +1455,7 @@ public class MainActivity extends FragmentActivity implements
 			int course = Integer.valueOf(information[0]);
 			position = course;
 			scrape(course);
-			return "LOADED SUCCESSFULLY";
+			return Constants.SUCCESSFUL_LOGIN;
 		}
 
 		protected void onPostExecute(String response) {

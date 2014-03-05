@@ -736,7 +736,8 @@ public class MainActivity extends FragmentActivity implements
 			for (int i = 0; i < weightedClasses.size(); i++) {
 				boolean excluded = false;
 				for (int d = 0; d < excludedClasses.size(); d++) {
-					if (excludedClasses.get(d).equals(courses[i].title)) {
+					if (d < excludedClasses.size()
+							&& excludedClasses.get(d).equals(courses[i].title)) {
 						excluded = true;
 					}
 				}
@@ -1124,31 +1125,38 @@ public class MainActivity extends FragmentActivity implements
 				cycleIndex = args.getInt(INDEX_CYCLE);
 				title = (TextView) getView().findViewById(R.id.title_text);
 				Course course = courses[courseIndex];
-				String titleText = "";
-				int semester = 0;
-				int cycle = cycleIndex;
-				semester = cycleIndex / (course.semesters[0].cycles.length);
-				cycle = cycleIndex % (course.semesters[0].cycles.length);
-				if (course.semesters[semester].cycles[cycle].average != null) {
-					titleText = "Cycle " + (cycleIndex + 1) + " - "
-							+ course.semesters[semester].cycles[cycle].average;
-				} else {
-					titleText = "Cycle " + (cycleIndex + 1);
-				}
-				title.setText(titleText);
-				ArrayList<ClassGrades> gradesList = classGradesList
-						.get(courseIndex);
-				if (gradesList != null && gradesList.get(cycleIndex) != null) {
-					ClassGrades grades = gradesList.get(cycleIndex);
-					Category[] categories = grades.categories;
-					makeCategoryCards(courseIndex, course.semesters[semester],
-							cycle, categories);
-				} else {
-					// create an arraylist of categories of size 0
-					Category[] categories = new Category[0];
-					makeCategoryCards(courseIndex, course.semesters[semester],
-							cycle, categories);
+				if (course != null) {
+					String titleText = "";
+					int semester = 0;
+					int cycle = cycleIndex;
+					semester = cycleIndex / (course.semesters[0].cycles.length);
+					cycle = cycleIndex % (course.semesters[0].cycles.length);
+					if (course.semesters[semester].cycles[cycle].average != null) {
+						titleText = "Cycle "
+								+ (cycleIndex + 1)
+								+ " - "
+								+ course.semesters[semester].cycles[cycle].average;
+					} else {
+						titleText = "Cycle " + (cycleIndex + 1);
+					}
+					title.setText(titleText);
+					ArrayList<ClassGrades> gradesList = classGradesList
+							.get(courseIndex);
+					if (gradesList != null
+							&& gradesList.get(cycleIndex) != null) {
+						ClassGrades grades = gradesList.get(cycleIndex);
+						Category[] categories = grades.categories;
+						makeCategoryCards(courseIndex,
+								course.semesters[semester], cycle, categories);
+					} else {
+						// create an arraylist of categories of size 0
+						Category[] categories = new Category[0];
+						makeCategoryCards(courseIndex,
+								course.semesters[semester], cycle, categories);
 
+					}
+				} else {
+					Toast.makeText(getView().getContext(), "An error occurred. Try refreshing.", Toast.LENGTH_SHORT).show();
 				}
 			}
 

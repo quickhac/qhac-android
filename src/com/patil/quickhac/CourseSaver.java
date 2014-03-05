@@ -88,7 +88,7 @@ public class CourseSaver {
 		float gpa = prefs.getFloat("unweightedGPA", 0);
 		return (double) gpa;
 	}
-	
+
 	public void eraseWeightedGPA(String username, String id) {
 		String fileName = username + "%" + id;
 		SharedPreferences prefs = context.getSharedPreferences(fileName,
@@ -97,7 +97,7 @@ public class CourseSaver {
 		editor.remove("weightedGPA");
 		editor.commit();
 	}
-	
+
 	public void eraseUnweightedGPA(String username, String id) {
 		String fileName = username + "%" + id;
 		SharedPreferences prefs = context.getSharedPreferences(fileName,
@@ -119,9 +119,13 @@ public class CourseSaver {
 		if (savedCourses.equals("None")) {
 			courses = null;
 		} else {
-			courses = new Gson().fromJson(savedCourses,
-					new TypeToken<Course[]>() {
-					}.getType());
+			try {
+				courses = new Gson().fromJson(savedCourses,
+						new TypeToken<Course[]>() {
+						}.getType());
+			} catch (Exception e) {
+				courses = null;
+			}
 		}
 		return courses;
 	}

@@ -2,3 +2,5 @@ A port of QuickHAC to Android.
 
 Some screenshots:
 http://imgur.com/a/0X3st
+
+When compiling project, make sure roboelectric-... jar is deleted from ShowCaseViewLibrary. For some reason this prevents notifications from working.

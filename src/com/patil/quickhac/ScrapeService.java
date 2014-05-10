@@ -18,6 +18,7 @@ import com.quickhac.common.GradeParser;
 import com.quickhac.common.GradeRetriever;
 import com.quickhac.common.data.Course;
 import com.quickhac.common.data.Cycle;
+import com.quickhac.common.data.GradeValue;
 import com.quickhac.common.data.Semester;
 import com.quickhac.common.data.StudentInfo;
 import com.quickhac.common.districts.GradeSpeedDistrict;
@@ -97,11 +98,12 @@ public class ScrapeService extends IntentService {
 					// Look for differences
 					ArrayList<GradeChange> changes = getGradeChanges(
 							savedCourses, courseList);
+
 					if (changes.size() > 0) {
-						Log.d("BackgroundGrades", "changes");
 						// If the user has enabled grade change notifications
 						if (manager.isShowNotificationPreferenceEnabled()) {
 							makeGradeChangeNotification(changes, user, id);
+							makeGradeLowerNotification(changes, user, id);
 						}
 					}
 				}
@@ -124,6 +126,58 @@ public class ScrapeService extends IntentService {
 		return message;
 	}
 
+	public void makeGradeLowerNotification(ArrayList<GradeChange> changes,
+			String username, String id) {
+		int gradeLowerTrigger = manager.getGradeLowerTrigger();
+		for (int i = 0; i < changes.size(); i++) {
+			GradeChange change = changes.get(i);
+			if (change.oldRawGrade != null && change.newRawGrade != null) {
+				if (change.oldRawGrade.type == GradeValue.TYPE_INTEGER
+						&& change.newRawGrade.type == GradeValue.TYPE_INTEGER) {
+					int oldGradeVal = change.oldRawGrade.value;
+					int newGradeVal = change.newRawGrade.value;
+					if(oldGradeVal >= gradeLowerTrigger && newGradeVal < gradeLowerTrigger) {
+						
+						Log.d("BackgroundGrades", "making grade lower notifications");
+						NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(
+								this).setSmallIcon(R.drawable.ic_notification).setContentTitle(
+								"Grade dropped below " + gradeLowerTrigger);
+						mBuilder.setContentText("User " + username + " - " + id);
+						Uri alarmSound = RingtoneManager
+								.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+						mBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
+						mBuilder.setSound(alarmSound);
+						mBuilder.setAutoCancel(true);
+						mBuilder.setStyle(new NotificationCompat.BigTextStyle()
+								.bigText("Your grade in " + change.title + " has dropped below a " + gradeLowerTrigger));
+						// Creates an explicit intent for an Activity in your app
+						Intent resultIntent = new Intent(this, MainActivity.class);
+
+						// The stack builder object will contain an artificial back stack for
+						// the
+						// started Activity.
+						// This ensures that navigating backward from the Activity leads out of
+						// your application to the Home screen.
+						TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+						// Adds the back stack for the Intent (but not the Intent itself)
+						stackBuilder.addParentStack(MainActivity.class);
+						// Adds the Intent that starts the Activity to the top of the stack
+						stackBuilder.addNextIntent(resultIntent);
+						PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0,
+								PendingIntent.FLAG_UPDATE_CURRENT);
+						mBuilder.setContentIntent(resultPendingIntent);
+						NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+						Notification not = mBuilder.build();
+						not.defaults = Notification.DEFAULT_ALL;
+						// mId allows you to update the notification later on.
+						mNotificationManager.notify((int) Math.random() * 100000, not);
+					}
+				}
+			}
+
+		}
+	}
+
 	public void makeGradeChangeNotification(ArrayList<GradeChange> changes,
 			String username, String id) {
 		Log.d("BackgroundGrades", "making notifications");
@@ -133,7 +187,7 @@ public class ScrapeService extends IntentService {
 		mBuilder.setContentText("User " + username + " - " + id);
 		Uri alarmSound = RingtoneManager
 				.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-		mBuilder.setPriority(NotificationCompat.PRIORITY_HIGH);
+		mBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
 		mBuilder.setSound(alarmSound);
 		mBuilder.setAutoCancel(true);
 		mBuilder.setStyle(new NotificationCompat.BigTextStyle()
@@ -176,12 +230,14 @@ public class ScrapeService extends IntentService {
 								newCycle.average.toString())) {
 							gradeChanges.add(new GradeChange(course.title,
 									savedCycle.average.toString(),
-									newCycle.average.toString(), false));
+									newCycle.average.toString(), false,
+									savedCycle.average, newCycle.average));
 						}
 					} else if (savedCycle.average == null
 							&& newCycle.average != null) {
 						gradeChanges.add(new GradeChange(course.title, "",
-								newCycle.average.toString(), true));
+								newCycle.average.toString(), true, null,
+								newCycle.average));
 					} else if (savedCycle.average != null
 							&& newCycle.average == null) {
 						// How is this even possible grades somehow got deleted

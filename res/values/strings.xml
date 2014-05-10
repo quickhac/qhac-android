@@ -81,5 +81,7 @@
     <string name="silver">#BDC3C7</string>
     <string name="concrete">#95A5A6</string>
     <string name="asbestos">#7F8C8D</string>
+    <string name="pref_showNotificationsLowGrade">Notify when grades drop</string>
+    <string name="pref_showNotificationsLowGrade_summ">Send me a notification when my grades drop below</string>
 
 </resources>

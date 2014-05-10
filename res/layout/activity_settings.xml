@@ -43,6 +43,7 @@
             android:key="pref_showNotifications"
             android:summary="@string/pref_showNotifications_summ"
             android:title="@string/pref_showNotifications" />
+        
     </PreferenceCategory>
 
 </PreferenceScreen>

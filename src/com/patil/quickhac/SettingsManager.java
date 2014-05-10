@@ -55,6 +55,10 @@ public class SettingsManager {
 		return defaultPrefs.getInt("pref_gradePollingInterval", 30);
 	}
 	
+	public int getGradeLowerTrigger() {
+		return defaultPrefs.getInt("pref_showNotificationsLowGrade", 0);
+	}
+	
 	/*
 	 * Returns if the user wants to have grade highlighting
 	 */

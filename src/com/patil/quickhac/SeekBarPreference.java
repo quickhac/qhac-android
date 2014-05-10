@@ -5,10 +5,10 @@ import android.content.Context;
 import android.os.Bundle;
 import android.preference.DialogPreference;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -31,18 +31,18 @@ public class SeekBarPreference extends DialogPreference implements
 
 	// ------------------------------------------------------------------------------------------
 	// Constructor :
-	public SeekBarPreference(Context context, AttributeSet attrs) {
+	public SeekBarPreference(Context context, AttributeSet attrs, int mDefault, int mMax, String prefix, String suffix) {
 
 		super(context, attrs);
 		mContext = context;
 
-		mDialogMessage = "Check for new grades every";
+		mDialogMessage = prefix;
 
-		mSuffix = "minutes";
+		mSuffix = suffix;
 
 		// Get default and max seekbar values :
-		mDefault = 30;
-		mMax = 120;
+		this.mDefault = mDefault;
+		this.mMax = mMax;
 	}
 
 	// ------------------------------------------------------------------------------------------
@@ -156,9 +156,10 @@ public class SeekBarPreference extends DialogPreference implements
 	@Override
 	public void onClick(View v) {
 
-		if (shouldPersist())
-			persistInt(mSeekBar.getProgress());
-		callChangeListener(Integer.valueOf(mSeekBar.getProgress()));
+		if (shouldPersist()) {
+			persistInt(mSeekBar.getProgress() + 1);
+		}
+		callChangeListener(Integer.valueOf(mSeekBar.getProgress() + 1));
 
 		((AlertDialog) getDialog()).dismiss();
 	}

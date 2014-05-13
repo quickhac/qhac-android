@@ -96,15 +96,15 @@ public class ScrapeService extends IntentService {
 				if (savedCourses != null) {
 					Log.d("BackgroundGrades", "savedcourses not null");
 					// Look for differences
-					ArrayList<GradeChange> changes = getGradeChanges(
+					ArrayList<GradeChange> gradeLowers = getGradeLowers(
 							savedCourses, courseList);
-
-					if (changes.size() > 0) {
-						// If the user has enabled grade change notifications
-						if (manager.isShowNotificationPreferenceEnabled()) {
-							makeGradeChangeNotification(changes, user, id);
-							makeGradeLowerNotification(changes, user, id);
-						}
+					ArrayList<GradeChange> gradeChanges = getGradeChanges(
+							savedCourses, courseList);
+					
+					if(gradeLowers.size() > 0) {
+						makeGradeLowerNotification(gradeLowers, user, id);
+					} else {
+						makeGradeChangeNotification(gradeChanges, user, id);
 					}
 				}
 				// save the new courselist
@@ -131,50 +131,43 @@ public class ScrapeService extends IntentService {
 		int gradeLowerTrigger = manager.getGradeLowerTrigger();
 		for (int i = 0; i < changes.size(); i++) {
 			GradeChange change = changes.get(i);
-			if (change.oldRawGrade != null && change.newRawGrade != null) {
-				if (change.oldRawGrade.type == GradeValue.TYPE_INTEGER
-						&& change.newRawGrade.type == GradeValue.TYPE_INTEGER) {
-					int oldGradeVal = change.oldRawGrade.value;
-					int newGradeVal = change.newRawGrade.value;
-					if(oldGradeVal >= gradeLowerTrigger && newGradeVal < gradeLowerTrigger) {
-						
-						Log.d("BackgroundGrades", "making grade lower notifications");
-						NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(
-								this).setSmallIcon(R.drawable.ic_notification).setContentTitle(
-								"Grade dropped below " + gradeLowerTrigger);
-						mBuilder.setContentText("User " + username + " - " + id);
-						Uri alarmSound = RingtoneManager
-								.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-						mBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
-						mBuilder.setSound(alarmSound);
-						mBuilder.setAutoCancel(true);
-						mBuilder.setStyle(new NotificationCompat.BigTextStyle()
-								.bigText("Your grade in " + change.title + " has dropped below a " + gradeLowerTrigger));
-						// Creates an explicit intent for an Activity in your app
-						Intent resultIntent = new Intent(this, MainActivity.class);
+			Log.d("BackgroundGrades", "making grade lower notifications");
+			NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(
+					this)
+					.setSmallIcon(R.drawable.ic_notification)
+					.setContentTitle("Grade dropped below " + gradeLowerTrigger);
+			mBuilder.setContentText("User " + username + " - " + id);
+			Uri alarmSound = RingtoneManager
+					.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+			mBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
+			mBuilder.setSound(alarmSound);
+			mBuilder.setAutoCancel(true);
+			mBuilder.setStyle(new NotificationCompat.BigTextStyle()
+					.bigText("Your grade in " + change.title
+							+ " has dropped below a " + gradeLowerTrigger));
+			// Creates an explicit intent for an Activity in your app
+			Intent resultIntent = new Intent(this, MainActivity.class);
 
-						// The stack builder object will contain an artificial back stack for
-						// the
-						// started Activity.
-						// This ensures that navigating backward from the Activity leads out of
-						// your application to the Home screen.
-						TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-						// Adds the back stack for the Intent (but not the Intent itself)
-						stackBuilder.addParentStack(MainActivity.class);
-						// Adds the Intent that starts the Activity to the top of the stack
-						stackBuilder.addNextIntent(resultIntent);
-						PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0,
-								PendingIntent.FLAG_UPDATE_CURRENT);
-						mBuilder.setContentIntent(resultPendingIntent);
-						NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-						Notification not = mBuilder.build();
-						not.defaults = Notification.DEFAULT_ALL;
-						// mId allows you to update the notification later on.
-						mNotificationManager.notify((int) Math.random() * 100000, not);
-					}
-				}
-			}
-
+			// The stack builder object will contain an artificial back stack
+			// for
+			// the
+			// started Activity.
+			// This ensures that navigating backward from the Activity leads out
+			// of
+			// your application to the Home screen.
+			TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+			// Adds the back stack for the Intent (but not the Intent itself)
+			stackBuilder.addParentStack(MainActivity.class);
+			// Adds the Intent that starts the Activity to the top of the stack
+			stackBuilder.addNextIntent(resultIntent);
+			PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
+					0, PendingIntent.FLAG_UPDATE_CURRENT);
+			mBuilder.setContentIntent(resultPendingIntent);
+			NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+			Notification not = mBuilder.build();
+			not.defaults = Notification.DEFAULT_ALL;
+			// mId allows you to update the notification later on.
+			mNotificationManager.notify((int) Math.random() * 100000, not);
 		}
 	}
 
@@ -213,6 +206,54 @@ public class ScrapeService extends IntentService {
 		not.defaults = Notification.DEFAULT_ALL;
 		// mId allows you to update the notification later on.
 		mNotificationManager.notify((int) Math.random() * 100000, not);
+	}
+
+	public ArrayList<GradeChange> getGradeLowers(Course[] oldCourses,
+			Course[] newCourses) {
+		int gradeLowerTrigger = manager.getGradeLowerTrigger();
+		ArrayList<GradeChange> gradeLowers = new ArrayList<GradeChange>();
+		for (int courseIndex = 0; courseIndex < oldCourses.length; courseIndex++) {
+			Course course = oldCourses[courseIndex];
+			for (int semIndex = 0; semIndex < course.semesters.length; semIndex++) {
+				Semester semester = course.semesters[semIndex];
+				for (int cycleIndex = 0; cycleIndex < semester.cycles.length; cycleIndex++) {
+					Cycle savedCycle = semester.cycles[cycleIndex];
+					Cycle newCycle = newCourses[courseIndex].semesters[semIndex].cycles[cycleIndex];
+					if (savedCycle.average != null && newCycle.average != null) {
+						if (!savedCycle.average.toString().equals(
+								newCycle.average.toString())) {
+
+							if (savedCycle.average.type == GradeValue.TYPE_INTEGER
+									&& newCycle.average.type == GradeValue.TYPE_INTEGER) {
+								if (savedCycle.average.value >= gradeLowerTrigger
+										&& newCycle.average.value < gradeLowerTrigger) {
+									gradeLowers.add(new GradeChange(
+											course.title, savedCycle.average
+													.toString(),
+											newCycle.average.toString(), false,
+											savedCycle.average,
+											newCycle.average));
+								}
+
+							}
+
+						}
+					} else if (savedCycle.average == null
+							&& newCycle.average != null) {
+						gradeLowers.add(new GradeChange(course.title, "",
+								newCycle.average.toString(), true, null,
+								newCycle.average));
+					} else if (savedCycle.average != null
+							&& newCycle.average == null) {
+						// How is this even possible grades somehow got deleted
+					} else if (savedCycle.average == null
+							&& newCycle.average == null) {
+						// Staying nonexistent is not a change
+					}
+				}
+			}
+		}
+		return gradeLowers;
 	}
 
 	public ArrayList<GradeChange> getGradeChanges(Course[] oldCourses,

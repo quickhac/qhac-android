@@ -54,6 +54,8 @@ import com.espian.showcaseview.ShowcaseView;
 import com.espian.showcaseview.targets.ActionViewTarget;
 import com.fima.cardsui.objects.Card;
 import com.fima.cardsui.views.CardUI;
+import com.parse.ParseInstallation;
+import com.parse.PushService;
 import com.quickhac.common.GPACalc;
 import com.quickhac.common.GradeCalc;
 import com.quickhac.common.GradeParser;
@@ -1156,7 +1158,9 @@ public class MainActivity extends FragmentActivity implements
 
 					}
 				} else {
-					Toast.makeText(getView().getContext(), "An error occurred. Try refreshing.", Toast.LENGTH_SHORT).show();
+					Toast.makeText(getView().getContext(),
+							"An error occurred. Try refreshing.",
+							Toast.LENGTH_SHORT).show();
 				}
 			}
 

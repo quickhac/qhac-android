@@ -100,10 +100,10 @@ public class ScrapeService extends IntentService {
 							savedCourses, courseList);
 					ArrayList<GradeChange> gradeChanges = getGradeChanges(
 							savedCourses, courseList);
-					
-					if(gradeLowers.size() > 0) {
+
+					if (gradeLowers.size() > 0) {
 						makeGradeLowerNotification(gradeLowers, user, id);
-					} else {
+					} else if (gradeChanges.size() > 0) {
 						makeGradeChangeNotification(gradeChanges, user, id);
 					}
 				}
@@ -211,6 +211,7 @@ public class ScrapeService extends IntentService {
 	public ArrayList<GradeChange> getGradeLowers(Course[] oldCourses,
 			Course[] newCourses) {
 		int gradeLowerTrigger = manager.getGradeLowerTrigger();
+		Log.d("gradelower", String.valueOf(gradeLowerTrigger));
 		ArrayList<GradeChange> gradeLowers = new ArrayList<GradeChange>();
 		for (int courseIndex = 0; courseIndex < oldCourses.length; courseIndex++) {
 			Course course = oldCourses[courseIndex];
@@ -238,17 +239,6 @@ public class ScrapeService extends IntentService {
 							}
 
 						}
-					} else if (savedCycle.average == null
-							&& newCycle.average != null) {
-						gradeLowers.add(new GradeChange(course.title, "",
-								newCycle.average.toString(), true, null,
-								newCycle.average));
-					} else if (savedCycle.average != null
-							&& newCycle.average == null) {
-						// How is this even possible grades somehow got deleted
-					} else if (savedCycle.average == null
-							&& newCycle.average == null) {
-						// Staying nonexistent is not a change
 					}
 				}
 			}

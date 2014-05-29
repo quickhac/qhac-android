@@ -31,7 +31,8 @@ public class SeekBarPreference extends DialogPreference implements
 
 	// ------------------------------------------------------------------------------------------
 	// Constructor :
-	public SeekBarPreference(Context context, AttributeSet attrs, int mDefault, int mMax, String prefix, String suffix) {
+	public SeekBarPreference(Context context, AttributeSet attrs, int mDefault,
+			int mMax, String prefix, String suffix) {
 
 		super(context, attrs);
 		mContext = context;
@@ -109,7 +110,7 @@ public class SeekBarPreference extends DialogPreference implements
 	// OnSeekBarChangeListener methods :
 	@Override
 	public void onProgressChanged(SeekBar seek, int value, boolean fromTouch) {
-		String t = String.valueOf(value + 1);
+		String t = String.valueOf(value);
 		mValueText.setText(mSuffix == null ? t : t.concat(" " + mSuffix));
 	}
 
@@ -157,9 +158,9 @@ public class SeekBarPreference extends DialogPreference implements
 	public void onClick(View v) {
 
 		if (shouldPersist()) {
-			persistInt(mSeekBar.getProgress() + 1);
+			persistInt(mSeekBar.getProgress());
 		}
-		callChangeListener(Integer.valueOf(mSeekBar.getProgress() + 1));
+		callChangeListener(Integer.valueOf(mSeekBar.getProgress()));
 
 		((AlertDialog) getDialog()).dismiss();
 	}

@@ -1,10 +1,5 @@
 package com.patil.quickhac;
 
-import com.quickhac.common.data.Course;
-import com.quickhac.common.data.Cycle;
-import com.quickhac.common.data.GradeValue;
-import com.quickhac.common.data.Semester;
-
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -12,6 +7,12 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.util.Log;
+
+import com.quickhac.common.data.Course;
+import com.quickhac.common.data.Cycle;
+import com.quickhac.common.data.GradeValue;
+import com.quickhac.common.data.Semester;
 
 public class Utils {
 	Context context;
@@ -51,7 +52,8 @@ public class Utils {
 
 		// Get the polling interval
 		int intervalMinutes = settingsManager.getAlarmPollInterval();
-		int interval = (intervalMinutes * 60000) + 1000;
+		Log.d("gradelower", String.valueOf(intervalMinutes));
+		int interval = (intervalMinutes * 60000);
 
 		// use inexact repeating which is easier on battery (system can
 		// phase

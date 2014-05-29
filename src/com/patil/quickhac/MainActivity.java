@@ -311,7 +311,7 @@ public class MainActivity extends FragmentActivity implements
 		if (pInfo != null) {
 			currentVersion = pInfo.versionCode;
 		}
-		if (currentVersion - settingsManager.getSavedVersion() > 0) {
+		if (currentVersion - settingsManager.getSavedVersion() > 1) {
 			Log.d("Update", "Wiping data");
 			studentList = settingsManager.getStudentList();
 			if (studentList != null) {

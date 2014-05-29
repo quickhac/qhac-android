@@ -37,13 +37,13 @@ public class SettingsActivity extends PreferenceActivity {
 		excludedPreference.setEntries(classes);
 
 		PreferenceCategory notificationCategory = (PreferenceCategory) findPreference("category_notifications");
-
+/*
 		// Add the slider dialog preference for grade low threshold
-		SeekBarPreference sb1 = new SeekBarPreference(this, null, 1, 99, "Notify me when my grade drops below ", "");
+		SeekBarPreference sb1 = new SeekBarPreference(this, null, 1, 100, "Notify me when my grade drops below ", "");
 		sb1.setTitle("Choose grade drop notification");
 		sb1.setKey("pref_showNotificationsLowGrade");
 		notificationCategory.addPreference(sb1);
-
+*/
 		// Add the slider dialog preference for polling interval
 		SeekBarPreference sb = new SeekBarPreference(this, null, 29, 119, "Check for new grades every ", " minutes");
 		sb.setTitle("Choose polling interval");

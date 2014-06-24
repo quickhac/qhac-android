@@ -515,7 +515,7 @@ public class MainActivity extends FragmentActivity implements
 		makeCourseCards(false);
 	}
 
-	private void displayLastUpdateTime(long lastUpdateMillis) {
+	public void displayLastUpdateTime(long lastUpdateMillis) {
 		String toDisplay = "Updated ";
 		PrettyTime p = new PrettyTime();
 		toDisplay += p.format(new Date(lastUpdateMillis));
@@ -534,7 +534,7 @@ public class MainActivity extends FragmentActivity implements
 	 * Starts login by showing a login dialog. Saves credentials and loads
 	 * grades when user logs in.
 	 */
-	private void startLogin() {
+	public void startLogin() {
 		LayoutInflater factory = LayoutInflater.from(this);
 		final View textEntryView = factory.inflate(R.layout.dialog_login, null);
 		final EditText userName = (EditText) textEntryView
@@ -616,7 +616,7 @@ public class MainActivity extends FragmentActivity implements
 	 */
 	private void executeScrapeTask(String user, String pass, String id,
 			String distr, String firstLogOn, boolean asyncRefresh) {
-		new ScrapeTask(this, asyncRefresh).execute(new String[] { user, pass,
+		new ScrapeTask(this, this, asyncRefresh).execute(new String[] { user, pass,
 				id, distr, firstLogOn });
 
 	}
@@ -634,7 +634,7 @@ public class MainActivity extends FragmentActivity implements
 	/*
 	 * Makes descriptions and loads in cards to display.
 	 */
-	private void makeCourseCards(final boolean online) {
+	public void makeCourseCards(final boolean online) {
 		courseCardListView = (CardUI) findViewById(R.id.cardsview);
 
 		courseCardListView.clearCards();
@@ -772,7 +772,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	private void setupActionBar() {
+	public void setupActionBar() {
 		// Create navigation drawer of courses
 
 		// Make array of all of the headings for the drawer
@@ -888,7 +888,7 @@ public class MainActivity extends FragmentActivity implements
 
 	}
 
-	private void setRefreshActionButtonState(final boolean refreshing) {
+	public void setRefreshActionButtonState(final boolean refreshing) {
 		if (menu != null) {
 			final MenuItem refreshItem = menu.findItem(R.id.action_refresh);
 			if (refreshItem != null) {
@@ -905,7 +905,7 @@ public class MainActivity extends FragmentActivity implements
 	/*
 	 * Restarts the activity.
 	 */
-	private void restartActivity() {
+	public void restartActivity() {
 		Intent intent = getIntent();
 		overridePendingTransition(0, 0);
 		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
@@ -1240,206 +1240,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	public class ScrapeTask extends AsyncTask<String, Void, String> {
-
-		ProgressDialog dialog;
-		Context context;
-		String status;
-		String username;
-		String password;
-		String id;
-		String school;
-		boolean firstLog;
-		boolean showDialog;
-
-		public ScrapeTask(Context context, boolean showDialog) {
-			this.context = context;
-			this.showDialog = showDialog;
-		}
-
-		/*
-		 * Scrapes ParentConnection remotely.
-		 * 
-		 * @param[0] The username to log in with.
-		 * 
-		 * @param[1] The password to log in with.
-		 * 
-		 * @param[2] The student id.
-		 * 
-		 * @param[3] The id of the school logging in with. "Austin" or
-		 * "RoundRock".
-		 * 
-		 * @return A String of the webpage HTML.
-		 */
-		protected String doInBackground(String... information) {
-			username = information[0];
-			password = information[1];
-			id = information[2];
-			school = information[3];
-			String firstLogin = information[4];
-			firstLog = (firstLogin.equals("yes")) ? true : false;
-
-			String status = Constants.UNKNOWN_ERROR;
-			if (school.equals(Constants.AUSTIN)) {
-				gradeSpeedDistrict = new Austin();
-			} else if (school.equals(Constants.ROUNDROCK)) {
-				gradeSpeedDistrict = new RoundRock();
-			}
-			status = scrape(username, password, id, gradeSpeedDistrict);
-			return status;
-		}
-
-		protected void onPostExecute(String response) {
-			handleResponse(response);
-		}
-
-		public void handleResponse(String response) {
-			if (response.equals(Constants.UNKNOWN_ERROR)) {
-				if (showDialog) {
-					dialog.dismiss();
-				}
-				setRefreshActionButtonState(false);
-				// Error unknown
-				Toast.makeText(
-						context,
-						"Something went wrong. GradeSpeed servers are probably down. Try relogging or refreshing.",
-						Toast.LENGTH_SHORT).show();
-				signInButton.setVisibility(View.VISIBLE);
-			} else if (response.equals(Constants.INVALID_LOGIN)) {
-				if (showDialog) {
-					dialog.dismiss();
-				}
-
-				setRefreshActionButtonState(false);
-				// Wrong credentials sent
-				Toast.makeText(
-						context,
-						"Invalid username, password, student ID, or school district.",
-						Toast.LENGTH_SHORT).show();
-				// Only show signinbutton if there's no other student to show
-				// grades for
-				if (studentList != null) {
-					if (!(studentList.length > 0)) {
-						signInButton.setVisibility(View.VISIBLE);
-					}
-				} else {
-					signInButton.setVisibility(View.VISIBLE);
-				}
-				startLogin();
-			} else if (!firstLog) {
-				displayLastUpdateTime(System.currentTimeMillis() - 10);
-				saver.saveCourses(courses, currentUsername, currentId);
-
-				makeCourseCards(true);
-				if (showDialog) {
-					dialog.dismiss();
-				}
-
-				setupActionBar();
-				setRefreshActionButtonState(false);
-			} else {
-				// first login
-				settingsManager.addStudent(username, password, id, school);
-				utils.makeAlarms();
-				if (showDialog) {
-					dialog.dismiss();
-				}
-				restartActivity();
-			}
-
-		}
-
-		protected void onPreExecute() {
-			super.onPreExecute();
-			if (showDialog) {
-				dialog = new ProgressDialog(context);
-				dialog.setCancelable(false);
-				dialog.setMessage("Loading Grades...");
-				dialog.show();
-			}
-
-			setRefreshActionButtonState(true);
-
-		}
-
-		public String scrape(final String username, final String password,
-				final String id, GradeSpeedDistrict district) {
-			retriever = new GradeRetriever(district);
-			parser = new GradeParser(district);
-			status = Constants.INVALID_LOGIN;
-
-			final XHR.ResponseHandler getAveragesHandler = new XHR.ResponseHandler() {
-
-				@Override
-				public void onSuccess(String response) {
-					if (status != Constants.UNKNOWN_ERROR
-							&& status != Constants.INVALID_LOGIN) {
-						loggedIn = true;
-						saver.saveLatestResponse(response, username, id);
-						courses = parser.parseAverages(response);
-						// Set up the classGradesList with unintialized
-						// class grades
-						for (int i = 0; i < courses.length; i++) {
-							classGradesList.add(null);
-						}
-						settingsManager.saveLastLogin(currentUsername,
-								currentId, System.currentTimeMillis());
-					}
-				}
-
-				@Override
-				public void onFailure(Exception e) {
-					setStatus(Constants.UNKNOWN_ERROR);
-				}
-			};
-
-			final XHR.ResponseHandler disambiguateHandler = new XHR.ResponseHandler() {
-
-				@Override
-				public void onSuccess(String response) {
-					if (status != Constants.UNKNOWN_ERROR
-							&& status != Constants.INVALID_LOGIN) {
-						setStatus(Constants.SUCCESSFUL_LOGIN);
-						retriever.getAverages(getAveragesHandler);
-					}
-				}
-
-				@Override
-				public void onFailure(Exception e) {
-					setStatus(Constants.UNKNOWN_ERROR);
-				}
-			};
-
-			final GradeRetriever.LoginResponseHandler loginHandler = new GradeRetriever.LoginResponseHandler() {
-
-				@Override
-				public void onRequiresDisambiguation(String response,
-						StudentInfo[] students, ASPNETPageState state) {
-					setStatus(Constants.SUCCESSFUL_LOGIN);
-					retriever.disambiguate(id, state, disambiguateHandler);
-				}
-
-				@Override
-				public void onFailure(Exception e) {
-					setStatus(Constants.INVALID_LOGIN);
-				}
-
-				@Override
-				public void onDoesNotRequireDisambiguation(String response) {
-					setStatus(Constants.SUCCESSFUL_LOGIN);
-					retriever.getAverages(getAveragesHandler);
-				}
-			};
-
-			retriever.login(username, password, loginHandler);
-			return status;
-		}
-
-		public void setStatus(String status) {
-			this.status = status;
-		}
-
-	}
+	
 
 	public class CycleScrapeTask extends AsyncTask<String, Void, String> {
 
